@@ -35,7 +35,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             padding: 10px 0;
         }
 
@@ -45,6 +45,17 @@
             text-transform: uppercase;
             letter-spacing: 2px;
             text-shadow: var(--shadow);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .username {
+            font-size: 1.2rem;
+            font-weight: 600;
         }
 
         .profile-btn {
@@ -65,6 +76,44 @@
         .profile-btn:hover {
             transform: scale(1.1);
             box-shadow: var(--shadow);
+        }
+
+        .category-nav {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-red) rgba(255, 255, 255, 0.2);
+        }
+
+        .category-nav::-webkit-scrollbar {
+            height: 5px;
+        }
+
+        .category-nav::-webkit-scrollbar-thumb {
+            background: var(--primary-red);
+            border-radius: 4px;
+        }
+
+        .category-btn {
+            background: var(--card-bg);
+            color: var(--white);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            transition: background 0.3s ease, transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .category-btn.active {
+            background: var(--primary-red);
+        }
+
+        .category-btn:hover {
+            transform: scale(1.05);
+            background: rgba(237, 73, 86, 0.8);
         }
 
         .search-bar {
@@ -199,6 +248,19 @@
             .search-bar {
                 max-width: 100%;
             }
+
+            .category-nav {
+                flex-wrap: nowrap;
+            }
+
+            .user-info {
+                flex-direction: column;
+                align-items: flex-end;
+            }
+
+            .username {
+                font-size: 1rem;
+            }
         }
     </style>
 </head>
@@ -206,7 +268,17 @@
     <div class="container">
         <div class="header">
             <h1>MusicStream</h1>
-            <div class="profile-btn" onclick="showProfile()">👤</div>
+            <div class="user-info">
+                <span class="username" id="username">Loading...</span>
+                <div class="profile-btn" onclick="showProfile()">👤</div>
+            </div>
+        </div>
+        <div class="category-nav" id="categoryNav">
+            <div class="category-btn active" onclick="filterCategory('all')">All</div>
+            <div class="category-btn" onclick="filterCategory('pop')">Pop</div>
+            <div class="category-btn" onclick="filterCategory('rock')">Rock</div>
+            <div class="category-btn" onclick="filterCategory('hip-hop')">Hip-Hop</div>
+            <div class="category-btn" onclick="filterCategory('jazz')">Jazz</div>
         </div>
         <input type="text" class="search-bar" placeholder="Search songs, artists, or genres..." oninput="searchContent(this.value)">
         <div class="section">
@@ -254,11 +326,15 @@
             'https://images.unsplash.com/photo-1493225457124-a190c3e9c2c6?auto=format&fit=crop&w=150&q=80'
         ];
 
-        // Check Auth State
+        let activeCategory = 'all';
+
+        // Check Auth State and Update Username
         onAuthStateChanged(auth, (user) => {
             if (!user) {
                 window.location.href = "signup.html";
             } else {
+                const usernameEl = document.getElementById('username');
+                usernameEl.textContent = user.displayName || user.email || 'User';
                 loadPlaylists();
                 loadSongs();
             }
@@ -268,7 +344,7 @@
         function showProfile() {
             const user = auth.currentUser;
             if (user) {
-                const profileInfo = `Email: ${user.email || 'N/A'}\nOptions: [Logout]`;
+                const profileInfo = `Username: ${user.displayName || user.email || 'N/A'}\nOptions: [Logout]`;
                 const choice = prompt(profileInfo);
                 if (choice && choice.toLowerCase() === 'logout') {
                     signOutUser();
@@ -318,38 +394,53 @@
                     return;
                 }
 
-                const categories = {};
-                Object.values(musicData).forEach(track => {
-                    if (!categories[track.genre]) {
-                        categories[track.genre] = [];
-                    }
-                    categories[track.genre].push(track);
-                });
-
-                Object.keys(categories).forEach(genre => {
-                    const categoryDiv = document.createElement('div');
-                    categoryDiv.className = 'section';
-                    categoryDiv.innerHTML = `<h2>${genre.charAt(0).toUpperCase() + genre.slice(1)}</h2>`;
-                    const musicList = document.createElement('div');
-                    musicList.className = 'music-grid';
-                    categories[genre].forEach(track => {
-                        const musicCard = document.createElement('div');
-                        musicCard.className = 'music-card';
-                        musicCard.innerHTML = `
-                            <div>
-                                <strong>${track.title}</strong><br>
-                                <span class="text-sm opacity-80">${track.artist}</span>
-                            </div>
-                            <audio controls src="${track.url}"></audio>
-                        `;
-                        musicList.appendChild(musicCard);
+                const songs = Object.values(musicData);
+                const filteredSongs = activeCategory === 'all' ? songs : songs.filter(song => song.genre.toLowerCase() === activeCategory);
+                if (filteredSongs.length > 0) {
+                    const categories = {};
+                    filteredSongs.forEach(track => {
+                        if (!categories[track.genre]) {
+                            categories[track.genre] = [];
+                        }
+                        categories[track.genre].push(track);
                     });
-                    categoryDiv.appendChild(musicList);
-                    categoriesContainer.appendChild(categoryDiv);
-                });
+
+                    Object.keys(categories).forEach(genre => {
+                        const categoryDiv = document.createElement('div');
+                        categoryDiv.className = 'section';
+                        categoryDiv.innerHTML = `<h2>${genre.charAt(0).toUpperCase() + genre.slice(1)}</h2>`;
+                        const musicList = document.createElement('div');
+                        musicList.className = 'music-grid';
+                        categories[genre].forEach(track => {
+                            const musicCard = document.createElement('div');
+                            musicCard.className = 'music-card';
+                            musicCard.innerHTML = `
+                                <div>
+                                    <strong>${track.title}</strong><br>
+                                    <span class="text-sm opacity-80">${track.artist || 'Unknown Artist'}</span>
+                                </div>
+                                <audio controls src="${track.url}"></audio>
+                            `;
+                            musicList.appendChild(musicCard);
+                        });
+                        categoryDiv.appendChild(musicList);
+                        categoriesContainer.appendChild(categoryDiv);
+                    });
+                } else {
+                    categoriesContainer.innerHTML = '<p class="text-center">No songs in this category.</p>';
+                }
             }, (error) => {
                 document.getElementById('music-error').textContent = 'Error loading songs: ' + error.message;
             });
+        }
+
+        // Filter Categories
+        function filterCategory(category) {
+            activeCategory = category;
+            const buttons = document.getElementById('categoryNav').getElementsByClassName('category-btn');
+            Array.from(buttons).forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`#categoryNav .category-btn[onclick="filterCategory('${category}')"]`).classList.add('active');
+            loadSongs();
         }
 
         // Search Functionality for Songs
