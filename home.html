@@ -6,6 +6,7 @@
     <title>MusicStream Home</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://widget.cloudinary.com/v2.0/global/all.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         :root {
             --primary-red: #ED4956;
@@ -54,7 +55,7 @@
             transform: scale(1.05);
         }
 
-        .reels-section {
+        .reels-section, .upload-section {
             margin-bottom: 40px;
         }
 
@@ -124,6 +125,29 @@
         .upload-btn:hover {
             background: #d43f4b;
             transform: scale(1.05);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--white);
+            border: none;
+        }
+
+        input::placeholder {
+            color: #ccc;
         }
 
         .category-section {
@@ -208,6 +232,33 @@
             <div class="loader" id="reel-loader">Uploading...</div>
             <div class="reels-container" id="reelsList"></div>
         </div>
+        <div class="upload-section">
+            <h2>Upload Music</h2>
+            <div class="error" id="music-upload-error"></div>
+            <div class="form-group">
+                <label for="title">Song Title</label>
+                <input type="text" id="title" placeholder="Enter song title">
+            </div>
+            <div class="form-group">
+                <label for="artist">Artist Name</label>
+                <input type="text" id="artist" placeholder="Enter artist name">
+            </div>
+            <div class="form-group">
+                <label for="genre">Genre</label>
+                <select id="genre">
+                    <option value="pop">Pop</option>
+                    <option value="rock">Rock</option>
+                    <option value="hiphop">Hip-Hop</option>
+                    <option value="jazz">Jazz</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="file">Music File (MP3)</label>
+                <input type="file" id="file" accept="audio/mp3">
+            </div>
+            <div class="loader" id="music-loader">Uploading...</div>
+            <button class="upload-btn" onclick="uploadMusic()">Upload Song</button>
+        </div>
         <div class="category-section">
             <h2>Songs by Category</h2>
             <div class="error" id="music-error"></div>
@@ -236,8 +287,9 @@
         const database = getDatabase(app);
 
         // Cloudinary Configuration
-        const CLOUDINARY_CLOUD_NAME = 'dqkujefxj'; // Replace with your Cloudinary cloud name
-        const CLOUDINARY_UPLOAD_PRESET = 'banter_box'; // Replace with your upload preset
+        const CLOUDINARY_CLOUD_NAME = 'dqkujefxj';
+        const CLOUDINARY_UPLOAD_PRESET = 'banter_box';
+        const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
 
         // Check Auth State
         onAuthStateChanged(auth, (user) => {
@@ -305,6 +357,63 @@
                 }
             ).open();
             document.getElementById('reel-loader').style.display = 'block';
+        }
+
+        // Upload Song to Cloudinary
+        async function uploadMusic() {
+            const user = auth.currentUser;
+            if (!user) {
+                document.getElementById('music-upload-error').textContent = 'Please sign in to upload songs.';
+                return;
+            }
+
+            const title = document.getElementById('title').value;
+            const artist = document.getElementById('artist').value;
+            const genre = document.getElementById('genre').value;
+            const file = document.getElementById('file').files[0];
+            const errorEl = document.getElementById('music-upload-error');
+            const loader = document.getElementById('music-loader');
+
+            if (!title || !artist || !file) {
+                errorEl.textContent = 'Please fill in all fields and select an MP3 file.';
+                return;
+            }
+
+            if (file.type !== 'audio/mpeg') {
+                errorEl.textContent = 'Please upload an MP3 file.';
+                return;
+            }
+
+            errorEl.textContent = '';
+            loader.style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+            try {
+                const response = await axios.post(CLOUDINARY_URL, formData);
+                const musicUrl = response.data.secure_url;
+
+                await push(ref(database, 'music'), {
+                    title,
+                    artist,
+                    genre,
+                    url: musicUrl,
+                    userId: user.uid,
+                    uploadedAt: Date.now()
+                });
+
+                document.getElementById('title').value = '';
+                document.getElementById('artist').value = '';
+                document.getElementById('file').value = '';
+                loader.style.display = 'none';
+                document.getElementById('music-upload-error').textContent = 'Song uploaded successfully!';
+                setTimeout(() => document.getElementById('music-upload-error').textContent = '', 3000);
+            } catch (error) {
+                loader.style.display = 'none';
+                errorEl.textContent = 'Error uploading song: ' + error.message;
+            }
         }
 
         // Load Reels
