@@ -6,21 +6,25 @@
     <title>MusicStream Home</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://widget.cloudinary.com/v2.0/global/all.js" type="text/javascript"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         :root {
             --primary-red: #ED4956;
             --white: #ffffff;
             --card-bg: rgba(255, 255, 255, 0.1);
+            --dark-red: #ff0000;
+            --light-red: #ff8c8c;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         body {
             font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #ff0000, #ff4d4d, #ff8c8c);
+            background: linear-gradient(135deg, var(--dark-red), #ff4d4d, var(--light-red));
             color: var(--white);
             min-height: 100vh;
             padding: 20px;
             margin: 0;
+            overflow-x: hidden;
+            transition: background 0.3s ease;
         }
 
         .container {
@@ -33,81 +37,106 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
+            padding: 10px 0;
         }
 
         h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: var(--shadow);
         }
 
-        .signout-btn {
-            background: var(--white);
-            color: var(--primary-red);
+        .profile-btn {
+            background: var(--card-bg);
+            color: var(--white);
             font-weight: 600;
             padding: 8px 16px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .profile-btn:hover {
+            transform: scale(1.1);
+            box-shadow: var(--shadow);
+        }
+
+        .search-bar {
+            margin: 20px 0;
+            padding: 10px;
+            width: 100%;
+            max-width: 400px;
+            background: var(--card-bg);
             border-radius: 20px;
-            transition: background 0.2s ease, transform 0.2s ease;
+            border: none;
+            color: var(--white);
+            font-size: 1rem;
         }
 
-        .signout-btn:hover {
-            background: #f0f0f0;
-            transform: scale(1.05);
+        .search-bar::placeholder {
+            color: #ccc;
         }
 
-        .reels-section, .upload-section {
+        .section {
             margin-bottom: 40px;
         }
 
         h2 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: var(--shadow);
         }
 
-        .reels-container {
+        .reels-container, .playlist-container {
             display: flex;
             overflow-x: auto;
-            gap: 15px;
-            padding-bottom: 10px;
+            gap: 20px;
+            padding-bottom: 15px;
             scrollbar-width: thin;
             scrollbar-color: var(--primary-red) rgba(255, 255, 255, 0.2);
         }
 
-        .reels-container::-webkit-scrollbar {
+        .reels-container::-webkit-scrollbar, .playlist-container::-webkit-scrollbar {
             height: 8px;
         }
 
-        .reels-container::-webkit-scrollbar-thumb {
+        .reels-container::-webkit-scrollbar-thumb, .playlist-container::-webkit-scrollbar-thumb {
             background: var(--primary-red);
             border-radius: 4px;
         }
 
-        .reel-item {
-            flex: 0 0 160px;
-            text-align: center;
+        .card {
+            flex: 0 0 180px;
             background: var(--card-bg);
-            border-radius: 12px;
-            padding: 10px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
         }
 
-        .reel-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow);
         }
 
-        .reel-item img, .reel-item video {
+        .card img, .card video {
             width: 100%;
             height: 200px;
             object-fit: cover;
-            border-radius: 8px;
+            border-radius: 10px;
         }
 
-        .reel-item p {
-            margin-top: 8px;
-            font-size: 0.9rem;
+        .card p {
+            margin-top: 10px;
+            font-size: 1rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -116,69 +145,42 @@
         .upload-btn {
             background: var(--primary-red);
             color: var(--white);
-            font-weight: 600;
-            padding: 10px 20px;
-            border-radius: 20px;
-            transition: background 0.2s ease, transform 0.2s ease;
+            font-weight: 700;
+            padding: 12px 24px;
+            border-radius: 25px;
+            transition: background 0.3s ease, transform 0.3s ease;
         }
 
         .upload-btn:hover {
             background: #d43f4b;
-            transform: scale(1.05);
+            transform: scale(1.1);
         }
 
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            color: var(--white);
-            border: none;
-        }
-
-        input::placeholder {
-            color: #ccc;
-        }
-
-        .category-section {
-            margin-bottom: 40px;
-        }
-
-        .music-list {
+        .music-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
         }
 
-        .music-item {
+        .music-card {
             background: var(--card-bg);
             padding: 15px;
-            border-radius: 12px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border-radius: 15px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .music-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        .music-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow);
         }
 
-        .music-item div {
+        .music-card div {
             margin-bottom: 10px;
         }
 
-        .music-item audio {
+        .music-card audio {
             width: 100%;
-            border-radius: 8px;
+            border-radius: 10px;
         }
 
         .error {
@@ -192,6 +194,25 @@
             text-align: center;
             margin: 20px 0;
             color: var(--white);
+            font-size: 1.2rem;
+        }
+
+        .premium-blur {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 2rem;
+            z-index: 1000;
+            text-align: center;
+            padding: 20px;
         }
 
         @media (max-width: 640px) {
@@ -200,19 +221,23 @@
             }
 
             h1 {
-                font-size: 1.5rem;
+                font-size: 1.8rem;
             }
 
-            .reel-item {
-                flex: 0 0 120px;
+            .card {
+                flex: 0 0 140px;
             }
 
-            .reel-item img, .reel-item video {
+            .card img, .card video {
                 height: 160px;
             }
 
-            .music-list {
+            .music-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .search-bar {
+                max-width: 100%;
             }
         }
     </style>
@@ -221,9 +246,10 @@
     <div class="container">
         <div class="header">
             <h1>MusicStream</h1>
-            <button class="signout-btn" onclick="signOutUser()">Sign Out</button>
+            <button class="profile-btn" onclick="signOutUser()">👤</button>
         </div>
-        <div class="reels-section">
+        <input type="text" class="search-bar" placeholder="Search songs or reels..." oninput="searchContent(this.value)">
+        <div class="section">
             <h2>Featured Reels</h2>
             <div class="flex justify-center mb-4">
                 <button class="upload-btn" onclick="openUploadWidget()">Upload Reel</button>
@@ -232,38 +258,19 @@
             <div class="loader" id="reel-loader">Uploading...</div>
             <div class="reels-container" id="reelsList"></div>
         </div>
-        <div class="upload-section">
-            <h2>Upload Music</h2>
-            <div class="error" id="music-upload-error"></div>
-            <div class="form-group">
-                <label for="title">Song Title</label>
-                <input type="text" id="title" placeholder="Enter song title">
-            </div>
-            <div class="form-group">
-                <label for="artist">Artist Name</label>
-                <input type="text" id="artist" placeholder="Enter artist name">
-            </div>
-            <div class="form-group">
-                <label for="genre">Genre</label>
-                <select id="genre">
-                    <option value="pop">Pop</option>
-                    <option value="rock">Rock</option>
-                    <option value="hiphop">Hip-Hop</option>
-                    <option value="jazz">Jazz</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="file">Music File (MP3)</label>
-                <input type="file" id="file" accept="audio/mp3">
-            </div>
-            <div class="loader" id="music-loader">Uploading...</div>
-            <button class="upload-btn" onclick="uploadMusic()">Upload Song</button>
+        <div class="section">
+            <h2>Recommended Playlists</h2>
+            <div class="playlist-container" id="playlists"></div>
         </div>
-        <div class="category-section">
+        <div class="section">
             <h2>Songs by Category</h2>
             <div class="error" id="music-error"></div>
-            <div id="categories"></div>
+            <div class="music-grid" id="categories"></div>
         </div>
+    </div>
+    <div id="premium-blur" class="premium-blur hidden">
+        Upgrade to Premium for unlimited streaming and exclusive content!
+        <button class="upload-btn mt-4" onclick="hidePremiumBlur()">Close</button>
     </div>
 
     <script type="module">
@@ -289,15 +296,16 @@
         // Cloudinary Configuration
         const CLOUDINARY_CLOUD_NAME = 'dqkujefxj';
         const CLOUDINARY_UPLOAD_PRESET = 'banter_box';
-        const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
 
-        // Check Auth State
+        // Check Auth State and Premium Status (Mock for now)
         onAuthStateChanged(auth, (user) => {
             if (!user) {
                 window.location.href = "signup.html";
             } else {
                 loadReels(user.uid);
+                loadPlaylists();
                 loadSongs();
+                checkPremiumStatus(user.uid);
             }
         });
 
@@ -359,63 +367,6 @@
             document.getElementById('reel-loader').style.display = 'block';
         }
 
-        // Upload Song to Cloudinary
-        async function uploadMusic() {
-            const user = auth.currentUser;
-            if (!user) {
-                document.getElementById('music-upload-error').textContent = 'Please sign in to upload songs.';
-                return;
-            }
-
-            const title = document.getElementById('title').value;
-            const artist = document.getElementById('artist').value;
-            const genre = document.getElementById('genre').value;
-            const file = document.getElementById('file').files[0];
-            const errorEl = document.getElementById('music-upload-error');
-            const loader = document.getElementById('music-loader');
-
-            if (!title || !artist || !file) {
-                errorEl.textContent = 'Please fill in all fields and select an MP3 file.';
-                return;
-            }
-
-            if (file.type !== 'audio/mpeg') {
-                errorEl.textContent = 'Please upload an MP3 file.';
-                return;
-            }
-
-            errorEl.textContent = '';
-            loader.style.display = 'block';
-
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-            try {
-                const response = await axios.post(CLOUDINARY_URL, formData);
-                const musicUrl = response.data.secure_url;
-
-                await push(ref(database, 'music'), {
-                    title,
-                    artist,
-                    genre,
-                    url: musicUrl,
-                    userId: user.uid,
-                    uploadedAt: Date.now()
-                });
-
-                document.getElementById('title').value = '';
-                document.getElementById('artist').value = '';
-                document.getElementById('file').value = '';
-                loader.style.display = 'none';
-                document.getElementById('music-upload-error').textContent = 'Song uploaded successfully!';
-                setTimeout(() => document.getElementById('music-upload-error').textContent = '', 3000);
-            } catch (error) {
-                loader.style.display = 'none';
-                errorEl.textContent = 'Error uploading song: ' + error.message;
-            }
-        }
-
         // Load Reels
         function loadReels(userId) {
             const reelsList = document.getElementById('reelsList');
@@ -424,16 +375,16 @@
                 const reelsData = snapshot.val();
                 if (reelsData) {
                     Object.values(reelsData).forEach(reel => {
-                        const reelItem = document.createElement('div');
-                        reelItem.className = 'reel-item';
+                        const card = document.createElement('div');
+                        card.className = 'card';
                         const mediaElement = reel.url.includes('.mp4') ?
                             `<video src="${reel.url}" controls poster="${reel.thumbnailUrl}"></video>` :
                             `<img src="${reel.url}" alt="${reel.title}">`;
-                        reelItem.innerHTML = `
+                        card.innerHTML = `
                             ${mediaElement}
                             <p>${reel.title}</p>
                         `;
-                        reelsList.appendChild(reelItem);
+                        reelsList.appendChild(card);
                     });
                 } else {
                     reelsList.innerHTML = '<p class="text-center">No reels available.</p>';
@@ -441,6 +392,22 @@
             }, (error) => {
                 document.getElementById('reel-error').textContent = 'Error loading reels: ' + error.message;
             });
+        }
+
+        // Load Playlists (Mock Data for Now)
+        function loadPlaylists() {
+            const playlists = document.getElementById('playlists');
+            const mockPlaylists = [
+                { id: 1, title: 'Pop Hits', image: 'https://via.placeholder.com/150' },
+                { id: 2, title: 'Rock Classics', image: 'https://via.placeholder.com/150' },
+                { id: 3, title: 'Hip-Hop Vibes', image: 'https://via.placeholder.com/150' }
+            ];
+            playlists.innerHTML = mockPlaylists.map(playlist => `
+                <div class="card">
+                    <img src="${playlist.image}" alt="${playlist.title}">
+                    <p>${playlist.title}</p>
+                </div>
+            `).join('');
         }
 
         // Load Songs by Category
@@ -454,7 +421,6 @@
                     return;
                 }
 
-                // Group songs by genre
                 const categories = {};
                 Object.values(musicData).forEach(track => {
                     if (!categories[track.genre]) {
@@ -463,24 +429,23 @@
                     categories[track.genre].push(track);
                 });
 
-                // Display songs by category
                 Object.keys(categories).forEach(genre => {
                     const categoryDiv = document.createElement('div');
-                    categoryDiv.className = 'category-section';
+                    categoryDiv.className = 'section';
                     categoryDiv.innerHTML = `<h2>${genre.charAt(0).toUpperCase() + genre.slice(1)}</h2>`;
                     const musicList = document.createElement('div');
-                    musicList.className = 'music-list';
+                    musicList.className = 'music-grid';
                     categories[genre].forEach(track => {
-                        const musicItem = document.createElement('div');
-                        musicItem.className = 'music-item';
-                        musicItem.innerHTML = `
+                        const musicCard = document.createElement('div');
+                        musicCard.className = 'music-card';
+                        musicCard.innerHTML = `
                             <div>
                                 <strong>${track.title}</strong><br>
                                 <span class="text-sm opacity-80">${track.artist}</span>
                             </div>
                             <audio controls src="${track.url}"></audio>
                         `;
-                        musicList.appendChild(musicItem);
+                        musicList.appendChild(musicCard);
                     });
                     categoryDiv.appendChild(musicList);
                     categoriesContainer.appendChild(categoryDiv);
@@ -488,6 +453,36 @@
             }, (error) => {
                 document.getElementById('music-error').textContent = 'Error loading songs: ' + error.message;
             });
+        }
+
+        // Search Functionality (Basic)
+        function searchContent(query) {
+            query = query.toLowerCase();
+            const reels = document.getElementById('reelsList').getElementsByClassName('card');
+            const songs = document.getElementById('categories').getElementsByClassName('music-card');
+
+            Array.from(reels).forEach(card => {
+                const title = card.getElementsByTagName('p')[0].textContent.toLowerCase();
+                card.style.display = title.includes(query) ? 'block' : 'none';
+            });
+
+            Array.from(songs).forEach(card => {
+                const title = card.getElementsByTagName('strong')[0].textContent.toLowerCase();
+                card.style.display = title.includes(query) ? 'block' : 'none';
+            });
+        }
+
+        // Mock Premium Check
+        function checkPremiumStatus(uid) {
+            // Simulate premium check (replace with real logic later)
+            const isPremium = Math.random() > 0.5; // 50% chance for demo
+            if (!isPremium) {
+                document.getElementById('premium-blur').classList.remove('hidden');
+            }
+        }
+
+        function hidePremiumBlur() {
+            document.getElementById('premium-blur').classList.add('hidden');
         }
     </script>
 </body>
