@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MusicStream Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://widget.cloudinary.com/v2.0/global/all.js" type="text/javascript"></script>
+    <style>
+        :root {
+            --primary-red: #ED4956;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff0000, #ff4d4d, #ff8c8c);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1, h2, h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--white);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .signout-btn {
+            background: #ffffff;
+            color: var(--primary-red);
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 5px;
+            transition: background 0.2s ease;
+        }
+
+        .signout-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .reels-section {
+            margin-bottom: 40px;
+        }
+
+        .reels-container {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding-bottom: 10px;
+        }
+
+        .reel-item {
+            flex: 0 0 auto;
+            width: 150px;
+            text-align: center;
+        }
+
+        .reel-item img, .reel-item video {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .reel-item p {
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+
+        .upload-btn {
+            background: var(--primary-red);
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .upload-btn:hover {
+            background: #d43f4b;
+        }
+
+        .category-section {
+            margin-bottom: 40px;
+        }
+
+        .music-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .music-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .music-item audio {
+            max-width: 200px;
+        }
+
+        .error {
+            color: #ffcccc;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            color: #fff;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 10px;
+            }
+
+            .reel-item {
+                width: 120px;
+            }
+
+            .reel-item img, .reel-item video {
+                height: 160px;
+            }
+
+            .music-item audio {
+                max-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MusicStream Home</h1>
+        <div class="flex justify-end mb-4">
+            <button class="signout-btn" onclick="signOutUser()">Sign Out</button>
+        </div>
+        <div class="reels-section">
+            <h2>Reels</h2>
+            <div class="flex justify-center mb-4">
+                <button class="upload-btn" onclick="openUploadWidget()">Upload Reel</button>
+            </div>
+            <div class="error" id="reel-error"></div>
+            <div class="loader" id="reel-loader">Uploading...</div>
+            <div class="reels-container" id="reelsList"></div>
+        </div>
+        <div class="category-section">
+            <h2>Songs by Category</h2>
+            <div class="error" id="music-error"></div>
+            <div id="categories"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
+            authDomain: "fire-b-a8878.firebaseapp.com",
+            databaseURL: "https://fire-b-a8878.firebaseio.com",
+            projectId: "fire-b-a8878",
+            storageBucket: "fire-b-a8878.firebasestorage.app",
+            messagingSenderId: "658673187627",
+            appId: "1:658673187627:web:6e4c29af661785f0afa36e",
+            measurementId: "G-V4W97VMSKL"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+
+        // Cloudinary Configuration
+        const CLOUDINARY_CLOUD_NAME = 'YOUR_CLOUD_NAME'; // Replace with your Cloudinary cloud name
+        const CLOUDINARY_UPLOAD_PRESET = 'YOUR_UPLOAD_PRESET'; // Replace with your upload preset
+
+        // Check Auth State
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = "signup.html";
+            } else {
+                loadReels(user.uid);
+                loadSongs();
+            }
+        });
+
+        // Sign Out
+        async function signOutUser() {
+            try {
+                await signOut(auth);
+                window.location.href = "signup.html";
+            } catch (error) {
+                document.getElementById('reel-error').textContent = 'Error signing out: ' + error.message;
+            }
+        }
+
+        // Upload Reel to Cloudinary
+        function openUploadWidget() {
+            const user = auth.currentUser;
+            if (!user) {
+                document.getElementById('reel-error').textContent = 'Please sign in to upload reels.';
+                return;
+            }
+
+            window.cloudinary.createUploadWidget(
+                {
+                    cloudName: CLOUDINARY_CLOUD_NAME,
+                    uploadPreset: CLOUDINARY_UPLOAD_PRESET,
+                    resourceType: 'auto', // Supports both image and video
+                    clientAllowedFormats: ['mp4', 'jpg', 'png'], // Restrict to MP4, JPG, PNG
+                    maxFiles: 1
+                },
+                async (error, result) => {
+                    if (error) {
+                        document.getElementById('reel-error').textContent = 'Upload failed: ' + error.message;
+                        document.getElementById('reel-loader').style.display = 'none';
+                        return;
+                    }
+                    if (result.event === 'success') {
+                        document.getElementByid('reel-loader').style.display = 'none';
+                        const reelUrl = result.info.secure_url;
+                        const thumbnailUrl = result.info.resource_type === 'video' ? result.info.thumbnail_url : reelUrl;
+                        const title = result.info.original_filename || 'Untitled Reel';
+
+                        try {
+                            await push(ref(database, 'reels'), {
+                                userId: user.uid,
+                                title,
+                                url: reelUrl,
+                                thumbnailUrl,
+                                uploadedAt: Date.now()
+                            });
+                            document.getElementById('reel-error').textContent = 'Reel uploaded successfully!';
+                            setTimeout(() => document.getElementById('reel-error').textContent = '', 3000);
+                        } catch (error) {
+                            document.getElementById('reel-error').textContent = 'Error saving reel: ' + error.message;
+                        }
+                    }
+                }
+            ).open();
+            document.getElementById('reel-loader').style.display = 'block';
+        }
+
+        // Load Reels
+        function loadReels(userId) {
+            const reelsList = document.getElementById('reelsList');
+            onValue(ref(database, 'reels'), (snapshot) => {
+                reelsList.innerHTML = '';
+                const reelsData = snapshot.val();
+                if (reelsData) {
+                    Object.values(reelsData).forEach(reel => {
+                        const reelItem = document.createElement('div');
+                        reelItem.className = 'reel-item';
+                        const mediaElement = reel.url.includes('.mp4') ?
+                            `<video src="${reel.url}" controls poster="${reel.thumbnailUrl}"></video>` :
+                            `<img src="${reel.url}" alt="${reel.title}">`;
+                        reelItem.innerHTML = `
+                            ${mediaElement}
+                            <p>${reel.title}</p>
+                        `;
+                        reelsList.appendChild(reelItem);
+                    });
+                } else {
+                    reelsList.innerHTML = '<p>No reels available.</p>';
+                }
+            }, (error) => {
+                document.getElementById('reel-error').textContent = 'Error loading reels: ' + error.message;
+            });
+        }
+
+        // Load Songs by Category
+        function loadSongs() {
+            const categoriesContainer = document.getElementById('categories');
+            onValue(ref(database, 'music'), (snapshot) => {
+                categoriesContainer.innerHTML = '';
+                const musicData = snapshot.val();
+                if (!musicData) {
+                    categoriesContainer.innerHTML = '<p>No songs available.</p>';
+                    return;
+                }
+
+                // Group songs by genre
+                const categories = {};
+                Object.values(musicData).forEach(track => {
+                    if (!categories[track.genre]) {
+                        categories[track.genre] = [];
+                    }
+                    categories[track.genre].push(track);
+                });
+
+                // Display songs by category
+                Object.keys(categories).forEach(genre => {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'category-section';
+                    categoryDiv.innerHTML = `<h3>${genre.charAt(0).toUpperCase() + genre.slice(1)}</h3>`;
+                    const musicList = document.createElement('div');
+                    musicList.className = 'music-list';
+                    categories[genre].forEach(track => {
+                        const musicItem = document.createElement('div');
+                        musicItem.className = 'music-item';
+                        musicItem.innerHTML = `
+                            <div>
+                                <strong>${track.title}</strong> by ${track.artist}
+                            </div>
+                            <audio controls src="${track.url}"></audio>
+                        `;
+                        musicList.appendChild(musicItem);
+                    });
+                    categoryDiv.appendChild(musicList);
+                    categoriesContainer.appendChild(categoryDiv);
+                });
+            }, (error) => {
+                document.getElementById('music-error').textContent = 'Error loading songs: ' + error.message;
+            });
+        }
+    </script>
+</body>
+</html>
