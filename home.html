@@ -80,7 +80,7 @@
 
         .category-nav {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             margin-bottom: 20px;
             overflow-x: auto;
             padding-bottom: 5px;
@@ -100,11 +100,13 @@
         .category-btn {
             background: var(--card-bg);
             color: var(--white);
-            padding: 8px 16px;
+            padding: 8px 0;
             border-radius: 20px;
             font-weight: 600;
             transition: background 0.3s ease, transform 0.3s ease;
             cursor: pointer;
+            width: 100px; /* Equal size for all buttons */
+            text-align: center; /* Center text within fixed width */
         }
 
         .category-btn.active {
@@ -261,6 +263,11 @@
             .username {
                 font-size: 1rem;
             }
+
+            .category-btn {
+                width: 80px; /* Slightly smaller on mobile for better fit */
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
@@ -275,10 +282,11 @@
         </div>
         <div class="category-nav" id="categoryNav">
             <div class="category-btn active" onclick="filterCategory('all')">All</div>
-            <div class="category-btn" onclick="filterCategory('pop')">Pop</div>
-            <div class="category-btn" onclick="filterCategory('rock')">Rock</div>
-            <div class="category-btn" onclick="filterCategory('hip-hop')">Hip-Hop</div>
-            <div class="category-btn" onclick="filterCategory('jazz')">Jazz</div>
+            <div class="category-btn" onclick="filterCategory('music')">Music</div>
+            <div class="category-btn" onclick="filterCategory('podcast')">Podcast</div>
+            <div class="category-btn" onclick="filterCategory('videos')">Videos</div>
+            <div class="category-btn" onclick="filterCategory('news')">News</div>
+            <div class="category-btn" onclick="filterCategory('reviews')">Reviews</div>
         </div>
         <input type="text" class="search-bar" placeholder="Search songs, artists, or genres..." oninput="searchContent(this.value)">
         <div class="section">
@@ -334,7 +342,7 @@
                 window.location.href = "signup.html";
             } else {
                 const usernameEl = document.getElementById('username');
-                usernameEl.textContent = user.displayName || user.email || 'User';
+                usernameEl.textContent = user.displayName || user.email.split('@')[0] || 'User'; // Use email username part as fallback
                 loadPlaylists();
                 loadSongs();
             }
@@ -383,43 +391,43 @@
             }).join('');
         }
 
-        // Load Songs by Category
+        // Load Songs by Category (using 'type' field)
         function loadSongs() {
             const categoriesContainer = document.getElementById('categories');
             onValue(ref(database, 'music'), (snapshot) => {
                 categoriesContainer.innerHTML = '';
                 const musicData = snapshot.val();
                 if (!musicData) {
-                    categoriesContainer.innerHTML = '<p class="text-center">No songs available.</p>';
+                    categoriesContainer.innerHTML = '<p class="text-center">No content available.</p>';
                     return;
                 }
 
-                const songs = Object.values(musicData);
-                const filteredSongs = activeCategory === 'all' ? songs : songs.filter(song => song.genre.toLowerCase() === activeCategory);
-                if (filteredSongs.length > 0) {
+                const items = Object.values(musicData);
+                const filteredItems = activeCategory === 'all' ? items : items.filter(item => item.type && item.type.toLowerCase() === activeCategory);
+                if (filteredItems.length > 0) {
                     const categories = {};
-                    filteredSongs.forEach(track => {
-                        if (!categories[track.genre]) {
-                            categories[track.genre] = [];
+                    filteredItems.forEach(item => {
+                        if (!categories[item.type || 'music']) { // Fallback to 'music' if type is missing
+                            categories[item.type || 'music'] = [];
                         }
-                        categories[track.genre].push(track);
+                        categories[item.type || 'music'].push(item);
                     });
 
-                    Object.keys(categories).forEach(genre => {
+                    Object.keys(categories).forEach(category => {
                         const categoryDiv = document.createElement('div');
                         categoryDiv.className = 'section';
-                        categoryDiv.innerHTML = `<h2>${genre.charAt(0).toUpperCase() + genre.slice(1)}</h2>`;
+                        categoryDiv.innerHTML = `<h2>${category.charAt(0).toUpperCase() + category.slice(1)}</h2>`;
                         const musicList = document.createElement('div');
                         musicList.className = 'music-grid';
-                        categories[genre].forEach(track => {
+                        categories[category].forEach(item => {
                             const musicCard = document.createElement('div');
                             musicCard.className = 'music-card';
                             musicCard.innerHTML = `
                                 <div>
-                                    <strong>${track.title}</strong><br>
-                                    <span class="text-sm opacity-80">${track.artist || 'Unknown Artist'}</span>
+                                    <strong>${item.title}</strong><br>
+                                    <span class="text-sm opacity-80">${item.artist || 'Unknown Artist'}</span>
                                 </div>
-                                <audio controls src="${track.url}"></audio>
+                                <audio controls src="${item.url}"></audio>
                             `;
                             musicList.appendChild(musicCard);
                         });
@@ -427,10 +435,10 @@
                         categoriesContainer.appendChild(categoryDiv);
                     });
                 } else {
-                    categoriesContainer.innerHTML = '<p class="text-center">No songs in this category.</p>';
+                    categoriesContainer.innerHTML = '<p class="text-center">No content in this category.</p>';
                 }
             }, (error) => {
-                document.getElementById('music-error').textContent = 'Error loading songs: ' + error.message;
+                document.getElementById('music-error').textContent = 'Error loading content: ' + error.message;
             });
         }
 
@@ -458,24 +466,24 @@
                 suggestedSongs.innerHTML = '';
                 const musicData = snapshot.val();
                 if (!musicData) {
-                    searchError.textContent = 'No songs available.';
+                    searchError.textContent = 'No content available.';
                     return;
                 }
 
-                const matches = Object.values(musicData).filter(track => {
-                    return track.title.toLowerCase().includes(query) ||
-                           (track.artist && track.artist.toLowerCase().includes(query)) ||
-                           track.genre.toLowerCase().includes(query);
+                const matches = Object.values(musicData).filter(item => {
+                    return item.title.toLowerCase().includes(query) ||
+                           (item.artist && item.artist.toLowerCase().includes(query)) ||
+                           (item.type && item.type.toLowerCase().includes(query));
                 });
 
                 if (matches.length > 0) {
-                    suggestedSongs.innerHTML = matches.map(track => `
+                    suggestedSongs.innerHTML = matches.map(item => `
                         <div class="music-card">
                             <div>
-                                <strong>${track.title}</strong><br>
-                                <span class="text-sm opacity-80">${track.artist || 'Unknown Artist'}</span>
+                                <strong>${item.title}</strong><br>
+                                <span class="text-sm opacity-80">${item.artist || 'Unknown Artist'}</span>
                             </div>
-                            <audio controls src="${track.url}"></audio>
+                            <audio controls src="${item.url}"></audio>
                         </div>
                     `).join('');
                     searchError.textContent = '';
