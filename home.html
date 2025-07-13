@@ -481,8 +481,10 @@
             }
         }
 
+        // Fix Premium Blur Close
         function hidePremiumBlur() {
-            document.getElementById('premium-blur').classList.add('hidden');
+            const premiumBlur = document.getElementById('premium-blur');
+            premiumBlur.classList.add('hidden'); // Add hidden class to hide
         }
     </script>
 </body>
