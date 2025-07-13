@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MusicStream Signup/Signin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary-red: #ED4956;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff0000, #ff4d4d, #ff8c8c);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .auth-container {
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            color: #fff;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 0 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background 0.2s ease;
+        }
+
+        .tab.active {
+            background: var(--primary-red);
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        input::placeholder {
+            color: #ccc;
+        }
+
+        button {
+            background: var(--primary-red);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        button:hover {
+            background: #d43f4b;
+        }
+
+        .error {
+            color: #ffcccc;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        #recaptcha-container {
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 640px) {
+            .auth-container {
+                width: 90%;
+                padding: 15px;
+            }
+
+            .tab {
+                padding: 8px 16px;
+                margin: 0 5px;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h2>Sign Up / Sign In</h2>
+        <div class="tabs">
+            <div class="tab active" onclick="showSection('signup')">Sign Up</div>
+            <div class="tab" onclick="showSection('signin')">Sign In</div>
+        </div>
+        <div id="signup" class="section active">
+            <div class="error" id="signup-error"></div>
+            <div class="form-group">
+                <label for="signup-email">Email</label>
+                <input type="email" id="signup-email" placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label for="signup-password">Password</label>
+                <input type="password" id="signup-password" placeholder="Enter your password">
+            </div>
+            <div class="form-group">
+                <label for="signup-phone">Phone Number</label>
+                <input type="tel" id="signup-phone" placeholder="Enter your phone number (e.g., +1234567890)">
+            </div>
+            <div id="recaptcha-container"></div>
+            <div id="phone-signup-section" style="display: none;">
+                <div class="form-group">
+                    <label for="signup-code">Verification Code</label>
+                    <input type="text" id="signup-code" placeholder="Enter SMS code">
+                </div>
+                <button onclick="verifyPhoneSignup()">Verify Code</button>
+            </div>
+            <button onclick="signUpWithEmail()">Sign Up with Email</button>
+            <button onclick="startPhoneSignup()">Sign Up with Phone</button>
+        </div>
+        <div id="signin" class="section">
+            <div class="error" id="signin-error"></div>
+            <div class="form-group">
+                <label for="signin-email">Email</label>
+                <input type="email" id="signin-email" placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label for="signin-password">Password</label>
+                <input type="password" id="signin-password" placeholder="Enter your password">
+            </div>
+            <div class="form-group">
+                <label for="signin-phone">Phone Number</label>
+                <input type="tel" id="signin-phone" placeholder="Enter your phone number (e.g., +1234567890)">
+            </div>
+            <div id="recaptcha-container-signin"></div>
+            <div id="phone-signin-section" style="display: none;">
+                <div class="form-group">
+                    <label for="signin-code">Verification Code</label>
+                    <input type="text" id="signin-code" placeholder="Enter SMS code">
+                </div>
+                <button onclick="verifyPhoneSignin()">Verify Code</button>
+            </div>
+            <button onclick="signInWithEmail()">Sign In with Email</button>
+            <button onclick="startPhoneSignin()">Sign In with Phone</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
+            authDomain: "fire-b-a8878.firebaseapp.com",
+            databaseURL: "https://fire-b-a8878.firebaseio.com",
+            projectId: "fire-b-a8878",
+            storageBucket: "fire-b-a8878.firebasestorage.app",
+            messagingSenderId: "658673187627",
+            appId: "1:658673187627:web:6e4c29af661785f0afa36e",
+            measurementId: "G-V4W97VMSKL"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // Initialize reCAPTCHA for phone auth
+        let recaptchaVerifier;
+        window.onload = () => {
+            recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                'size': 'invisible',
+                'callback': () => {}
+            });
+            // Duplicate for sign-in to avoid conflicts
+            new RecaptchaVerifier(auth, 'recaptcha-container-signin', {
+                'size': 'invisible',
+                'callback': () => {}
+            });
+        };
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+            document.querySelector(`[onclick="showSection('${sectionId}')"]`).classList.add('active');
+            document.getElementById(sectionId).classList.add('active');
+            document.getElementById('signup-error').textContent = '';
+            document.getElementById('signin-error').textContent = '';
+            document.getElementById('phone-signup-section').style.display = 'none';
+            document.getElementById('phone-signin-section').style.display = 'none';
+        }
+
+        // Email Sign-Up
+        async function signUpWithEmail() {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const errorEl = document.getElementById('signup-error');
+
+            if (!email || !password) {
+                errorEl.textContent = 'Please enter email and password.';
+                return;
+            }
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                await set(ref(db, `users/${user.uid}`), {
+                    email: user.email,
+                    createdAt: Date.now()
+                });
+                window.location.href = "home.html";
+            } catch (error) {
+                errorEl.textContent = `Sign-up failed: ${error.message}`;
+            }
+        }
+
+        // Phone Sign-Up
+        let confirmationResult;
+        async function startPhoneSignup() {
+            const phoneNumber = document.getElementById('signup-phone').value;
+            const errorEl = document.getElementById('signup-error');
+
+            if (!phoneNumber) {
+                errorEl.textContent = 'Please enter a phone number.';
+                return;
+            }
+
+            try {
+                confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+                document.getElementById('phone-signup-section').style.display = 'block';
+                errorEl.textContent = 'Verification code sent to your phone.';
+            } catch (error) {
+                errorEl.textContent = `Phone sign-up failed: ${error.message}`;
+                recaptchaVerifier.render().then(widgetId => grecaptcha.reset(widgetId));
+            }
+        }
+
+        async function verifyPhoneSignup() {
+            const code = document.getElementById('signup-code').value;
+            const errorEl = document.getElementById('signup-error');
+
+            if (!code) {
+                errorEl.textContent = 'Please enter the verification code.';
+                return;
+            }
+
+            try {
+                const result = await confirmationResult.confirm(code);
+                const user = result.user;
+                await set(ref(db, `users/${user.uid}`), {
+                    phoneNumber: user.phoneNumber,
+                    createdAt: Date.now()
+                });
+                window.location.href = "home.html";
+            } catch (error) {
+                errorEl.textContent = `Verification failed: ${error.message}`;
+            }
+        }
+
+        // Email Sign-In
+        async function signInWithEmail() {
+            const email = document.getElementById('signin-email').value;
+            const password = document.getElementById('signin-password').value;
+            const errorEl = document.getElementById('signin-error');
+
+            if (!email || !password) {
+                errorEl.textContent = 'Please enter email and password.';
+                return;
+            }
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                window.location.href = "home.html";
+            } catch (error) {
+                errorEl.textContent = `Sign-in failed: ${error.message}`;
+            }
+        }
+
+        // Phone Sign-In
+        async function startPhoneSignin() {
+            const phoneNumber = document.getElementById('signin-phone').value;
+            const errorEl = document.getElementById('signin-error');
+
+            if (!phoneNumber) {
+                errorEl.textContent = 'Please enter a phone number.';
+                return;
+            }
+
+            try {
+                confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+                document.getElementById('phone-signin-section').style.display = 'block';
+                errorEl.textContent = 'Verification code sent to your phone.';
+            } catch (error) {
+                errorEl.textContent = `Phone sign-in failed: ${error.message}`;
+                recaptchaVerifier.render().then(widgetId => grecaptcha.reset(widgetId));
+            }
+        }
+
+        async function verifyPhoneSignin() {
+            const code = document.getElementById('signin-code').value;
+            const errorEl = document.getElementById('signin-error');
+
+            if (!code) {
+                errorEl.textContent = 'Please enter the verification code.';
+                return;
+            }
+
+            try {
+                await confirmationResult.confirm(code);
+                window.location.href = "home.html";
+            } catch (error) {
+                errorEl.textContent = `Verification failed: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
