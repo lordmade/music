@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MusicStream Home</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         :root {
             --primary-red: #ED4956;
@@ -94,7 +93,7 @@
             text-shadow: var(--shadow);
         }
 
-        .reels-container, .playlist-container {
+        .playlist-container {
             display: flex;
             overflow-x: auto;
             gap: 20px;
@@ -103,11 +102,11 @@
             scrollbar-color: var(--primary-red) rgba(255, 255, 255, 0.2);
         }
 
-        .reels-container::-webkit-scrollbar, .playlist-container::-webkit-scrollbar {
+        .playlist-container::-webkit-scrollbar {
             height: 8px;
         }
 
-        .reels-container::-webkit-scrollbar-thumb, .playlist-container::-webkit-scrollbar-thumb {
+        .playlist-container::-webkit-scrollbar-thumb {
             background: var(--primary-red);
             border-radius: 4px;
         }
@@ -127,7 +126,7 @@
             box-shadow: var(--shadow);
         }
 
-        .card img, .card video {
+        .card img {
             width: 100%;
             height: 200px;
             object-fit: cover;
@@ -140,20 +139,6 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-
-        .upload-btn {
-            background: var(--primary-red);
-            color: var(--white);
-            font-weight: 700;
-            padding: 12px 24px;
-            border-radius: 25px;
-            transition: background 0.3s ease, transform 0.3s ease;
-        }
-
-        .upload-btn:hover {
-            background: #d43f4b;
-            transform: scale(1.1);
         }
 
         .music-grid {
@@ -189,32 +174,6 @@
             margin-bottom: 10px;
         }
 
-        .loader {
-            display: none;
-            text-align: center;
-            margin: 20px 0;
-            color: var(--white);
-            font-size: 1.2rem;
-        }
-
-        .premium-blur {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(5px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--white);
-            font-size: 2rem;
-            z-index: 1000;
-            text-align: center;
-            padding: 20px;
-        }
-
         @media (max-width: 640px) {
             .container {
                 padding: 10px;
@@ -228,7 +187,7 @@
                 flex: 0 0 140px;
             }
 
-            .card img, .card video {
+            .card img {
                 height: 160px;
             }
 
@@ -250,16 +209,6 @@
         </div>
         <input type="text" class="search-bar" placeholder="Search songs or reels..." oninput="searchContent(this.value)">
         <div class="section">
-            <h2>Featured Reels</h2>
-            <div class="flex justify-center mb-4">
-                <button class="upload-btn" onclick="triggerFileInput()">Upload Reel</button>
-                <input type="file" id="reelFileInput" accept="video/mp4,image/jpeg,image/png" style="display: none;" onchange="uploadReel()">
-            </div>
-            <div class="error" id="reel-error"></div>
-            <div class="loader" id="reel-loader">Uploading...</div>
-            <div class="reels-container" id="reelsList"></div>
-        </div>
-        <div class="section">
             <h2>Recommended Playlists</h2>
             <div class="playlist-container" id="playlists"></div>
         </div>
@@ -269,15 +218,11 @@
             <div class="music-grid" id="categories"></div>
         </div>
     </div>
-    <div id="premium-blur" class="premium-blur hidden">
-        Upgrade to Premium for unlimited streaming and exclusive content!
-        <button class="upload-btn mt-4" onclick="hidePremiumBlur()">Close</button>
-    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -294,11 +239,6 @@
         const auth = getAuth(app);
         const database = getDatabase(app);
 
-        // Cloudinary Configuration
-        const CLOUDINARY_CLOUD_NAME = 'dqkujefxj';
-        const CLOUDINARY_UPLOAD_PRESET = 'banter_box';
-        const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
-
         // Random Image URLs
         const randomImages = [
             'https://images.unsplash.com/photo-1511671782779-c97e527c2c79?auto=format&fit=crop&w=150&q=80',
@@ -308,15 +248,13 @@
             'https://images.unsplash.com/photo-1493225457124-a190c3e9c2c6?auto=format&fit=crop&w=150&q=80'
         ];
 
-        // Check Auth State and Premium Status (Mock for now)
+        // Check Auth State
         onAuthStateChanged(auth, (user) => {
             if (!user) {
                 window.location.href = "signup.html";
             } else {
-                loadReels(user.uid);
                 loadPlaylists();
                 loadSongs();
-                checkPremiumStatus(user.uid);
             }
         });
 
@@ -326,96 +264,8 @@
                 await signOut(auth);
                 window.location.href = "signup.html";
             } catch (error) {
-                document.getElementById('reel-error').textContent = 'Error signing out: ' + error.message;
+                document.getElementById('music-error').textContent = 'Error signing out: ' + error.message;
             }
-        }
-
-        // Trigger File Input
-        function triggerFileInput() {
-            const user = auth.currentUser;
-            if (!user) {
-                document.getElementById('reel-error').textContent = 'Please sign in to upload reels.';
-                return;
-            }
-            document.getElementById('reelFileInput').click();
-        }
-
-        // Upload Reel to Cloudinary
-        async function uploadReel() {
-            const user = auth.currentUser;
-            const fileInput = document.getElementById('reelFileInput');
-            const file = fileInput.files[0];
-            const errorEl = document.getElementById('reel-error');
-            const loader = document.getElementById('reel-loader');
-
-            if (!file) {
-                errorEl.textContent = 'Please select a file to upload.';
-                return;
-            }
-
-            if (!['video/mp4', 'image/jpeg', 'image/png'].includes(file.type)) {
-                errorEl.textContent = 'Please upload an MP4, JPG, or PNG file.';
-                fileInput.value = '';
-                return;
-            }
-
-            errorEl.textContent = '';
-            loader.style.display = 'block';
-
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-            try {
-                const response = await axios.post(CLOUDINARY_URL, formData);
-                const reelUrl = response.data.secure_url;
-                const thumbnailUrl = file.type.startsWith('video') ? response.data.thumbnail_url : reelUrl;
-                const title = prompt('Enter a title for your reel:', file.name || 'Untitled Reel');
-
-                await push(ref(database, 'reels'), {
-                    userId: user.uid,
-                    title: title || 'Untitled Reel',
-                    url: reelUrl,
-                    thumbnailUrl,
-                    uploadedAt: Date.now()
-                });
-
-                fileInput.value = ''; // Clear input
-                loader.style.display = 'none';
-                errorEl.textContent = 'Reel uploaded successfully!';
-                setTimeout(() => errorEl.textContent = '', 3000);
-            } catch (error) {
-                loader.style.display = 'none';
-                errorEl.textContent = 'Error uploading reel: ' + error.message;
-                fileInput.value = '';
-            }
-        }
-
-        // Load Reels
-        function loadReels(userId) {
-            const reelsList = document.getElementById('reelsList');
-            onValue(ref(database, 'reels'), (snapshot) => {
-                reelsList.innerHTML = '';
-                const reelsData = snapshot.val();
-                if (reelsData) {
-                    Object.values(reelsData).forEach(reel => {
-                        const card = document.createElement('div');
-                        card.className = 'card';
-                        const mediaElement = reel.url.includes('.mp4') ?
-                            `<video src="${reel.url}" controls poster="${reel.thumbnailUrl}"></video>` :
-                            `<img src="${reel.url}" alt="${reel.title}">`;
-                        card.innerHTML = `
-                            ${mediaElement}
-                            <p>${reel.title}</p>
-                        `;
-                        reelsList.appendChild(card);
-                    });
-                } else {
-                    reelsList.innerHTML = '<p class="text-center">No reels available.</p>';
-                }
-            }, (error) => {
-                document.getElementById('reel-error').textContent = 'Error loading reels: ' + error.message;
-            });
         }
 
         // Load Playlists with Random Images
@@ -485,32 +335,12 @@
         // Search Functionality (Basic)
         function searchContent(query) {
             query = query.toLowerCase();
-            const reels = document.getElementById('reelsList').getElementsByClassName('card');
             const songs = document.getElementById('categories').getElementsByClassName('music-card');
-
-            Array.from(reels).forEach(card => {
-                const title = card.getElementsByTagName('p')[0].textContent.toLowerCase();
-                card.style.display = title.includes(query) ? 'block' : 'none';
-            });
 
             Array.from(songs).forEach(card => {
                 const title = card.getElementsByTagName('strong')[0].textContent.toLowerCase();
                 card.style.display = title.includes(query) ? 'block' : 'none';
             });
-        }
-
-        // Mock Premium Check
-        function checkPremiumStatus(uid) {
-            const isPremium = Math.random() > 0.5; // 50% chance for demo
-            if (!isPremium) {
-                document.getElementById('premium-blur').classList.remove('hidden');
-            }
-        }
-
-        // Fix Premium Blur Close
-        function hidePremiumBlur() {
-            const premiumBlur = document.getElementById('premium-blur');
-            premiumBlur.classList.add('hidden');
         }
     </script>
 </body>
