@@ -53,10 +53,19 @@
       border-radius: 9999px;
       cursor: pointer;
       transition: background 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .tab:hover, .tab.active {
       background: var(--highlight);
+    }
+
+    .tab svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      stroke: var(--text-primary);
     }
 
     .welcome-container {
@@ -234,111 +243,6 @@
     #new-chat-button:hover, #hamburger-button:hover {
       background: var(--highlight);
     }
-
-    /* Bottom Sheet Styles */
-    #profile-sheet, #settings-sheet {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--card-bg);
-      color: var(--text-primary);
-      padding: 1.5rem;
-      border-top-left-radius: 1rem;
-      border-top-right-radius: 1rem;
-      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
-      transform: translateY(100%);
-      transition: transform 0.3s ease-in-out;
-      max-height: 80vh;
-      overflow-y: auto;
-      z-index: 20;
-    }
-
-    #profile-sheet.open, #settings-sheet.open {
-      transform: translateY(0);
-    }
-
-    .profile-picture {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid var(--border);
-    }
-
-    .form-group {
-      margin-bottom: 1rem;
-    }
-
-    .form-group label {
-      display: block;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-    }
-
-    .form-group input, .form-group select {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      background: var(--ai-msg-bg);
-      color: var(--text-primary);
-    }
-
-    .save-button, .signout-button {
-      background: var(--highlight);
-      color: var(--text-primary);
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      transition: background 0.2s;
-      margin-top: 0.5rem;
-    }
-
-    .save-button:hover, .signout-button:hover {
-      background: #2d8c89; /* Darker shade of --highlight */
-    }
-
-    /* Modal Styles */
-    #privacy-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 30;
-    }
-
-    #privacy-modal.open {
-      display: flex;
-    }
-
-    .modal-content {
-      background: var(--card-bg);
-      color: var(--text-primary);
-      padding: 2rem;
-      border-radius: 1rem;
-      max-width: 500px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-      position: relative;
-    }
-
-    .modal-close {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      background: none;
-      border: none;
-      color: var(--text-primary);
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -362,11 +266,22 @@
       <div id="conversation-list" class="flex-1 overflow-y-auto p-4"></div>
     </div>
     <div class="tab-container">
-      <div class="tab" id="profile-tab">Profile</div>
-      <div class="tab" id="settings-tab">Settings</div>
+      <a href="profile.html" class="tab" id="profile-tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        Profile
+      </a>
+      <a href="settings.html" class="tab" id="settings-tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Settings
+      </a>
     </div>
     <div class="welcome-container" id="welcome-container">
-      <h1 class="text-2xl font-bold text-gray-900">Hello, User!</h1>
+      <h1 class="text-2xl font-bold text-gray-900">Hey there, friend!</h1>
     </div>
     <div id="chat-messages" class="flex-1 overflow-y-auto"></div>
     <div class="chat-input-container">
@@ -375,79 +290,18 @@
           <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
         </svg>
       </button>
-      <input type="text" id="chat-input" placeholder="Ask me anything..." aria-label="Type your prompt">
+      <input type="text" id="chat-input" placeholder="What's on your mind?" aria-label="Type your prompt">
       <button id="send-button">
         <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M5 12h14M5 12l6-6m-6 6l6 6"/>
         </svg>
       </button>
     </div>
-    <!-- Profile Bottom Sheet -->
-    <div id="profile-sheet" class="hidden">
-      <h2 class="text-xl font-bold mb-4">User Profile</h2>
-      <div class="form-group">
-        <img id="profile-picture" class="profile-picture mx-auto" src="https://via.placeholder.com/100" alt="Profile Picture">
-        <input type="file" id="profile-picture-upload" accept="image/*" class="mt-2">
-      </div>
-      <div class="form-group">
-        <label for="profile-name">Name</label>
-        <input type="text" id="profile-name" placeholder="Enter your name">
-      </div>
-      <div class="form-group">
-        <label for="profile-email">Email</label>
-        <input type="email" id="profile-email" placeholder="Enter your email" readonly>
-      </div>
-      <button id="save-profile" class="save-button mt-4">Save Changes</button>
-    </div>
-    <!-- Settings Bottom Sheet -->
-    <div id="settings-sheet" class="hidden">
-      <h2 class="text-xl font-bold mb-4">Settings</h2>
-      <div class="form-group">
-        <label for="ai-response-length">AI Response Length</label>
-        <select id="ai-response-length" class="form-group input">
-          <option value="short">Short</option>
-          <option value="medium" selected>Medium</option>
-          <option value="long">Long</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="ai-tone">AI Tone</label>
-        <select id="ai-tone" class="form-group input">
-          <option value="friendly">Friendly</option>
-          <option value="professional" selected>Professional</option>
-          <option value="casual">Casual</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="notifications">Enable Notifications</label>
-        <input type="checkbox" id="notifications" checked>
-      </div>
-      <button id="privacy-policy" class="save-button mt-4">Data Privacy</button>
-      <button id="signout-button" class="signout-button mt-4">Sign Out</button>
-    </div>
-    <!-- Privacy Policy Modal -->
-    <div id="privacy-modal" class="hidden">
-      <div class="modal-content">
-        <button id="close-privacy-modal" class="modal-close">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <path d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-        <h2 class="text-xl font-bold mb-4">Data Privacy Policy</h2>
-        <p class="mb-2">At Vynix AI, we prioritize your privacy. Your data is securely stored and used only to enhance your experience. We collect:</p>
-        <ul class="list-disc pl-5 mb-4">
-          <li>User profile information (name, email, profile picture) for personalization.</li>
-          <li>Chat history to improve AI responses and maintain conversation context.</li>
-          <li>Uploaded images for analysis, stored securely via Cloudinary.</li>
-        </ul>
-        <p>We do not share your data with third parties except as required for service provision (e.g., Cloudinary for image storage). You can manage your data via the Profile and Settings tabs.</p>
-      </div>
-    </div>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, push, onValue, set } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -464,12 +318,7 @@
       messages: [],
       geminiApiKey: 'AIzaSyD79iPuCs7sW4DQJ7ij9SZZXtEJm6po8K8', // Move to environment variable in production
       hasChatted: false,
-      conversationId: null,
-      settings: {
-        responseLength: 'medium',
-        tone: 'professional',
-        notifications: true
-      }
+      conversationId: null
     };
 
     const elements = {
@@ -482,23 +331,7 @@
       sidebar: document.getElementById('sidebar'),
       closeSidebar: document.getElementById('close-sidebar'),
       conversationList: document.getElementById('conversation-list'),
-      imageUploadButton: document.getElementById('image-upload-button'),
-      profileTab: document.getElementById('profile-tab'),
-      settingsTab: document.getElementById('settings-tab'),
-      profileSheet: document.getElementById('profile-sheet'),
-      settingsSheet: document.getElementById('settings-sheet'),
-      profilePicture: document.getElementById('profile-picture'),
-      profilePictureUpload: document.getElementById('profile-picture-upload'),
-      profileName: document.getElementById('profile-name'),
-      profileEmail: document.getElementById('profile-email'),
-      saveProfile: document.getElementById('save-profile'),
-      aiResponseLength: document.getElementById('ai-response-length'),
-      aiTone: document.getElementById('ai-tone'),
-      notifications: document.getElementById('notifications'),
-      privacyPolicy: document.getElementById('privacy-policy'),
-      privacyModal: document.getElementById('privacy-modal'),
-      closePrivacyModal: document.getElementById('close-privacy-modal'),
-      signoutButton: document.getElementById('signout-button')
+      imageUploadButton: document.getElementById('image-upload-button')
     };
 
     let app, auth, db;
@@ -512,8 +345,7 @@
           elements.chatInput.disabled = false;
           elements.sendButton.disabled = false;
           loadConversations();
-          loadProfile(user);
-          loadSettings();
+          elements.welcomeContainer.querySelector('h1').textContent = `Hey there, ${user.displayName || 'friend'}!`;
         } else {
           window.location.href = 'signup.html';
         }
@@ -556,12 +388,11 @@
       try {
         let requestBody = {
           contents: [{
-            parts: [{ text: `You are Vynix AI, crafted by Katlego in Mokopane, South Africa. Respond concisely as a general AI assistant like Grok. ${state.settings.tone} tone, ${state.settings.responseLength} length. Query: ${prompt}` }]
+            parts: [{ text: `You are Vynix AI, crafted by Katlego in Mokopane, South Africa. Respond like a friendly, human buddy with a warm, conversational tone. Keep it concise and fun! Query: ${prompt}` }]
           }]
         };
         if (imageUrl) {
-          requestBody.contents[0].parts[0].text = `Analyze and interpret this image: ${prompt}`;
-          // Note: Gemini API may require base64 or other format for images. Adjust if needed.
+          requestBody.contents[0].parts[0].text = `Hey, let's check out this image! Describe what you see in a fun, friendly way.`;
           requestBody.contents[0].parts.push({ inlineData: { mimeType: 'image/jpeg', data: imageUrl } });
         }
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${state.geminiApiKey}`, {
@@ -570,12 +401,12 @@
           body: JSON.stringify(requestBody)
         });
         const data = await res.json();
-        const response = data.candidates[0].content.parts[0].text || 'Sorry, something went wrong.';
+        const response = data.candidates[0].content.parts[0].text || 'Oops, something went wrong, pal!';
         tempMsg.textContent = response;
         tempMsg.classList.remove('processing');
         state.messages.push({ text: response, sender: 'ai', timestamp: Date.now() });
       } catch (error) {
-        tempMsg.textContent = 'Error: Failed to get response.';
+        tempMsg.textContent = 'Whoops, hit a snag! Try again?';
         tempMsg.classList.remove('processing');
         state.messages.push({ text: tempMsg.textContent, sender: 'ai', timestamp: Date.now() });
         console.error('API Error:', error);
@@ -631,69 +462,6 @@
       }
     }
 
-    function loadProfile(user) {
-      elements.profileName.value = user.displayName || '';
-      elements.profileEmail.value = user.email || '';
-      elements.profilePicture.src = user.photoURL || 'https://via.placeholder.com/100';
-    }
-
-    function saveProfile() {
-      const user = auth.currentUser;
-      if (user) {
-        updateProfile(user, {
-          displayName: elements.profileName.value,
-          photoURL: elements.profilePicture.src
-        }).then(() => {
-          set(ref(db, `users/${user.uid}/profile`), {
-            name: elements.profileName.value,
-            email: user.email,
-            photoURL: elements.profilePicture.src
-          });
-          elements.profileSheet.classList.remove('open');
-        }).catch(error => {
-          console.error('Profile Update Error:', error);
-          alert('Failed to update profile.');
-        });
-      }
-    }
-
-    function loadSettings() {
-      const user = auth.currentUser;
-      if (user) {
-        const settingsRef = ref(db, `users/${user.uid}/settings`);
-        onValue(settingsRef, snapshot => {
-          const data = snapshot.val();
-          if (data) {
-            state.settings = data;
-            elements.aiResponseLength.value = data.responseLength || 'medium';
-            elements.aiTone.value = data.tone || 'professional';
-            elements.notifications.checked = data.notifications !== false;
-          }
-        }, { onlyOnce: true });
-      }
-    }
-
-    function saveSettings() {
-      const user = auth.currentUser;
-      if (user) {
-        state.settings = {
-          responseLength: elements.aiResponseLength.value,
-          tone: elements.aiTone.value,
-          notifications: elements.notifications.checked
-        };
-        set(ref(db, `users/${user.uid}/settings`), state.settings);
-      }
-    }
-
-    function signOutUser() {
-      signOut(auth).then(() => {
-        window.location.href = 'signup.html';
-      }).catch(error => {
-        console.error('Sign Out Error:', error);
-        alert('Failed to sign out.');
-      });
-    }
-
     elements.sendButton.addEventListener('click', async () => {
       const prompt = elements.chatInput.value.trim();
       if (!prompt) return;
@@ -740,9 +508,9 @@
           tempMsg.innerHTML = '';
           tempMsg.classList.remove('processing');
           appendMessage(imageUrl, 'user', false, true);
-          await getAIResponse('Analyze this image', imageUrl);
+          await getAIResponse('Describe this image', imageUrl);
         } catch (error) {
-          tempMsg.textContent = 'Image upload failed';
+          tempMsg.textContent = 'Oops, couldn’t upload the image!';
           tempMsg.classList.remove('processing');
           state.messages.push({ text: tempMsg.textContent, sender: 'user', timestamp: Date.now() });
           console.error('Upload Error:', error);
@@ -750,55 +518,6 @@
       };
       input.click();
     });
-
-    elements.profileTab.addEventListener('click', () => {
-      elements.profileTab.classList.add('active');
-      elements.settingsTab.classList.remove('active');
-      elements.profileSheet.classList.add('open');
-      elements.settingsSheet.classList.remove('open');
-    });
-
-    elements.settingsTab.addEventListener('click', () => {
-      elements.settingsTab.classList.add('active');
-      elements.profileTab.classList.remove('active');
-      elements.settingsSheet.classList.add('open');
-      elements.profileSheet.classList.remove('open');
-    });
-
-    elements.profilePictureUpload.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', 'banter_box');
-      try {
-        const uploadResponse = await fetch('https://api.cloudinary.com/v1_1/dqkujefxj/image/upload', {
-          method: 'POST',
-          body: formData
-        });
-        const uploadData = await uploadResponse.json();
-        elements.profilePicture.src = uploadData.secure_url;
-      } catch (error) {
-        console.error('Profile Picture Upload Error:', error);
-        alert('Failed to upload profile picture.');
-      }
-    });
-
-    elements.saveProfile.addEventListener('click', saveProfile);
-
-    elements.aiResponseLength.addEventListener('change', saveSettings);
-    elements.aiTone.addEventListener('change', saveSettings);
-    elements.notifications.addEventListener('change', saveSettings);
-
-    elements.privacyPolicy.addEventListener('click', () => {
-      elements.privacyModal.classList.add('open');
-    });
-
-    elements.closePrivacyModal.addEventListener('click', () => {
-      elements.privacyModal.classList.remove('open');
-    });
-
-    elements.signoutButton.addEventListener('click', signOutUser);
 
     document.addEventListener('DOMContentLoaded', initializeFirebase);
   </script>
