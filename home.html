@@ -56,7 +56,7 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 0.875rem; /* Smaller font size */
+      font-size: 0.875rem;
     }
 
     .tab:hover, .tab.active {
@@ -64,7 +64,7 @@
     }
 
     .tab svg {
-      width: 1rem; /* Smaller icon size */
+      width: 1rem;
       height: 1rem;
       stroke: var(--text-primary);
     }
@@ -79,7 +79,7 @@
     }
 
     .welcome-container h1 {
-      font-size: 1.25rem; /* Smaller header size (was 2xl, ~2rem) */
+      font-size: 1.25rem;
       font-weight: 600;
       color: #1E1E1E;
     }
@@ -133,7 +133,7 @@
     }
 
     #chat-messages {
-      margin: 5rem 1rem 6rem 1rem; /* Adjusted for smaller top buttons */
+      margin: 5rem 1rem 6rem 1rem;
       padding: 1rem;
       overflow-y: auto;
       max-height: calc(100vh - 11rem);
@@ -238,23 +238,23 @@
       background: var(--highlight);
     }
 
-    #new-conversation-button, #hamburger-button {
+    #hamburger-button {
       background: #1C2526;
       border: none;
-      padding: 0.5rem; /* Smaller padding */
+      padding: 0.4rem;
       cursor: pointer;
       border-radius: 50%;
       transition: background 0.2s;
-      width: 2.5rem; /* Smaller button size (was 3rem) */
+      width: 2.5rem;
       height: 2.5rem;
     }
 
-    #new-conversation-button:hover, #hamburger-button:hover {
+    #hamburger-button:hover {
       background: var(--highlight);
     }
 
-    #new-conversation-button svg, #hamburger-button svg {
-      width: 1.25rem; /* Smaller icon size */
+    #hamburger-button svg {
+      width: 1.25rem;
       height: 1.25rem;
       stroke: var(--text-primary);
     }
@@ -262,11 +262,6 @@
 </head>
 <body>
   <main class="flex flex-col h-screen">
-    <button id="new-conversation-button" class="fixed top-4 right-4 w-10 h-10 bg-black rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 transition">
-      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-        <path d="M12 4v8m0 0v8m8-8H4"/>
-      </svg>
-    </button>
     <button id="hamburger-button" class="fixed top-4 left-4 w-10 h-10 bg-black rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 transition">
       <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
         <path d="M4 6h16M4 12h16M4 18h16"/>
@@ -294,6 +289,12 @@
         </svg>
         Settings
       </a>
+      <button id="new-conversation-button" class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 4v8m0 0v8m8-8H4"/>
+        </svg>
+        New Chat
+      </button>
     </div>
     <div class="welcome-container" id="welcome-container">
       <h1>Hey there, friend!</h1>
