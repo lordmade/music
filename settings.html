@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vynix AI - Settings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F7F7F8;
+      --card-bg: #1C2526;
+      --text-primary: #FFFFFF;
+      --text-secondary: #4B5EAA;
+      --border: #4A5568;
+      --highlight: #38B2AC;
+      --user-msg-bg: #E0E7FF;
+      --ai-msg-bg: #1C2526;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-secondary);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .settings-container {
+      background: var(--card-bg);
+      color: var(--text-primary);
+      padding: 2rem;
+      border-radius: 1rem;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-group select, .form-group input {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--ai-msg-bg);
+      color: var(--text-primary);
+    }
+
+    .save-button, .signout-button {
+      background: var(--highlight);
+      color: var(--text-primary);
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .save-button:hover, .signout-button:hover {
+      background: #2d8c89;
+    }
+
+    .save-button svg, .signout-button svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      stroke: var(--text-primary);
+    }
+
+    /* Modal Styles */
+    #privacy-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+    }
+
+    #privacy-modal.open {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      color: var(--text-primary);
+      padding: 2rem;
+      border-radius: 1rem;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="settings-container">
+    <h2 class="text-xl font-bold mb-4">Settings</h2>
+    <div class="form-group">
+      <label for="ai-response-length">AI Response Length</label>
+      <select id="ai-response-length" class="form-group input">
+        <option value="short">Short</option>
+        <option value="medium" selected>Medium</option>
+        <option value="long">Long</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="ai-tone">AI Tone</label>
+      <select id="ai-tone" class="form-group input">
+        <option value="friendly">Friendly</option>
+        <option value="professional">Professional</option>
+        <option value="casual">Casual</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="notifications">Enable Notifications</label>
+      <input type="checkbox" id="notifications" checked>
+    </div>
+    <button id="privacy-policy" class="save-button">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M12 11c0-2.21 1.79-4 4-4s4 1.79 4 4c0 3.31-4 7-4 7S12 14.31 12 11zm0 0c0 2.21-1.79 4-4 4s-4-1.79-4-4c0-3.31 4-7 4-7s4 3.69 4 7z"/>
+      </svg>
+      Data Privacy
+    </button>
+    <button id="signout-button" class="signout-button">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M17 16l4-4m0 0l-4-4m4 4H7m5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h3a3 3 0 013 3v1"/>
+      </svg>
+      Sign Out
+    </button>
+    <div id="privacy-modal" class="hidden">
+      <div class="modal-content">
+        <button id="close-privacy-modal" class="modal-close">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+        <h2 class="text-xl font-bold mb-4">Data Privacy Policy</h2>
+        <p class="mb-2">At Vynix AI, we prioritize your privacy. Your data is securely stored and used only to enhance your experience. We collect:</p>
+        <ul class="list-disc pl-5 mb-4">
+          <li>User profile information (name, email, profile picture) for personalization.</li>
+          <li>Chat history to improve AI responses and maintain conversation context.</li>
+          <li>Uploaded images for analysis, stored securely via Cloudinary.</li>
+        </ul>
+        <p>We do not share your data with third parties except as required for service provision (e.g., Cloudinary for image storage). You can manage your data via the Profile and Settings pages.</p>
+      </div>
+    </div>
+  </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
+      authDomain: "fire-b-a8878.firebaseapp.com",
+      databaseURL: "https://fire-b-a8878.firebaseio.com",
+      projectId: "fire-b-a8878",
+      storageBucket: "fire-b-a8878.firebasestorage.app",
+      messagingSenderId: "658673187627",
+      appId: "1:658673187627:web:6e4c29af661785f0afa36e",
+      measurementId: "G-V4W97VMSKL"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const elements = {
+      aiResponseLength: document.getElementById('ai-response-length'),
+      aiTone: document.getElementById('ai-tone'),
+      notifications: document.getElementById('notifications'),
+      privacyPolicy: document.getElementById('privacy-policy'),
+      privacyModal: document.getElementById('privacy-modal'),
+      closePrivacyModal: document.getElementById('close-privacy-modal'),
+      signoutButton: document.getElementById('signout-button')
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loadSettings();
+      } else {
+        window.location.href = 'signup.html';
+      }
+    });
+
+    function loadSettings() {
+      const user = auth.currentUser;
+      if (user) {
+        const settingsRef = ref(db, `users/${user.uid}/settings`);
+        onValue(settingsRef, snapshot => {
+          const data = snapshot.val();
+          if (data) {
+            elements.aiResponseLength.value = data.responseLength || 'medium';
+            elements.aiTone.value = data.tone || 'friendly';
+            elements.notifications.checked = data.notifications !== false;
+          }
+        }, { onlyOnce: true });
+      }
+    }
+
+    function saveSettings() {
+      const user = auth.currentUser;
+      if (user) {
+        const settings = {
+          responseLength: elements.aiResponseLength.value,
+          tone: elements.aiTone.value,
+          notifications: elements.notifications.checked
+        };
+        set(ref(db, `users/${user.uid}/settings`), settings);
+      }
+    }
+
+    function signOutUser() {
+      signOut(auth).then(() => {
+        window.location.href = 'signup.html';
+      }).catch(error => {
+        console.error('Sign Out Error:', error);
+        alert('Failed to sign out.');
+      });
+    }
+
+    elements.aiResponseLength.addEventListener('change', saveSettings);
+    elements.aiTone.addEventListener('change', saveSettings);
+    elements.notifications.addEventListener('change', saveSettings);
+
+    elements.privacyPolicy.addEventListener('click', () => {
+      elements.privacyModal.classList.add('open');
+    });
+
+    elements.closePrivacyModal.addEventListener('click', () => {
+      elements.privacyModal.classList.remove('open');
+    });
+
+    elements.signoutButton.addEventListener('click', signOutUser);
+  </script>
+</body>
+</html>
