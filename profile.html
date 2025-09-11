@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vynix AI - Profile</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F7F7F8;
+      --card-bg: #1C2526;
+      --text-primary: #FFFFFF;
+      --text-secondary: #4B5EAA;
+      --border: #4A5568;
+      --highlight: #38B2AC;
+      --user-msg-bg: #E0E7FF;
+      --ai-msg-bg: #1C2526;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-secondary);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .profile-container {
+      background: var(--card-bg);
+      color: var(--text-primary);
+      padding: 2rem;
+      border-radius: 1rem;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .profile-picture {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--border);
+      margin: 0 auto 1rem;
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--ai-msg-bg);
+      color: var(--text-primary);
+    }
+
+    .save-button {
+      background: var(--highlight);
+      color: var(--text-primary);
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .save-button:hover {
+      background: #2d8c89;
+    }
+
+    .save-button svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      stroke: var(--text-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="profile-container">
+    <h2 class="text-xl font-bold mb-4">Your Profile</h2>
+    <div class="form-group">
+      <img id="profile-picture" class="profile-picture" src="https://via.placeholder.com/100" alt="Profile Picture">
+      <input type="file" id="profile-picture-upload" accept="image/*" class="mt-2">
+    </div>
+    <div class="form-group">
+      <label for="profile-name">Name</label>
+      <input type="text" id="profile-name" placeholder="Enter your name">
+    </div>
+    <div class="form-group">
+      <label for="profile-email">Email</label>
+      <input type="email" id="profile-email" placeholder="Enter your email" readonly>
+    </div>
+    <button id="save-profile" class="save-button">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M5 13l4 4L19 7"/>
+      </svg>
+      Save Changes
+    </button>
+  </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getDatabase, set } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
+      authDomain: "fire-b-a8878.firebaseapp.com",
+      databaseURL: "https://fire-b-a8878.firebaseio.com",
+      projectId: "fire-b-a8878",
+      storageBucket: "fire-b-a8878.firebasestorage.app",
+      messagingSenderId: "658673187627",
+      appId: "1:658673187627:web:6e4c29af661785f0afa36e",
+      measurementId: "G-V4W97VMSKL"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const elements = {
+      profilePicture: document.getElementById('profile-picture'),
+      profilePictureUpload: document.getElementById('profile-picture-upload'),
+      profileName: document.getElementById('profile-name'),
+      profileEmail: document.getElementById('profile-email'),
+      saveProfile: document.getElementById('save-profile')
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        elements.profileName.value = user.displayName || '';
+        elements.profileEmail.value = user.email || '';
+        elements.profilePicture.src = user.photoURL || 'https://via.placeholder.com/100';
+      } else {
+        window.location.href = 'signup.html';
+      }
+    });
+
+    elements.profilePictureUpload.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'banter_box');
+      try {
+        const uploadResponse = await fetch('https://api.cloudinary.com/v1_1/dqkujefxj/image/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const uploadData = await uploadResponse.json();
+        elements.profilePicture.src = uploadData.secure_url;
+      } catch (error) {
+        console.error('Profile Picture Upload Error:', error);
+        alert('Failed to upload profile picture.');
+      }
+    });
+
+    elements.saveProfile.addEventListener('click', () => {
+      const user = auth.currentUser;
+      if (user) {
+        updateProfile(user, {
+          displayName: elements.profileName.value,
+          photoURL: elements.profilePicture.src
+        }).then(() => {
+          set(ref(db, `users/${user.uid}/profile`), {
+            name: elements.profileName.value,
+            email: user.email,
+            photoURL: elements.profilePicture.src
+          });
+          window.location.href = 'home.html';
+        }).catch(error => {
+          console.error('Profile Update Error:', error);
+          alert('Failed to update profile.');
+        });
+      }
+    });
+  </script>
+</body>
+</html>
