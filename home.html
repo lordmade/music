@@ -156,6 +156,12 @@
       opacity: 0.7;
     }
 
+    .message img {
+      max-width: 100%;
+      border-radius: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
     .typing-indicator {
       display: inline-flex;
       gap: 0.25rem;
@@ -270,7 +276,7 @@
       margin-bottom: 0.5rem;
     }
 
-    .form-group input {
+    .form-group input, .form-group select {
       width: 100%;
       padding: 0.5rem;
       border: 1px solid var(--border);
@@ -279,7 +285,7 @@
       color: var(--text-primary);
     }
 
-    .save-button {
+    .save-button, .signout-button {
       background: var(--highlight);
       color: var(--text-primary);
       padding: 0.75rem 1.5rem;
@@ -287,10 +293,11 @@
       border-radius: 0.5rem;
       cursor: pointer;
       transition: background 0.2s;
+      margin-top: 0.5rem;
     }
 
-    .save-button:hover {
-      background: darken(var(--highlight), 10%);
+    .save-button:hover, .signout-button:hover {
+      background: #2d8c89; /* Darker shade of --highlight */
     }
 
     /* Modal Styles */
@@ -416,6 +423,7 @@
         <input type="checkbox" id="notifications" checked>
       </div>
       <button id="privacy-policy" class="save-button mt-4">Data Privacy</button>
+      <button id="signout-button" class="signout-button mt-4">Sign Out</button>
     </div>
     <!-- Privacy Policy Modal -->
     <div id="privacy-modal" class="hidden">
@@ -438,7 +446,7 @@
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import { getDatabase, ref, push, onValue, set } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
@@ -489,7 +497,8 @@
       notifications: document.getElementById('notifications'),
       privacyPolicy: document.getElementById('privacy-policy'),
       privacyModal: document.getElementById('privacy-modal'),
-      closePrivacyModal: document.getElementById('close-privacy-modal')
+      closePrivacyModal: document.getElementById('close-privacy-modal'),
+      signoutButton: document.getElementById('signout-button')
     };
 
     let app, auth, db;
@@ -511,19 +520,24 @@
       });
     }
 
-    function appendMessage(text, sender, isTyping = false) {
+    function appendMessage(content, sender, isTyping = false, isImage = false) {
       const div = document.createElement('div');
       div.className = `message ${sender}${isTyping ? ' processing' : ''}`;
       if (isTyping) {
         div.innerHTML = '<div class="typing-indicator"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
+      } else if (isImage) {
+        const img = document.createElement('img');
+        img.src = content;
+        img.alt = 'Uploaded image';
+        div.appendChild(img);
       } else {
-        div.textContent = text;
-        state.messages.push({ text, sender, timestamp: Date.now() });
-        if (sender === 'ai') {
-          div.classList.add('vibrate');
-          if ('vibrate' in navigator) {
-            navigator.vibrate(100);
-          }
+        div.textContent = content;
+      }
+      state.messages.push({ content, sender, isImage, timestamp: Date.now() });
+      if (sender === 'ai' && !isTyping) {
+        div.classList.add('vibrate');
+        if ('vibrate' in navigator) {
+          navigator.vibrate(100);
         }
       }
       div.style.opacity = '0';
@@ -546,8 +560,9 @@
           }]
         };
         if (imageUrl) {
-          requestBody.contents[0].parts.push({ inlineData: { mimeType: 'image/jpeg', data: imageUrl } });
           requestBody.contents[0].parts[0].text = `Analyze and interpret this image: ${prompt}`;
+          // Note: Gemini API may require base64 or other format for images. Adjust if needed.
+          requestBody.contents[0].parts.push({ inlineData: { mimeType: 'image/jpeg', data: imageUrl } });
         }
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${state.geminiApiKey}`, {
           method: 'POST',
@@ -569,7 +584,7 @@
 
     function saveConversation() {
       if (state.messages.length === 0) return;
-      const firstMessage = state.messages.find(msg => msg.sender === 'user')?.text || 'Untitled';
+      const firstMessage = state.messages.find(msg => msg.sender === 'user' && !msg.isImage)?.content || 'Untitled';
       const title = firstMessage.split(' ').slice(0, 3).join(' ');
       const user = auth.currentUser;
       if (user) {
@@ -600,7 +615,13 @@
             div.addEventListener('click', () => {
               state.messages = convo.messages;
               elements.chatMessages.innerHTML = '';
-              state.messages.forEach(msg => appendMessage(msg.text, msg.sender));
+              state.messages.forEach(msg => {
+                if (msg.isImage) {
+                  appendMessage(msg.content, msg.sender, false, true);
+                } else {
+                  appendMessage(msg.content, msg.sender);
+                }
+              });
               elements.sidebar.classList.remove('open');
               state.conversationId = child.key;
             });
@@ -664,6 +685,15 @@
       }
     }
 
+    function signOutUser() {
+      signOut(auth).then(() => {
+        window.location.href = 'signup.html';
+      }).catch(error => {
+        console.error('Sign Out Error:', error);
+        alert('Failed to sign out.');
+      });
+    }
+
     elements.sendButton.addEventListener('click', async () => {
       const prompt = elements.chatInput.value.trim();
       if (!prompt) return;
@@ -707,9 +737,9 @@
           });
           const uploadData = await uploadResponse.json();
           const imageUrl = uploadData.secure_url;
-          tempMsg.textContent = `Image uploaded: ${imageUrl}`;
+          tempMsg.innerHTML = '';
           tempMsg.classList.remove('processing');
-          state.messages.push({ text: tempMsg.textContent, sender: 'user', timestamp: Date.now() });
+          appendMessage(imageUrl, 'user', false, true);
           await getAIResponse('Analyze this image', imageUrl);
         } catch (error) {
           tempMsg.textContent = 'Image upload failed';
@@ -767,6 +797,8 @@
     elements.closePrivacyModal.addEventListener('click', () => {
       elements.privacyModal.classList.remove('open');
     });
+
+    elements.signoutButton.addEventListener('click', signOutUser);
 
     document.addEventListener('DOMContentLoaded', initializeFirebase);
   </script>
