@@ -1,500 +1,512 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MusicStream Home</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        :root {
-            --primary-red: #ED4956;
-            --white: #ffffff;
-            --card-bg: rgba(255, 255, 255, 0.1);
-            --dark-red: #ff0000;
-            --light-red: #ff8c8c;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vynix AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F7F7F8;
+      --card-bg: #1C2526;
+      --text-primary: #FFFFFF;
+      --text-secondary: #4B5EAA;
+      --border: #4A5568;
+      --highlight: #38B2AC;
+      --user-msg-bg: #E0E7FF;
+      --ai-msg-bg: #1C2526;
+    }
 
-        body {
-            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--dark-red), #ff4d4d, var(--light-red));
-            color: var(--white);
-            min-height: 100vh;
-            padding: 20px;
-            margin: 0;
-            overflow-x: hidden;
-            transition: background 0.3s ease;
-        }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-secondary);
+      min-height: 100vh;
+      margin: 0;
+      transition: background 0.3s ease;
+    }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+    .suggestion-cards {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 1rem;
+      overflow-x: auto;
+      white-space: nowrap;
+      z-index: 10;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding: 10px 0;
-        }
+    .suggestion-card {
+      display: inline-block;
+      background: var(--card-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+      border-radius: 9999px;
+      margin-right: 0.5rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
 
-        h1 {
-            font-size: 2.5rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: var(--shadow);
-        }
+    .suggestion-card:hover {
+      background: var(--highlight);
+    }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    .welcome-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      margin-top: 4rem;
+    }
 
-        .username {
-            font-size: 1.2rem;
-            font-weight: 600;
-        }
+    .hidden {
+      display: none;
+    }
 
-        .profile-btn {
-            background: var(--card-bg);
-            color: var(--white);
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            cursor: pointer;
-        }
+    .chat-input-container {
+      position: fixed;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      width: 90%;
+      max-width: 600px;
+      background: var(--card-bg);
+      border-radius: 1.5rem;
+      padding: 0.5rem 0.75rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
 
-        .profile-btn:hover {
-            transform: scale(1.1);
-            box-shadow: var(--shadow);
-        }
+    #chat-input {
+      flex: 1;
+      background: transparent;
+      color: var(--text-primary);
+      border: none;
+      padding: 0.75rem 0.5rem;
+      outline: none;
+      font-size: 1rem;
+    }
 
-        .category-nav {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            overflow-x: auto;
-            padding-bottom: 5px;
-            scrollbar-width: thin;
-            scrollbar-color: var(--primary-red) rgba(255, 255, 255, 0.2);
-        }
+    #send-button, #image-upload-button {
+      background: transparent;
+      border: none;
+      padding: 0.5rem;
+      cursor: pointer;
+      border-radius: 0.5rem;
+      transition: background 0.2s;
+    }
 
-        .category-nav::-webkit-scrollbar {
-            height: 5px;
-        }
+    #send-button:hover, #image-upload-button:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
 
-        .category-nav::-webkit-scrollbar-thumb {
-            background: var(--primary-red);
-            border-radius: 4px;
-        }
+    #send-button svg, #image-upload-button svg {
+      width: 1.5rem;
+      height: 1.5rem;
+      stroke: var(--text-primary);
+    }
 
-        .category-btn {
-            background: var(--card-bg);
-            color: var(--white);
-            padding: 8px 0;
-            border-radius: 20px;
-            font-weight: 600;
-            transition: background 0.3s ease, transform 0.3s ease;
-            cursor: pointer;
-            width: 100px; /* Equal size for all buttons */
-            text-align: center; /* Center text within fixed width */
-        }
+    #chat-messages {
+      margin: 6rem 1rem 6rem 1rem;
+      padding: 1rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 12rem);
+    }
 
-        .category-btn.active {
-            background: var(--primary-red);
-        }
+    .message {
+      max-width: 70%;
+      padding: 0.75rem 1.25rem;
+      border-radius: 1.5rem;
+      margin: 0.5rem 1rem;
+      word-wrap: break-word;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+      animation: slideIn 0.3s ease-out;
+      position: relative;
+      display: inline-block;
+    }
 
-        .category-btn:hover {
-            transform: scale(1.05);
-            background: rgba(237, 73, 86, 0.8);
-        }
+    .message.user {
+      background: linear-gradient(135deg, var(--user-msg-bg), #C7D2FE);
+      color: #1E1E1E;
+      margin-left: auto;
+      border-bottom-right-radius: 0.25rem;
+    }
 
-        .search-bar {
-            margin: 20px 0;
-            padding: 10px;
-            width: 100%;
-            max-width: 400px;
-            background: var(--card-bg);
-            border-radius: 20px;
-            border: none;
-            color: var(--white);
-            font-size: 1rem;
-        }
+    .message.ai {
+      background: linear-gradient(135deg, var(--ai-msg-bg), #2D3748);
+      color: var(--text-primary);
+      margin-right: auto;
+      border-bottom-left-radius: 0.25rem;
+    }
 
-        .search-bar::placeholder {
-            color: #ccc;
-        }
+    .message.processing {
+      background: var(--ai-msg-bg);
+      color: var(--text-primary);
+      font-style: italic;
+      opacity: 0.7;
+    }
 
-        .section {
-            margin-bottom: 40px;
-        }
+    .typing-indicator {
+      display: inline-flex;
+      gap: 0.25rem;
+      align-items: center;
+    }
 
-        h2 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            text-shadow: var(--shadow);
-        }
+    .typing-dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      background: var(--text-primary);
+      border-radius: 50%;
+      animation: typing 1.2s infinite;
+    }
 
-        .playlist-container {
-            display: flex;
-            overflow-x: auto;
-            gap: 20px;
-            padding-bottom: 15px;
-            scrollbar-width: thin;
-            scrollbar-color: var(--primary-red) rgba(255, 255, 255, 0.2);
-        }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-        .playlist-container::-webkit-scrollbar {
-            height: 8px;
-        }
+    @keyframes typing {
+      0%, 100% { opacity: 0.3; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-3px); }
+    }
 
-        .playlist-container::-webkit-scrollbar-thumb {
-            background: var(--primary-red);
-            border-radius: 4px;
-        }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-        .card {
-            flex: 0 0 180px;
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 15px;
-            text-align: center;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
-        }
+    @keyframes vibrate {
+      0% { transform: translateX(0); }
+      20% { transform: translateX(-2px); }
+      40% { transform: translateX(2px); }
+      60% { transform: translateX(-2px); }
+      80% { transform: translateX(2px); }
+      100% { transform: translateX(0); }
+    }
 
-        .card:hover {
-            transform: translateY(-10px);
-            box-shadow: var(--shadow);
-        }
+    .vibrate {
+      animation: vibrate 0.2s ease-in-out;
+    }
 
-        .card img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 10px;
-        }
+    #sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
 
-        .card p {
-            margin-top: 10px;
-            font-size: 1rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+    #sidebar.open {
+      transform: translateX(0);
+    }
 
-        .music-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
-        }
+    .conversation-item {
+      padding: 0.75rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+    }
 
-        .music-card {
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 15px;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
+    .conversation-item:hover {
+      background: var(--highlight);
+    }
 
-        .music-card:hover {
-            transform: translateY(-10px);
-            box-shadow: var(--shadow);
-        }
+    #new-chat-button, #hamburger-button {
+      background: #1C2526;
+      border: none;
+      padding: 0.5rem;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
 
-        .music-card div {
-            margin-bottom: 10px;
-        }
-
-        .music-card audio {
-            width: 100%;
-            border-radius: 10px;
-        }
-
-        .error {
-            color: #ffcccc;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        @media (max-width: 640px) {
-            .container {
-                padding: 10px;
-            }
-
-            h1 {
-                font-size: 1.8rem;
-            }
-
-            .card {
-                flex: 0 0 140px;
-            }
-
-            .card img {
-                height: 160px;
-            }
-
-            .music-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .search-bar {
-                max-width: 100%;
-            }
-
-            .category-nav {
-                flex-wrap: nowrap;
-            }
-
-            .user-info {
-                flex-direction: column;
-                align-items: flex-end;
-            }
-
-            .username {
-                font-size: 1rem;
-            }
-
-            .category-btn {
-                width: 80px; /* Slightly smaller on mobile for better fit */
-                font-size: 0.9rem;
-            }
-        }
-    </style>
+    #new-chat-button:hover, #hamburger-button:hover {
+      background: var(--highlight);
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>MusicStream</h1>
-            <div class="user-info">
-                <span class="username" id="username">Loading...</span>
-                <div class="profile-btn" onclick="showProfile()">👤</div>
-            </div>
-        </div>
-        <div class="category-nav" id="categoryNav">
-            <div class="category-btn active" onclick="filterCategory('all')">All</div>
-            <div class="category-btn" onclick="filterCategory('music')">Music</div>
-            <div class="category-btn" onclick="filterCategory('podcast')">Podcast</div>
-            <div class="category-btn" onclick="filterCategory('videos')">Videos</div>
-            <div class="category-btn" onclick="filterCategory('news')">News</div>
-            <div class="category-btn" onclick="filterCategory('reviews')">Reviews</div>
-        </div>
-        <input type="text" class="search-bar" placeholder="Search songs, artists, or genres..." oninput="searchContent(this.value)">
-        <div class="section">
-            <h2>Recommended Playlists</h2>
-            <div class="playlist-container" id="playlists"></div>
-        </div>
-        <div class="section">
-            <h2>Suggested Songs</h2>
-            <div class="error" id="search-error"></div>
-            <div class="music-grid" id="suggestedSongs"></div>
-        </div>
-        <div class="section">
-            <h2>Songs by Category</h2>
-            <div class="error" id="music-error"></div>
-            <div class="music-grid" id="categories"></div>
-        </div>
+  <main class="flex flex-col h-screen">
+    <button id="new-chat-button" class="fixed top-4 right-4 w-12 h-12 bg-black rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 transition">
+      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M12 4v16m8-8H4"/>
+      </svg>
+    </button>
+    <button id="hamburger-button" class="fixed top-4 left-4 w-12 h-12 bg-black rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 transition">
+      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+    <div id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-gray-900 hidden flex-col">
+      <button id="close-sidebar" class="p-4">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+      <div id="conversation-list" class="flex-1 overflow-y-auto p-4"></div>
     </div>
+    <div class="suggestion-cards">
+      <div class="suggestion-card" id="create-image">Create Image</div>
+      <div class="suggestion-card" id="write">Write</div>
+      <div class="suggestion-card" id="build">Build</div>
+      <div class="suggestion-card" id="deep-research">Deep Research</div>
+      <div class="suggestion-card" id="learn">Learn</div>
+    </div>
+    <div class="welcome-container" id="welcome-container">
+      <h1 class="text-2xl font-bold text-gray-900">Hello, User!</h1>
+    </div>
+    <div id="chat-messages" class="flex-1 overflow-y-auto"></div>
+    <div class="chat-input-container">
+      <button id="image-upload-button" class="p-2">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </button>
+      <input type="text" id="chat-input" placeholder="Ask me anything..." aria-label="Type your prompt">
+      <button id="send-button">
+        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M5 12l6-6m-6 6l6 6"/>
+        </svg>
+      </button>
+    </div>
+  </main>
+         <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+  import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
+    authDomain: "fire-b-a8878.firebaseapp.com",
+    databaseURL: "https://fire-b-a8878.firebaseio.com",
+    projectId: "fire-b-a8878",
+    storageBucket: "fire-b-a8878.firebasestorage.app",
+    messagingSenderId: "658673187627",
+    appId: "1:658673187627:web:6e4c29af661785f0afa36e",
+    measurementId: "G-V4W97VMSKL"
+  };
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
-            authDomain: "fire-b-a8878.firebaseapp.com",
-            databaseURL: "https://fire-b-a8878.firebaseio.com",
-            projectId: "fire-b-a8878",
-            storageBucket: "fire-b-a8878.firebasestorage.app",
-            messagingSenderId: "658673187627",
-            appId: "1:658673187627:web:6e4c29af661785f0afa36e",
-            measurementId: "G-V4W97VMSKL"
-        };
+  const state = {
+    messages: [],
+    geminiApiKey: 'AIzaSyD79iPuCs7sW4DQJ7ij9SZZXtEJm6po8K8', // Move to environment variable in production
+    hasChatted: false,
+    conversationId: null
+  };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const database = getDatabase(app);
+  const elements = {
+    chatMessages: document.getElementById('chat-messages'),
+    chatInput: document.getElementById('chat-input'),
+    sendButton: document.getElementById('send-button'),
+    welcomeContainer: document.getElementById('welcome-container'),
+    createImage: document.getElementById('create-image'),
+    write: document.getElementById('write'),
+    build: document.getElementById('build'),
+    deepResearch: document.getElementById('deep-research'),
+    learn: document.getElementById('learn'),
+    newChatButton: document.getElementById('new-chat-button'),
+    hamburgerButton: document.getElementById('hamburger-button'),
+    sidebar: document.getElementById('sidebar'),
+    closeSidebar: document.getElementById('close-sidebar'),
+    conversationList: document.getElementById('conversation-list'),
+    imageUploadButton: document.getElementById('image-upload-button')
+  };
 
-        // Random Image URLs
-        const randomImages = [
-            'https://images.unsplash.com/photo-1511671782779-c97e527c2c79?auto=format&fit=crop&w=150&q=80',
-            'https://images.pexels.com/photos/164821/pexels-photo-164821.jpeg?auto=compress&cs=tinysrgb&w=150',
-            'https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=150&q=80',
-            'https://images.pexels.com/photos/20787/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=150',
-            'https://images.unsplash.com/photo-1493225457124-a190c3e9c2c6?auto=format&fit=crop&w=150&q=80'
-        ];
+  let app, auth, db;
 
-        let activeCategory = 'all';
+  function initializeFirebase() {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getDatabase(app);
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        elements.chatInput.disabled = false;
+        elements.sendButton.disabled = false;
+        loadConversations();
+      }
+    });
+  }
 
-        // Check Auth State and Update Username
-        onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                window.location.href = "signup.html";
-            } else {
-                const usernameEl = document.getElementById('username');
-                usernameEl.textContent = user.displayName || user.email.split('@')[0] || 'User'; // Use email username part as fallback
-                loadPlaylists();
-                loadSongs();
-            }
+  function appendMessage(text, sender, isTyping = false) {
+    const div = document.createElement('div');
+    div.className = `message ${sender}${isTyping ? ' processing' : ''}`;
+    if (isTyping) {
+      div.innerHTML = '<div class="typing-indicator"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
+    } else {
+      div.textContent = text;
+      state.messages.push({ text, sender, timestamp: Date.now() });
+      if (sender === 'ai') {
+        div.classList.add('vibrate');
+        if ('vibrate' in navigator) {
+          navigator.vibrate(100);
+        }
+      }
+    }
+    div.style.opacity = '0';
+    setTimeout(() => div.style.opacity = '1', 10);
+    elements.chatMessages.appendChild(div);
+    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+    return div;
+  }
+
+  async function getAIResponse(prompt) {
+    if (!state.hasChatted) {
+      state.hasChatted = true;
+      elements.welcomeContainer.classList.add('hidden');
+    }
+    const isImageRequest = prompt.toLowerCase().includes('image') || prompt.toLowerCase().includes('generate');
+    const tempMsg = appendMessage('', 'ai', true);
+    try {
+      if (isImageRequest) {
+        const confirm = window.confirm('Would you like to generate an image?');
+        if (!confirm) {
+          tempMsg.textContent = 'Image generation canceled.';
+          tempMsg.classList.remove('processing');
+          return;
+        }
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${state.geminiApiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: `Generate an image for: ${prompt}` }] }] })
         });
+        const data = await res.json();
+        tempMsg.textContent = data.candidates[0].content.parts[0].text || 'Image generation failed.';
+        tempMsg.classList.remove('processing');
+        state.messages.push({ text: tempMsg.textContent, sender: 'ai', timestamp: Date.now() });
+        return;
+      }
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${state.geminiApiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: `You are Vynix AI, crafted by Katlego in Mokopane, South Africa. Respond concisely as a general AI assistant like Grok. Query: ${prompt}` }] }] })
+      });
+      const data = await res.json();
+      const response = data.candidates[0].content.parts[0].text || 'Sorry, something went wrong.';
+      tempMsg.textContent = response;
+      tempMsg.classList.remove('processing');
+      state.messages.push({ text: response, sender: 'ai', timestamp: Date.now() });
+    } catch (error) {
+      tempMsg.textContent = 'Error: Failed to get response.';
+      tempMsg.classList.remove('processing');
+      state.messages.push({ text: tempMsg.textContent, sender: 'ai', timestamp: Date.now() });
+      console.error('API Error:', error);
+    }
+  }
 
-        // Show Profile
-        function showProfile() {
-            const user = auth.currentUser;
-            if (user) {
-                const profileInfo = `Username: ${user.displayName || user.email || 'N/A'}\nOptions: [Logout]`;
-                const choice = prompt(profileInfo);
-                if (choice && choice.toLowerCase() === 'logout') {
-                    signOutUser();
-                }
-            } else {
-                alert('No user signed in.');
-            }
-        }
+  function saveConversation() {
+    if (state.messages.length === 0) return;
+    const firstMessage = state.messages.find(msg => msg.sender === 'user')?.text || 'Untitled';
+    const title = firstMessage.split(' ').slice(0, 3).join(' ');
+    const user = auth.currentUser;
+    if (user) {
+      push(ref(db, `users/${user.uid}/conversations`), { title, messages: state.messages });
+    }
+  }
 
-        // Sign Out
-        async function signOutUser() {
-            try {
-                await signOut(auth);
-                window.location.href = "signup.html";
-            } catch (error) {
-                document.getElementById('music-error').textContent = 'Error signing out: ' + error.message;
-            }
-        }
+  function startNewConversation() {
+    saveConversation();
+    state.messages = [];
+    elements.chatMessages.innerHTML = '';
+    elements.welcomeContainer.classList.remove('hidden');
+    state.hasChatted = false;
+    state.conversationId = null;
+  }
 
-        // Load Playlists with Random Images
-        function loadPlaylists() {
-            const playlists = document.getElementById('playlists');
-            const mockPlaylists = [
-                { id: 1, title: 'Pop Hits' },
-                { id: 2, title: 'Rock Classics' },
-                { id: 3, title: 'Hip-Hop Vibes' }
-            ];
-            playlists.innerHTML = mockPlaylists.map(playlist => {
-                const randomImage = randomImages[Math.floor(Math.random() * randomImages.length)];
-                return `
-                    <div class="card">
-                        <img src="${randomImage}" alt="${playlist.title}">
-                        <p>${playlist.title}</p>
-                    </div>
-                `;
-            }).join('');
-        }
+  function loadConversations() {
+    const user = auth.currentUser;
+    if (user) {
+      const refConversations = ref(db, `users/${user.uid}/conversations`);
+      onValue(refConversations, snapshot => {
+        elements.conversationList.innerHTML = '';
+        snapshot.forEach(child => {
+          const convo = child.val();
+          const div = document.createElement('div');
+          div.className = 'conversation-item';
+          div.textContent = convo.title;
+          div.addEventListener('click', () => {
+            state.messages = convo.messages;
+            elements.chatMessages.innerHTML = '';
+            state.messages.forEach(msg => appendMessage(msg.text, msg.sender));
+            elements.sidebar.classList.remove('open');
+            state.conversationId = child.key;
+          });
+          elements.conversationList.appendChild(div);
+        });
+      }, { onlyOnce: true });
+    }
+  }
 
-        // Load Songs by Category (using 'type' field)
-        function loadSongs() {
-            const categoriesContainer = document.getElementById('categories');
-            onValue(ref(database, 'music'), (snapshot) => {
-                categoriesContainer.innerHTML = '';
-                const musicData = snapshot.val();
-                if (!musicData) {
-                    categoriesContainer.innerHTML = '<p class="text-center">No content available.</p>';
-                    return;
-                }
+  elements.sendButton.addEventListener('click', async () => {
+    const prompt = elements.chatInput.value.trim();
+    if (!prompt) return;
+    elements.chatInput.value = '';
+    appendMessage(prompt, 'user');
+    await getAIResponse(prompt);
+  });
 
-                const items = Object.values(musicData);
-                const filteredItems = activeCategory === 'all' ? items : items.filter(item => item.type && item.type.toLowerCase() === activeCategory);
-                if (filteredItems.length > 0) {
-                    const categories = {};
-                    filteredItems.forEach(item => {
-                        if (!categories[item.type || 'music']) { // Fallback to 'music' if type is missing
-                            categories[item.type || 'music'] = [];
-                        }
-                        categories[item.type || 'music'].push(item);
-                    });
+  elements.chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      elements.sendButton.click();
+    }
+  });
 
-                    Object.keys(categories).forEach(category => {
-                        const categoryDiv = document.createElement('div');
-                        categoryDiv.className = 'section';
-                        categoryDiv.innerHTML = `<h2>${category.charAt(0).toUpperCase() + category.slice(1)}</h2>`;
-                        const musicList = document.createElement('div');
-                        musicList.className = 'music-grid';
-                        categories[category].forEach(item => {
-                            const musicCard = document.createElement('div');
-                            musicCard.className = 'music-card';
-                            musicCard.innerHTML = `
-                                <div>
-                                    <strong>${item.title}</strong><br>
-                                    <span class="text-sm opacity-80">${item.artist || 'Unknown Artist'}</span>
-                                </div>
-                                <audio controls src="${item.url}"></audio>
-                            `;
-                            musicList.appendChild(musicCard);
-                        });
-                        categoryDiv.appendChild(musicList);
-                        categoriesContainer.appendChild(categoryDiv);
-                    });
-                } else {
-                    categoriesContainer.innerHTML = '<p class="text-center">No content in this category.</p>';
-                }
-            }, (error) => {
-                document.getElementById('music-error').textContent = 'Error loading content: ' + error.message;
-            });
-        }
+  elements.newChatButton.addEventListener('click', startNewConversation);
 
-        // Filter Categories
-        function filterCategory(category) {
-            activeCategory = category;
-            const buttons = document.getElementById('categoryNav').getElementsByClassName('category-btn');
-            Array.from(buttons).forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`#categoryNav .category-btn[onclick="filterCategory('${category}')"]`).classList.add('active');
-            loadSongs();
-        }
+  elements.hamburgerButton.addEventListener('click', () => {
+    elements.sidebar.classList.add('open');
+    loadConversations();
+  });
 
-        // Search Functionality for Songs
-        function searchContent(query) {
-            query = query.toLowerCase();
-            const suggestedSongs = document.getElementById('suggestedSongs');
-            const searchError = document.getElementById('search-error');
-            if (!query) {
-                suggestedSongs.innerHTML = '';
-                searchError.textContent = '';
-                return;
-            }
+  elements.closeSidebar.addEventListener('click', () => {
+    elements.sidebar.classList.remove('open');
+  });
 
-            onValue(ref(database, 'music'), (snapshot) => {
-                suggestedSongs.innerHTML = '';
-                const musicData = snapshot.val();
-                if (!musicData) {
-                    searchError.textContent = 'No content available.';
-                    return;
-                }
+  elements.imageUploadButton.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'banter_box');
+      const tempMsg = appendMessage('', 'user', true);
+      try {
+        const uploadResponse = await fetch('https://api.cloudinary.com/v1_1/dqkujefxj/image/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const uploadData = await uploadResponse.json();
+        const imageUrl = uploadData.secure_url;
+        tempMsg.textContent = `Image uploaded: ${imageUrl}`;
+        tempMsg.classList.remove('processing');
+        state.messages.push({ text: tempMsg.textContent, sender: 'user', timestamp: Date.now() });
+        await getAIResponse(`Analyze this image: ${imageUrl}`);
+      } catch (error) {
+        tempMsg.textContent = 'Image upload failed';
+        tempMsg.classList.remove('processing');
+        state.messages.push({ text: tempMsg.textContent, sender: 'user', timestamp: Date.now() });
+        console.error('Upload Error:', error);
+      }
+    };
+    input.click();
+  });
 
-                const matches = Object.values(musicData).filter(item => {
-                    return item.title.toLowerCase().includes(query) ||
-                           (item.artist && item.artist.toLowerCase().includes(query)) ||
-                           (item.type && item.type.toLowerCase().includes(query));
-                });
+  [elements.createImage, elements.write, elements.build, elements.deepResearch, elements.learn].forEach(btn => {
+    btn.addEventListener('click', () => {
+      elements.chatInput.value = `${btn.id.replace('-', ' ')} something...`;
+      elements.chatInput.focus();
+    });
+  });
 
-                if (matches.length > 0) {
-                    suggestedSongs.innerHTML = matches.map(item => `
-                        <div class="music-card">
-                            <div>
-                                <strong>${item.title}</strong><br>
-                                <span class="text-sm opacity-80">${item.artist || 'Unknown Artist'}</span>
-                            </div>
-                            <audio controls src="${item.url}"></audio>
-                        </div>
-                    `).join('');
-                    searchError.textContent = '';
-                } else {
-                    searchError.textContent = 'No matches found.';
-                    suggestedSongs.innerHTML = '';
-                }
-            }, (error) => {
-                searchError.textContent = 'Error searching: ' + error.message;
-            });
-        }
-    </script>
+  document.addEventListener('DOMContentLoaded', initializeFirebase);
+</script>
+  </script>
 </body>
 </html>
