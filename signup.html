@@ -1,353 +1,294 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MusicStream Signup/Signin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        :root {
-            --primary-red: #ED4956;
-            --white: #ffffff;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vynix AI - Sign Up / Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F7F7F8;
+      --card-bg: #1C2526;
+      --text-primary: #FFFFFF;
+      --text-secondary: #4B5EAA;
+      --border: #4A5568;
+      --highlight: #38B2AC;
+      --user-msg-bg: #E0E7FF;
+      --ai-msg-bg: #1C2526;
+    }
 
-        body {
-            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #ff0000, #ff4d4d, #ff8c8c);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-secondary);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+    }
 
-        .auth-container {
-            max-width: 400px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 10px;
-            color: #fff;
-        }
+    .auth-container {
+      background: var(--card-bg);
+      color: var(--text-primary);
+      padding: 2rem;
+      border-radius: 1rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      position: relative;
+    }
 
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
+    .tab-container {
+      display: flex;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
 
-        .tabs {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
+    .tab {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: background 0.3s;
+      font-weight: 500;
+      position: relative;
+    }
 
-        .tab {
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.2);
-            margin: 0 10px;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background 0.2s ease;
-        }
+    .tab.active {
+      background: var(--highlight);
+      color: var(--text-primary);
+    }
 
-        .tab.active {
-            background: var(--primary-red);
-        }
+    .tab:not(.active)::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--border);
+    }
 
-        .section {
-            display: none;
-        }
+    .form-group {
+      margin-bottom: 1rem;
+    }
 
-        .section.active {
-            display: block;
-        }
+    .form-group label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
 
-        .form-group {
-            margin-bottom: 15px;
-        }
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--ai-msg-bg);
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
 
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--highlight);
+    }
 
-        input, button {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: none;
-            border-radius: 5px;
-            background: rgba(255, 255, 255, 0.2);
-            color: #fff;
-        }
+    .auth-button {
+      background: var(--highlight);
+      color: var(--text-primary);
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      width: 100%;
+      font-size: 1rem;
+      font-weight: 500;
+    }
 
-        input::placeholder {
-            color: #ccc;
-        }
+    .auth-button:hover {
+      background: #2d8c89;
+    }
 
-        button {
-            background: var(--primary-red);
-            cursor: pointer;
-            transition: background 0.2s ease;
-        }
+    .switch-tab {
+      text-align: center;
+      margin-top: 1rem;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+    }
 
-        button:hover {
-            background: #d43f4b;
-        }
+    .switch-tab a {
+      color: var(--highlight);
+      text-decoration: none;
+      cursor: pointer;
+    }
 
-        .error {
-            color: #ffcccc;
-            text-align: center;
-            margin-bottom: 10px;
-        }
+    .error {
+      color: #ef4444;
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+      text-align: center;
+    }
 
-        #recaptcha-container {
-            margin-bottom: 15px;
-        }
+    .hidden {
+      display: none;
+    }
 
-        @media (max-width: 640px) {
-            .auth-container {
-                width: 90%;
-                padding: 15px;
-            }
-
-            .tab {
-                padding: 8px 16px;
-                margin: 0 5px;
-            }
-
-            h2 {
-                font-size: 1.5rem;
-            }
-        }
-    </style>
+    .slogan {
+      text-align: center;
+      margin-bottom: 1rem;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--highlight);
+    }
+  </style>
 </head>
 <body>
-    <div class="auth-container">
-        <h2>Sign Up / Sign In</h2>
-        <div class="tabs">
-            <div class="tab active" onclick="showSection('signup')">Sign Up</div>
-            <div class="tab" onclick="showSection('signin')">Sign In</div>
-        </div>
-        <div id="signup" class="section active">
-            <div class="error" id="signup-error"></div>
-            <div class="form-group">
-                <label for="signup-email">Email</label>
-                <input type="email" id="signup-email" placeholder="Enter your email">
-            </div>
-            <div class="form-group">
-                <label for="signup-password">Password</label>
-                <input type="password" id="signup-password" placeholder="Enter your password">
-            </div>
-            <div class="form-group">
-                <label for="signup-phone">Phone Number</label>
-                <input type="tel" id="signup-phone" placeholder="Enter your phone number (e.g., +1234567890)">
-            </div>
-            <div id="recaptcha-container"></div>
-            <div id="phone-signup-section" style="display: none;">
-                <div class="form-group">
-                    <label for="signup-code">Verification Code</label>
-                    <input type="text" id="signup-code" placeholder="Enter SMS code">
-                </div>
-                <button onclick="verifyPhoneSignup()">Verify Code</button>
-            </div>
-            <button onclick="signUpWithEmail()">Sign Up with Email</button>
-            <button onclick="startPhoneSignup()">Sign Up with Phone</button>
-        </div>
-        <div id="signin" class="section">
-            <div class="error" id="signin-error"></div>
-            <div class="form-group">
-                <label for="signin-email">Email</label>
-                <input type="email" id="signin-email" placeholder="Enter your email">
-            </div>
-            <div class="form-group">
-                <label for="signin-password">Password</label>
-                <input type="password" id="signin-password" placeholder="Enter your password">
-            </div>
-            <div class="form-group">
-                <label for="signin-phone">Phone Number</label>
-                <input type="tel" id="signin-phone" placeholder="Enter your phone number (e.g., +1234567890)">
-            </div>
-            <div id="recaptcha-container-signin"></div>
-            <div id="phone-signin-section" style="display: none;">
-                <div class="form-group">
-                    <label for="signin-code">Verification Code</label>
-                    <input type="text" id="signin-code" placeholder="Enter SMS code">
-                </div>
-                <button onclick="verifyPhoneSignin()">Verify Code</button>
-            </div>
-            <button onclick="signInWithEmail()">Sign In with Email</button>
-            <button onclick="startPhoneSignin()">Sign In with Phone</button>
-        </div>
+  <div class="auth-container">
+    <div class="slogan">Where AI Feels Like a Friend from Mokopane</div>
+    <h2 class="text-xl font-bold mb-4 text-center">Welcome to Vynix AI</h2>
+    
+    <div class="tab-container">
+      <button class="tab active" id="login-tab">Login</button>
+      <button class="tab" id="signup-tab">Sign Up</button>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+    <!-- Login Form -->
+    <form id="login-form" class="auth-form">
+      <div class="form-group">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="Enter your email" required>
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="Enter your password" required>
+      </div>
+      <button type="submit" class="auth-button">Sign In</button>
+      <div id="login-error" class="error hidden"></div>
+    </form>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
-            authDomain: "fire-b-a8878.firebaseapp.com",
-            databaseURL: "https://fire-b-a8878.firebaseio.com",
-            projectId: "fire-b-a8878",
-            storageBucket: "fire-b-a8878.firebasestorage.app",
-            messagingSenderId: "658673187627",
-            appId: "1:658673187627:web:6e4c29af661785f0afa36e",
-            measurementId: "G-V4W97VMSKL"
-        };
+    <!-- Signup Form -->
+    <form id="signup-form" class="auth-form hidden">
+      <div class="form-group">
+        <label for="signup-email">Email</label>
+        <input type="email" id="signup-email" placeholder="Enter your email" required>
+      </div>
+      <div class="form-group">
+        <label for="signup-password">Password</label>
+        <input type="password" id="signup-password" placeholder="Create a password" required>
+      </div>
+      <div class="form-group">
+        <label for="signup-name">Display Name</label>
+        <input type="text" id="signup-name" placeholder="Enter your display name" required>
+      </div>
+      <button type="submit" class="auth-button">Sign Up</button>
+      <div id="signup-error" class="error hidden"></div>
+    </form>
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
+    <div class="switch-tab">
+      <span id="switch-text"></span>
+    </div>
+  </div>
 
-        // Initialize reCAPTCHA for phone auth
-        let recaptchaVerifier;
-        window.onload = () => {
-            recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-                'size': 'invisible',
-                'callback': () => {}
-            });
-            // Duplicate for sign-in to avoid conflicts
-            new RecaptchaVerifier(auth, 'recaptcha-container-signin', {
-                'size': 'invisible',
-                'callback': () => {}
-            });
-        };
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
-        function showSection(sectionId) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
-            document.querySelector(`[onclick="showSection('${sectionId}')"]`).classList.add('active');
-            document.getElementById(sectionId).classList.add('active');
-            document.getElementById('signup-error').textContent = '';
-            document.getElementById('signin-error').textContent = '';
-            document.getElementById('phone-signup-section').style.display = 'none';
-            document.getElementById('phone-signin-section').style.display = 'none';
-        }
+    const firebaseConfig = {
+      apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
+      authDomain: "fire-b-a8878.firebaseapp.com",
+      databaseURL: "https://fire-b-a8878.firebaseio.com",
+      projectId: "fire-b-a8878",
+      storageBucket: "fire-b-a8878.firebasestorage.app",
+      messagingSenderId: "658673187627",
+      appId: "1:658673187627:web:6e4c29af661785f0afa36e",
+      measurementId: "G-V4W97VMSKL"
+    };
 
-        // Email Sign-Up
-        async function signUpWithEmail() {
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-            const errorEl = document.getElementById('signup-error');
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
-            if (!email || !password) {
-                errorEl.textContent = 'Please enter email and password.';
-                return;
-            }
+    const elements = {
+      loginTab: document.getElementById('login-tab'),
+      signupTab: document.getElementById('signup-tab'),
+      loginForm: document.getElementById('login-form'),
+      signupForm: document.getElementById('signup-form'),
+      loginEmail: document.getElementById('login-email'),
+      loginPassword: document.getElementById('login-password'),
+      signupEmail: document.getElementById('signup-email'),
+      signupPassword: document.getElementById('signup-password'),
+      signupName: document.getElementById('signup-name'),
+      loginError: document.getElementById('login-error'),
+      signupError: document.getElementById('signup-error'),
+      switchText: document.getElementById('switch-text')
+    };
 
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                await set(ref(db, `users/${user.uid}`), {
-                    email: user.email,
-                    createdAt: Date.now()
-                });
-                window.location.href = "home.html";
-            } catch (error) {
-                errorEl.textContent = `Sign-up failed: ${error.message}`;
-            }
-        }
+    // Tab Switching
+    elements.loginTab.addEventListener('click', () => {
+      elements.loginTab.classList.add('active');
+      elements.signupTab.classList.remove('active');
+      elements.loginForm.classList.remove('hidden');
+      elements.signupForm.classList.add('hidden');
+      elements.switchText.innerHTML = 'New to Vynix AI? <a>Sign up</a>';
+      elements.switchText.querySelector('a').onclick = () => elements.signupTab.click();
+    });
 
-        // Phone Sign-Up
-        let confirmationResult;
-        async function startPhoneSignup() {
-            const phoneNumber = document.getElementById('signup-phone').value;
-            const errorEl = document.getElementById('signup-error');
+    elements.signupTab.addEventListener('click', () => {
+      elements.signupTab.classList.add('active');
+      elements.loginTab.classList.remove('active');
+      elements.signupForm.classList.remove('hidden');
+      elements.loginForm.classList.add('hidden');
+      elements.switchText.innerHTML = 'Already have an account? <a>Login</a>';
+      elements.switchText.querySelector('a').onclick = () => elements.loginTab.click();
+    });
 
-            if (!phoneNumber) {
-                errorEl.textContent = 'Please enter a phone number.';
-                return;
-            }
+    // Signup
+    elements.signupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = elements.signupEmail.value;
+      const password = elements.signupPassword.value;
+      const displayName = elements.signupName.value;
 
-            try {
-                confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
-                document.getElementById('phone-signup-section').style.display = 'block';
-                errorEl.textContent = 'Verification code sent to your phone.';
-            } catch (error) {
-                errorEl.textContent = `Phone sign-up failed: ${error.message}`;
-                recaptchaVerifier.render().then(widgetId => grecaptcha.reset(widgetId));
-            }
-        }
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(userCredential.user, { displayName });
+        window.location.href = 'home.html';
+      } catch (error) {
+        elements.signupError.textContent = error.message;
+        elements.signupError.classList.remove('hidden');
+      }
+    });
 
-        async function verifyPhoneSignup() {
-            const code = document.getElementById('signup-code').value;
-            const errorEl = document.getElementById('signup-error');
+    // Login
+    elements.loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = elements.loginEmail.value;
+      const password = elements.loginPassword.value;
 
-            if (!code) {
-                errorEl.textContent = 'Please enter the verification code.';
-                return;
-            }
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = 'home.html';
+      } catch (error) {
+        elements.loginError.textContent = error.message;
+        elements.loginError.classList.remove('hidden');
+      }
+    });
 
-            try {
-                const result = await confirmationResult.confirm(code);
-                const user = result.user;
-                await set(ref(db, `users/${user.uid}`), {
-                    phoneNumber: user.phoneNumber,
-                    createdAt: Date.now()
-                });
-                window.location.href = "home.html";
-            } catch (error) {
-                errorEl.textContent = `Verification failed: ${error.message}`;
-            }
-        }
-
-        // Email Sign-In
-        async function signInWithEmail() {
-            const email = document.getElementById('signin-email').value;
-            const password = document.getElementById('signin-password').value;
-            const errorEl = document.getElementById('signin-error');
-
-            if (!email || !password) {
-                errorEl.textContent = 'Please enter email and password.';
-                return;
-            }
-
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-                window.location.href = "home.html";
-            } catch (error) {
-                errorEl.textContent = `Sign-in failed: ${error.message}`;
-            }
-        }
-
-        // Phone Sign-In
-        async function startPhoneSignin() {
-            const phoneNumber = document.getElementById('signin-phone').value;
-            const errorEl = document.getElementById('signin-error');
-
-            if (!phoneNumber) {
-                errorEl.textContent = 'Please enter a phone number.';
-                return;
-            }
-
-            try {
-                confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
-                document.getElementById('phone-signin-section').style.display = 'block';
-                errorEl.textContent = 'Verification code sent to your phone.';
-            } catch (error) {
-                errorEl.textContent = `Phone sign-in failed: ${error.message}`;
-                recaptchaVerifier.render().then(widgetId => grecaptcha.reset(widgetId));
-            }
-        }
-
-        async function verifyPhoneSignin() {
-            const code = document.getElementById('signin-code').value;
-            const errorEl = document.getElementById('signin-error');
-
-            if (!code) {
-                errorEl.textContent = 'Please enter the verification code.';
-                return;
-            }
-
-            try {
-                await confirmationResult.confirm(code);
-                window.location.href = "home.html";
-            } catch (error) {
-                errorEl.textContent = `Verification failed: ${error.message}`;
-            }
-        }
-    </script>
+    // Check Auth State
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.location.href = 'home.html';
+      }
+    });
+  </script>
 </body>
 </html>
