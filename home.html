@@ -19,8 +19,6 @@
       --highlight: #38B2AC;
       --user-msg-bg: #E0E7FF;
       --ai-msg-bg: #1C2526;
-      --online: #34D399;
-      --offline: #9CA3AF;
     }
 
     body {
@@ -108,6 +106,22 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
+    .friend-card .avatar {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 50%;
+      margin-right: 1rem;
+      background: var(--highlight);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      border: 2px solid var(--highlight);
+      transition: border-color 0.3s;
+    }
+
     .friend-card img {
       width: 3rem;
       height: 3rem;
@@ -115,6 +129,7 @@
       margin-right: 1rem;
       border: 2px solid var(--highlight);
       transition: border-color 0.3s;
+      object-fit: cover;
     }
 
     .friend-info {
@@ -128,9 +143,12 @@
       font-size: 1.125rem;
       font-weight: 600;
       color: #1E1E1E;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+    }
+
+    .friend-info .last-seen {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      opacity: 0.6;
     }
 
     .friend-info p {
@@ -138,22 +156,10 @@
       font-size: 0.875rem;
       color: var(--text-secondary);
       opacity: 0.8;
-    }
-
-    .status-indicator {
-      width: 0.75rem;
-      height: 0.75rem;
-      border-radius: 50%;
-      border: 2px solid #FFFFFF;
-      transition: background 0.3s;
-    }
-
-    .online .status-indicator {
-      background: var(--online);
-    }
-
-    .offline .status-indicator {
-      background: var(--offline);
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .timestamp {
@@ -178,6 +184,7 @@
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       transition: background 0.3s, transform 0.2s;
+      z-index: 20;
     }
 
     .add-friend-button:hover {
@@ -189,6 +196,91 @@
       width: 1.75rem;
       height: 1.75rem;
       stroke: var(--text-primary);
+    }
+
+    .bottom-sheet-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 30;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .bottom-sheet-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .bottom-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      border-top-left-radius: 1rem;
+      border-top-right-radius: 1rem;
+      padding: 1.5rem;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      z-index: 40;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .bottom-sheet.open {
+      transform: translateY(0);
+    }
+
+    .bottom-sheet h3 {
+      margin: 0 0 1rem;
+      font-size: 1.25rem;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .bottom-sheet input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: #2D3748;
+      color: var(--text-primary);
+      font-size: 1rem;
+      outline: none;
+      margin-bottom: 1rem;
+    }
+
+    .bottom-sheet button {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 500;
+      transition: background 0.3s;
+    }
+
+    .bottom-sheet .add-button {
+      background: var(--highlight);
+      color: var(--text-primary);
+      margin-right: 0.5rem;
+    }
+
+    .bottom-sheet .add-button:hover {
+      background: #2C7A74;
+    }
+
+    .bottom-sheet .cancel-button {
+      background: #4A5568;
+      color: var(--text-primary);
+    }
+
+    .bottom-sheet .cancel-button:hover {
+      background: #2D3748;
     }
 
     #sidebar {
@@ -282,6 +374,16 @@
         <path d="M12 4v8m0 0v8m8-8H4"/>
       </svg>
     </button>
+    <div class="bottom-sheet-overlay hidden" id="bottom-sheet-overlay">
+      <div class="bottom-sheet" id="bottom-sheet">
+        <h3>Add a Friend</h3>
+        <input type="email" id="friend-email-input" placeholder="Enter friend's email" aria-label="Friend's email">
+        <div style="display: flex; justify-content: flex-end;">
+          <button class="add-button">Add Friend</button>
+          <button class="cancel-button">Cancel</button>
+        </div>
+      </div>
+    </div>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -313,7 +415,12 @@
       addFriendButton: document.getElementById('add-friend-button'),
       chatsTab: document.getElementById('chats-tab'),
       statusTab: document.getElementById('status-tab'),
-      callsTab: document.getElementById('calls-tab')
+      callsTab: document.getElementById('calls-tab'),
+      bottomSheetOverlay: document.getElementById('bottom-sheet-overlay'),
+      bottomSheet: document.getElementById('bottom-sheet'),
+      friendEmailInput: document.getElementById('friend-email-input'),
+      addButton: document.querySelector('.add-button'),
+      cancelButton: document.querySelector('.cancel-button')
     };
 
     let app, auth, db;
@@ -341,9 +448,20 @@
         for (const uid in users) {
           if (uid !== state.currentUser.uid) {
             const user = users[uid];
-            state.friends.push({ uid, displayName: user.displayName || 'User', email: user.email });
+            state.friends.push({
+              uid,
+              displayName: user.displayName || 'User',
+              email: user.email,
+              photoURL: user.photoURL || null
+            });
             loadLastMessage(uid, (lastMessage, timestamp) => {
-              appendFriendCard({ uid, displayName: user.displayName || 'User', lastMessage: lastMessage || 'Start chatting!', timestamp });
+              appendFriendCard({
+                uid,
+                displayName: user.displayName || 'User',
+                photoURL: user.photoURL,
+                lastMessage: lastMessage ? lastMessage.slice(0, 50) + (lastMessage.length > 50 ? '...' : '') : '',
+                timestamp: timestamp ? `Last seen ${timestamp}` : `Last seen ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+              });
             });
           }
         }
@@ -368,14 +486,18 @@
 
     function appendFriendCard(friend) {
       const div = document.createElement('div');
-      div.className = 'friend-card online'; // Assume online for now; can add real status later
+      div.className = 'friend-card';
+      const avatarContent = friend.photoURL
+        ? `<img src="${friend.photoURL}" alt="${friend.displayName}'s profile">`
+        : `<div class="avatar">${friend.displayName[0].toUpperCase()}</div>`;
       div.innerHTML = `
-        <img src="https://via.placeholder.com/48" alt="${friend.displayName}'s profile">
+        ${avatarContent}
         <div class="friend-info">
-          <h3>${friend.displayName} <span class="status-indicator"></span></h3>
+          <h3>${friend.displayName}</h3>
+          <span class="last-seen">${friend.timestamp}</span>
           <p>${friend.lastMessage}</p>
         </div>
-        <span class="timestamp">${friend.timestamp}</span>
+        <span class="timestamp">${friend.lastMessage ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} </span>
       `;
       div.addEventListener('click', () => {
         window.location.href = `chat.html?friendId=${friend.uid}&friendName=${encodeURIComponent(friend.displayName)}`;
@@ -383,11 +505,26 @@
       elements.friendsList.appendChild(div);
     }
 
+    function openBottomSheet() {
+      elements.bottomSheetOverlay.classList.add('open');
+      elements.bottomSheet.classList.add('open');
+      elements.friendEmailInput.focus();
+    }
+
+    function closeBottomSheet() {
+      elements.bottomSheetOverlay.classList.remove('open');
+      elements.bottomSheet.classList.remove('open');
+      elements.friendEmailInput.value = '';
+    }
+
     function addFriend() {
-      const email = prompt('Enter your friend’s email:');
+      const email = elements.friendEmailInput.value.trim();
       if (email) {
         alert(`Adding friend with email: ${email}`);
         // Implement Firebase query to add friend
+        closeBottomSheet();
+      } else {
+        alert('Please enter a valid email.');
       }
     }
 
@@ -419,7 +556,17 @@
       elements.sidebar.classList.remove('open');
     });
 
-    elements.addFriendButton.addEventListener('click', addFriend);
+    elements.addFriendButton.addEventListener('click', openBottomSheet);
+
+    elements.addButton.addEventListener('click', addFriend);
+
+    elements.cancelButton.addEventListener('click', closeBottomSheet);
+
+    elements.friendEmailInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        addFriend();
+      }
+    });
 
     document.addEventListener('DOMContentLoaded', initializeFirebase);
   </script>
