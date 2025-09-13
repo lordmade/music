@@ -8,6 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -79,7 +80,7 @@
       display: none;
     }
 
-    .friends-list {
+    .friends-list, .status-list {
       margin: 1rem 0 5rem 0;
       padding: 0 1rem;
       overflow-y: auto;
@@ -89,7 +90,7 @@
       gap: 0.5rem;
     }
 
-    .friend-card {
+    .friend-card, .status-card {
       display: flex;
       align-items: center;
       padding: 1rem;
@@ -100,13 +101,13 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
 
-    .friend-card:hover {
+    .friend-card:hover, .status-card:hover {
       background: linear-gradient(135deg, #E0E7FF, #C7D2FE);
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
-    .friend-card .avatar {
+    .friend-card .avatar, .status-card .avatar {
       width: 3rem;
       height: 3rem;
       border-radius: 50%;
@@ -122,7 +123,7 @@
       transition: border-color 0.3s;
     }
 
-    .friend-card img {
+    .friend-card img, .status-card img {
       width: 3rem;
       height: 3rem;
       border-radius: 50%;
@@ -132,26 +133,26 @@
       object-fit: cover;
     }
 
-    .friend-info {
+    .friend-info, .status-info {
       flex: 1;
       display: flex;
       flex-direction: column;
     }
 
-    .friend-info h3 {
+    .friend-info h3, .status-info h3 {
       margin: 0;
       font-size: 1.125rem;
       font-weight: 600;
       color: #1E1E1E;
     }
 
-    .friend-info .last-seen {
+    .friend-info .last-seen, .status-info .last-seen {
       font-size: 0.75rem;
       color: var(--text-secondary);
       opacity: 0.6;
     }
 
-    .friend-info p {
+    .friend-info p, .status-info p {
       margin: 0;
       font-size: 0.875rem;
       color: var(--text-secondary);
@@ -258,6 +259,111 @@
       height: 1.25rem;
       stroke: var(--text-primary);
     }
+
+    .status-input-container {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .status-input {
+      flex: 1;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: #FFFFFF;
+      color: #1E1E1E;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .status-upload-button, .status-image-button {
+      background: var(--highlight);
+      color: var(--text-primary);
+      padding: 0.75rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: background 0.3s;
+    }
+
+    .status-upload-button:hover, .status-image-button:hover {
+      background: #2C7A74;
+    }
+
+    .status-image {
+      max-width: 100%;
+      max-height: 100px;
+      border-radius: 0.5rem;
+      margin-top: 0.5rem;
+      object-fit: cover;
+    }
+
+    .status-viewer-count {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      opacity: 0.6;
+    }
+
+    .status-viewer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .status-viewer-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .status-viewer-content {
+      max-width: 90%;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .status-viewer-content img {
+      max-width: 100%;
+      max-height: 60vh;
+      border-radius: 0.5rem;
+      object-fit: contain;
+    }
+
+    .status-viewer-content p {
+      color: var(--text-primary);
+      font-size: 1rem;
+      text-align: center;
+    }
+
+    .status-viewer-close {
+      background: var(--highlight);
+      color: var(--text-primary);
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: background 0.3s;
+    }
+
+    .status-viewer-close:hover {
+      background: #2C7A74;
+    }
   </style>
 </head>
 <body>
@@ -275,8 +381,20 @@
       </button>
       <div id="conversation-list" class="flex-1 overflow-y-auto p-4"></div>
     </div>
-    <div class="friends-list" id="friends-list">
-      <!-- Friend cards will be dynamically added here -->
+    <div class="friends-list" id="friends-list"></div>
+    <div class="status-list hidden" id="status-list">
+      <div class="status-input-container">
+        <input type="text" id="status-input" placeholder="What's on your mind?" aria-label="Your status">
+        <button class="status-upload-button">Post</button>
+        <label class="status-image-button">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="width: 1.25rem; height: 1.25rem;">
+            <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <input type="file" id="status-image-input" accept="image/*" hidden>
+        </label>
+      </div>
+      <div id="my-status"></div>
+      <div id="friends-statuses"></div>
     </div>
     <div class="tab-container">
       <button class="tab active" id="chats-tab">
@@ -303,11 +421,16 @@
         <path d="M12 4v8m0 0v8m8-8H4"/>
       </svg>
     </button>
+    <div class="status-viewer-overlay hidden" id="status-viewer-overlay">
+      <div class="status-viewer-content" id="status-viewer-content"></div>
+      <button class="status-viewer-close">Close</button>
+    </div>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import { getDatabase, ref, onValue, limitToLast, query, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -328,6 +451,15 @@
 
     const elements = {
       friendsList: document.getElementById('friends-list'),
+      statusList: document.getElementById('status-list'),
+      myStatus: document.getElementById('my-status'),
+      friendsStatuses: document.getElementById('friends-statuses'),
+      statusInput: document.getElementById('status-input'),
+      statusImageInput: document.getElementById('status-image-input'),
+      statusUploadButton: document.querySelector('.status-upload-button'),
+      statusViewerOverlay: document.getElementById('status-viewer-overlay'),
+      statusViewerContent: document.getElementById('status-viewer-content'),
+      statusViewerClose: document.querySelector('.status-viewer-close'),
       hamburgerButton: document.getElementById('hamburger-button'),
       sidebar: document.getElementById('sidebar'),
       closeSidebar: document.getElementById('close-sidebar'),
@@ -338,7 +470,7 @@
       callsTab: document.getElementById('calls-tab')
     };
 
-    let app, auth, db;
+    let app, auth, db, storage;
 
     // Encryption Functions
     async function generateEncryptionKey() {
@@ -419,11 +551,13 @@
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       db = getDatabase(app);
+      storage = getStorage(app);
       onAuthStateChanged(auth, (user) => {
         if (user) {
           state.currentUser = user;
           setupPresence(user.uid);
           loadFriends();
+          loadStatuses();
         } else {
           window.location.href = 'signup.html';
         }
@@ -465,7 +599,7 @@
                     photoURL: user.photoURL || null,
                     lastSeen: lastSeenTime,
                     lastMessage: lastMessage ? lastMessage.slice(0, 50) + (lastMessage.length > 50 ? '...' : '') : '',
-                    messageTimestamp: messageTimestamp ? new Date(messageTimestamp).toTimeString() : 0,
+                    messageTimestamp: messageTimestamp ? new Date(messageTimestamp).getTime() : 0,
                     unreadCount
                   });
                 }
@@ -544,24 +678,143 @@
       elements.friendsList.appendChild(div);
     }
 
+    async function loadStatuses() {
+      // Load current user's status
+      const myStatusRef = ref(db, `statuses/${state.currentUser.uid}`);
+      onValue(myStatusRef, (snapshot) => {
+        elements.myStatus.innerHTML = '<h3 style="font-size: 1rem; color: #1E1E1E; margin-bottom: 0.5rem;">My Status</h3>';
+        if (snapshot.exists()) {
+          const statuses = snapshot.val();
+          for (const statusId in statuses) {
+            const status = statuses[statusId];
+            if (new Date().getTime() - status.timestamp < 24 * 60 * 60 * 1000) {
+              appendStatusCard(state.currentUser.uid, state.currentUser.displayName || 'Me', status, statusId);
+            }
+          }
+        } else {
+          elements.myStatus.innerHTML += '<p style="font-size: 0.875rem; color: var(--text-secondary); opacity: 0.8;">No status yet. Add one above!</p>';
+        }
+      });
+
+      // Load friends' statuses
+      const friendsRef = ref(db, `users/${state.currentUser.uid}/friends`);
+      onValue(friendsRef, async (snapshot) => {
+        elements.friendsStatuses.innerHTML = '<h3 style="font-size: 1rem; color: #1E1E1E; margin-bottom: 0.5rem;">Friends\' Statuses</h3>';
+        if (snapshot.exists()) {
+          const friends = snapshot.val();
+          for (const friendUid in friends) {
+            const statusRef = ref(db, `statuses/${friendUid}`);
+            const statusSnapshot = await new Promise(resolve => onValue(statusRef, resolve, { onlyOnce: true }));
+            if (statusSnapshot.exists()) {
+              const statuses = statusSnapshot.val();
+              for (const statusId in statuses) {
+                const status = statuses[statusId];
+                if (new Date().getTime() - status.timestamp < 24 * 60 * 60 * 1000) {
+                  appendStatusCard(friendUid, friends[friendUid].displayName, status, statusId);
+                }
+              }
+            }
+          }
+        } else {
+          elements.friendsStatuses.innerHTML += '<p style="font-size: 0.875rem; color: var(--text-secondary); opacity: 0.8;">No friends\' statuses yet.</p>';
+        }
+      });
+    }
+
+    function appendStatusCard(uid, displayName, status, statusId) {
+      const div = document.createElement('div');
+      div.className = 'status-card';
+      const avatarContent = state.friends.find(f => f.uid === uid)?.photoURL || (uid === state.currentUser.uid && state.currentUser.photoURL)
+        ? `<img src="${state.friends.find(f => f.uid === uid)?.photoURL || state.currentUser.photoURL}" alt="${displayName}'s profile">`
+        : `<div class="avatar">${displayName[0].toUpperCase()}</div>`;
+      const content = status.type === 'image'
+        ? `<img src="${status.content}" class="status-image" alt="Status image">`
+        : `<p>${status.content}</p>`;
+      const viewerCount = status.viewers ? Object.keys(status.viewers).length : 0;
+      div.innerHTML = `
+        ${avatarContent}
+        <div class="status-info">
+          <h3>${displayName}</h3>
+          <span class="last-seen">${new Date(status.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          ${content}
+          <span class="status-viewer-count">${viewerCount} view${viewerCount === 1 ? '' : 's'}</span>
+        </div>
+      `;
+      div.addEventListener('click', () => viewStatus(uid, displayName, status, statusId));
+      if (uid === state.currentUser.uid) {
+        elements.myStatus.appendChild(div);
+      } else {
+        elements.friendsStatuses.appendChild(div);
+      }
+    }
+
+    async function viewStatus(uid, displayName, status, statusId) {
+      if (uid !== state.currentUser.uid) {
+        const viewerRef = ref(db, `statuses/${uid}/${statusId}/viewers/${state.currentUser.uid}`);
+        await set(viewerRef, true);
+      }
+      elements.statusViewerContent.innerHTML = `
+        <h3 style="color: var(--text-primary);">${displayName}</h3>
+        ${status.type === 'image' ? `<img src="${status.content}" alt="Status image">` : `<p>${status.content}</p>`}
+        <span style="color: var(--text-primary); font-size: 0.75rem;">${new Date(status.timestamp).toLocaleString()}</span>
+      `;
+      elements.statusViewerOverlay.classList.add('open');
+    }
+
+    async function uploadStatus() {
+      const text = elements.statusInput.value.trim();
+      if (!text && !elements.statusImageInput.files[0]) {
+        alert('Please enter a status or select an image.');
+        return;
+      }
+      const statusId = Date.now().toString();
+      const statusRef = ref(db, `statuses/${state.currentUser.uid}/${statusId}`);
+      if (elements.statusImageInput.files[0]) {
+        const file = elements.statusImageInput.files[0];
+        const storagePath = `statuses/${state.currentUser.uid}/${statusId}`;
+        const fileRef = storageRef(storage, storagePath);
+        await uploadBytes(fileRef, file);
+        const url = await getDownloadURL(fileRef);
+        await set(statusRef, {
+          type: 'image',
+          content: url,
+          timestamp: serverTimestamp(),
+          viewers: {}
+        });
+      } else {
+        await set(statusRef, {
+          type: 'text',
+          content: text,
+          timestamp: serverTimestamp(),
+          viewers: {}
+        });
+      }
+      elements.statusInput.value = '';
+      elements.statusImageInput.value = '';
+    }
+
     function setActiveTab(tab) {
       [elements.chatsTab, elements.statusTab, elements.callsTab].forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
+      elements.friendsList.classList.add('hidden');
+      elements.statusList.classList.add('hidden');
+      if (tab === elements.chatsTab) {
+        elements.friendsList.classList.remove('hidden');
+      } else if (tab === elements.statusTab) {
+        elements.statusList.classList.remove('hidden');
+      }
     }
 
     elements.chatsTab.addEventListener('click', () => {
       setActiveTab(elements.chatsTab);
-      elements.friendsList.classList.remove('hidden');
     });
 
     elements.statusTab.addEventListener('click', () => {
       setActiveTab(elements.statusTab);
-      elements.friendsList.classList.add('hidden');
     });
 
     elements.callsTab.addEventListener('click', () => {
       setActiveTab(elements.callsTab);
-      elements.friendsList.classList.add('hidden');
     });
 
     elements.hamburgerButton.addEventListener('click', () => {
@@ -574,6 +827,25 @@
 
     elements.addFriendButton.addEventListener('click', () => {
       window.location.href = 'add.html';
+    });
+
+    elements.statusUploadButton.addEventListener('click', uploadStatus);
+
+    elements.statusInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        uploadStatus();
+      }
+    });
+
+    elements.statusImageInput.addEventListener('change', () => {
+      if (elements.statusImageInput.files[0]) {
+        uploadStatus();
+      }
+    });
+
+    elements.statusViewerClose.addEventListener('click', () => {
+      elements.statusViewerOverlay.classList.remove('open');
+      elements.statusViewerContent.innerHTML = '';
     });
 
     document.addEventListener('DOMContentLoaded', initializeFirebase);
