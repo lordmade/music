@@ -167,6 +167,20 @@
       color: var(--text-secondary);
       opacity: 0.6;
       margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .unread-count {
+      background: var(--highlight);
+      color: var(--text-primary);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 1rem;
+      min-width: 1.5rem;
+      text-align: center;
     }
 
     .add-friend-button {
@@ -388,7 +402,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, limitToLast, query, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, limitToLast, query, set, onDisconnect, serverTimestamp, push } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -403,7 +417,8 @@
 
     const state = {
       friends: [],
-      currentUser: null
+      currentUser: null,
+      encryptionKeys: {}
     };
 
     const elements = {
@@ -425,6 +440,81 @@
 
     let app, auth, db;
 
+    // Encryption Functions
+    async function generateEncryptionKey() {
+      return await crypto.subtle.generateKey(
+        { name: "AES-GCM", length: 256 },
+        true,
+        ["encrypt", "decrypt"]
+      );
+    }
+
+    async function exportKey(key) {
+      const exported = await crypto.subtle.exportKey("raw", key);
+      return btoa(String.fromCharCode(...new Uint8Array(exported)));
+    }
+
+    async function importKey(base64Key) {
+      const keyBuffer = Uint8Array.from(atob(base64Key), c => c.charCodeAt(0));
+      return await crypto.subtle.importKey(
+        "raw",
+        keyBuffer,
+        { name: "AES-GCM" },
+        true,
+        ["encrypt", "decrypt"]
+      );
+    }
+
+    async function encryptMessage(message, key) {
+      const encoder = new TextEncoder();
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const encrypted = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv },
+        key,
+        encoder.encode(message)
+      );
+      return {
+        ciphertext: btoa(String.fromCharCode(...new Uint8Array(encrypted))),
+        iv: btoa(String.fromCharCode(...iv))
+      };
+    }
+
+    async function decryptMessage(ciphertext, iv, key) {
+      try {
+        const decoder = new TextDecoder();
+        const encryptedBuffer = Uint8Array.from(atob(ciphertext), c => c.charCodeAt(0));
+        const ivBuffer = Uint8Array.from(atob(iv), c => c.charCodeAt(0));
+        const decrypted = await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: ivBuffer },
+          key,
+          encryptedBuffer
+        );
+        return decoder.decode(decrypted);
+      } catch (e) {
+        console.error('Decryption failed:', e);
+        return '[Decryption Error]';
+      }
+    }
+
+    async function getChatKey(chatId) {
+      if (state.encryptionKeys[chatId]) {
+        return state.encryptionKeys[chatId];
+      }
+      const keyRef = ref(db, `chatKeys/${chatId}/key`);
+      const snapshot = await new Promise(resolve => onValue(keyRef, resolve, { onlyOnce: true }));
+      if (snapshot.exists()) {
+        const base64Key = snapshot.val();
+        state.encryptionKeys[chatId] = await importKey(base64Key);
+        return state.encryptionKeys[chatId];
+      } else {
+        const newKey = await generateEncryptionKey();
+        const base64Key = await exportKey(newKey);
+        await set(keyRef, base64Key);
+        state.encryptionKeys[chatId] = newKey;
+        return newKey;
+      }
+    }
+
     function initializeFirebase() {
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
@@ -443,63 +533,87 @@
     function setupPresence(userId) {
       const userStatusRef = ref(db, `users/${userId}/status`);
       const lastSeenRef = ref(db, `users/${userId}/lastSeen`);
-      
-      // Set online status
       set(userStatusRef, 'online');
-      
-      // Set last seen timestamp when user disconnects
       onDisconnect(userStatusRef).set('offline');
       onDisconnect(lastSeenRef).set(serverTimestamp());
     }
 
-    function loadFriends() {
+    async function loadFriends() {
       const usersRef = ref(db, 'users');
-      onValue(usersRef, (snapshot) => {
+      onValue(usersRef, async (snapshot) => {
         elements.friendsList.innerHTML = '';
         const users = snapshot.val();
         state.friends = [];
+        const friendPromises = [];
+        
         for (const uid in users) {
           if (uid !== state.currentUser.uid) {
             const user = users[uid];
-            state.friends.push({
-              uid,
-              displayName: user.displayName || 'User',
-              email: user.email,
-              photoURL: user.photoURL || null,
-              lastSeen: user.lastSeen || null
-            });
-            loadLastMessage(uid, (lastMessage, messageTimestamp) => {
-              const lastSeenTime = user.lastSeen 
-                ? `Last seen ${new Date(user.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                : 'Last seen recently';
-              appendFriendCard({
-                uid,
-                displayName: user.displayName || 'User',
-                photoURL: user.photoURL,
-                lastMessage: lastMessage ? lastMessage.slice(0, 50) + (lastMessage.length > 50 ? '...' : '') : '',
-                lastSeen: lastSeenTime,
-                messageTimestamp
-              });
-            });
+            friendPromises.push(
+              new Promise(async (resolve) => {
+                const { lastMessage, messageTimestamp, unreadCount } = await loadLastMessage(uid);
+                const lastSeenTime = user.lastSeen 
+                  ? `Last seen ${new Date(user.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                  : 'Last seen recently';
+                resolve({
+                  uid,
+                  displayName: user.displayName || 'User',
+                  email: user.email,
+                  photoURL: user.photoURL || null,
+                  lastSeen: lastSeenTime,
+                  lastMessage: lastMessage ? lastMessage.slice(0, 50) + (lastMessage.length > 50 ? '...' : '') : '',
+                  messageTimestamp: messageTimestamp ? new Date(messageTimestamp).getTime() : 0,
+                  unreadCount
+                });
+              })
+            );
           }
         }
+
+        state.friends = await Promise.all(friendPromises);
+        state.friends.sort((a, b) => {
+          if (a.unreadCount > 0 && b.unreadCount > 0) {
+            return b.unreadCount - a.unreadCount;
+          }
+          if (a.unreadCount > 0) return -1;
+          if (b.unreadCount > 0) return 1;
+          return b.messageTimestamp - a.messageTimestamp;
+        });
+
+        state.friends.forEach(friend => appendFriendCard(friend));
       });
     }
 
-    function loadLastMessage(friendId, callback) {
+    async function loadLastMessage(friendId) {
       const chatId = [state.currentUser.uid, friendId].sort().join('_');
       const messagesRef = query(ref(db, `chats/${chatId}`), limitToLast(1));
-      onValue(messagesRef, (snapshot) => {
-        let lastMessage = '';
-        let messageTimestamp = '';
-        if (snapshot.exists()) {
-          snapshot.forEach((child) => {
-            lastMessage = child.val().content;
-            messageTimestamp = new Date(child.val().timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          });
-        }
-        callback(lastMessage, messageTimestamp);
-      }, { onlyOnce: true });
+      const key = await getChatKey(chatId);
+      return new Promise((resolve) => {
+        onValue(messagesRef, async (snapshot) => {
+          let lastMessage = '';
+          let messageTimestamp = '';
+          let unreadCount = 0;
+          if (snapshot.exists()) {
+            snapshot.forEach((child) => {
+              const msg = child.val();
+              lastMessage = msg.ciphertext ? decryptMessage(msg.ciphertext, msg.iv, key) : '';
+              messageTimestamp = msg.timestamp;
+            });
+            const allMessagesRef = ref(db, `chats/${chatId}`);
+            onValue(allMessagesRef, (allSnapshot) => {
+              unreadCount = 0;
+              if (allSnapshot.exists()) {
+                allSnapshot.forEach((msg) => {
+                  if (msg.val().unread && msg.val().sender !== state.currentUser.uid) {
+                    unreadCount++;
+                  }
+                });
+              }
+            }, { onlyOnce: true });
+          }
+          resolve({ lastMessage: await lastMessage, messageTimestamp, unreadCount });
+        }, { onlyOnce: true });
+      });
     }
 
     function appendFriendCard(friend) {
@@ -515,7 +629,10 @@
           <span class="last-seen">${friend.lastSeen}</span>
           <p>${friend.lastMessage}</p>
         </div>
-        <span class="timestamp">${friend.messageTimestamp}</span>
+        <span class="timestamp">
+          ${friend.messageTimestamp ? new Date(friend.messageTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+          ${friend.unreadCount > 0 ? `<span class="unread-count">${friend.unreadCount}</span>` : ''}
+        </span>
       `;
       div.addEventListener('click', () => {
         window.location.href = `chat.html?friendId=${friend.uid}&friendName=${encodeURIComponent(friend.displayName)}`;
@@ -539,7 +656,7 @@
       const email = elements.friendEmailInput.value.trim();
       if (email) {
         alert(`Adding friend with email: ${email}`);
-        // Implement Firebase query to add friend
+        // Placeholder for Firebase friend-adding logic
         closeBottomSheet();
       } else {
         alert('Please enter a valid email.');
