@@ -212,91 +212,6 @@
       stroke: var(--text-primary);
     }
 
-    .bottom-sheet-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 30;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-
-    .bottom-sheet-overlay.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .bottom-sheet {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--card-bg);
-      border-top-left-radius: 1rem;
-      border-top-right-radius: 1rem;
-      padding: 1.5rem;
-      transform: translateY(100%);
-      transition: transform 0.3s ease;
-      z-index: 40;
-      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
-    }
-
-    .bottom-sheet.open {
-      transform: translateY(0);
-    }
-
-    .bottom-sheet h3 {
-      margin: 0 0 1rem;
-      font-size: 1.25rem;
-      color: var(--text-primary);
-      font-weight: 600;
-    }
-
-    .bottom-sheet input {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      background: #2D3748;
-      color: var(--text-primary);
-      font-size: 1rem;
-      outline: none;
-      margin-bottom: 1rem;
-    }
-
-    .bottom-sheet button {
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: 500;
-      transition: background 0.3s;
-    }
-
-    .bottom-sheet .add-button {
-      background: var(--highlight);
-      color: var(--text-primary);
-      margin-right: 0.5rem;
-    }
-
-    .bottom-sheet .add-button:hover {
-      background: #2C7A74;
-    }
-
-    .bottom-sheet .cancel-button {
-      background: #4A5568;
-      color: var(--text-primary);
-    }
-
-    .bottom-sheet .cancel-button:hover {
-      background: #2D3748;
-    }
-
     #sidebar {
       transform: translateX(-100%);
       transition: transform 0.3s ease;
@@ -388,21 +303,11 @@
         <path d="M12 4v8m0 0v8m8-8H4"/>
       </svg>
     </button>
-    <div class="bottom-sheet-overlay hidden" id="bottom-sheet-overlay">
-      <div class="bottom-sheet" id="bottom-sheet">
-        <h3>Add a Friend</h3>
-        <input type="email" id="friend-email-input" placeholder="Enter friend's email" aria-label="Friend's email">
-        <div style="display: flex; justify-content: flex-end;">
-          <button class="add-button">Add Friend</button>
-          <button class="cancel-button">Cancel</button>
-        </div>
-      </div>
-    </div>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, limitToLast, query, set, onDisconnect, serverTimestamp, push } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, limitToLast, query, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -428,11 +333,6 @@
       closeSidebar: document.getElementById('close-sidebar'),
       conversationList: document.getElementById('conversation-list'),
       addFriendButton: document.getElementById('add-friend-button'),
-      bottomSheetOverlay: document.getElementById('bottom-sheet-overlay'),
-      bottomSheet: document.getElementById('bottom-sheet'),
-      friendEmailInput: document.getElementById('friend-email-input'),
-      addButton: document.querySelector('.add-button'),
-      cancelButton: document.querySelector('.cancel-button'),
       chatsTab: document.getElementById('chats-tab'),
       statusTab: document.getElementById('status-tab'),
       callsTab: document.getElementById('calls-tab')
@@ -539,32 +439,36 @@
     }
 
     async function loadFriends() {
-      const usersRef = ref(db, 'users');
-      onValue(usersRef, async (snapshot) => {
+      const friendsRef = ref(db, `users/${state.currentUser.uid}/friends`);
+      onValue(friendsRef, async (snapshot) => {
         elements.friendsList.innerHTML = '';
-        const users = snapshot.val();
         state.friends = [];
         const friendPromises = [];
         
-        for (const uid in users) {
-          if (uid !== state.currentUser.uid) {
-            const user = users[uid];
+        if (snapshot.exists()) {
+          const friends = snapshot.val();
+          for (const friendUid in friends) {
             friendPromises.push(
               new Promise(async (resolve) => {
-                const { lastMessage, messageTimestamp, unreadCount } = await loadLastMessage(uid);
-                const lastSeenTime = user.lastSeen 
-                  ? `Last seen ${new Date(user.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                  : 'Last seen recently';
-                resolve({
-                  uid,
-                  displayName: user.displayName || 'User',
-                  email: user.email,
-                  photoURL: user.photoURL || null,
-                  lastSeen: lastSeenTime,
-                  lastMessage: lastMessage ? lastMessage.slice(0, 50) + (lastMessage.length > 50 ? '...' : '') : '',
-                  messageTimestamp: messageTimestamp ? new Date(messageTimestamp).getTime() : 0,
-                  unreadCount
-                });
+                const userRef = ref(db, `users/${friendUid}`);
+                const userSnapshot = await new Promise(resolve => onValue(userRef, resolve, { onlyOnce: true }));
+                const user = userSnapshot.val();
+                if (user) {
+                  const { lastMessage, messageTimestamp, unreadCount } = await loadLastMessage(friendUid);
+                  const lastSeenTime = user.lastSeen 
+                    ? `Last seen ${new Date(user.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                    : 'Last seen recently';
+                  resolve({
+                    uid: friendUid,
+                    displayName: user.displayName || 'User',
+                    email: user.email,
+                    photoURL: user.photoURL || null,
+                    lastSeen: lastSeenTime,
+                    lastMessage: lastMessage ? lastMessage.slice(0, 50) + (lastMessage.length > 50 ? '...' : '') : '',
+                    messageTimestamp: messageTimestamp ? new Date(messageTimestamp).toTimeString() : 0,
+                    unreadCount
+                  });
+                }
               })
             );
           }
@@ -640,29 +544,6 @@
       elements.friendsList.appendChild(div);
     }
 
-    function openBottomSheet() {
-      elements.bottomSheetOverlay.classList.add('open');
-      elements.bottomSheet.classList.add('open');
-      elements.friendEmailInput.focus();
-    }
-
-    function closeBottomSheet() {
-      elements.bottomSheetOverlay.classList.remove('open');
-      elements.bottomSheet.classList.remove('open');
-      elements.friendEmailInput.value = '';
-    }
-
-    function addFriend() {
-      const email = elements.friendEmailInput.value.trim();
-      if (email) {
-        alert(`Adding friend with email: ${email}`);
-        // Placeholder for Firebase friend-adding logic
-        closeBottomSheet();
-      } else {
-        alert('Please enter a valid email.');
-      }
-    }
-
     function setActiveTab(tab) {
       [elements.chatsTab, elements.statusTab, elements.callsTab].forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
@@ -691,16 +572,8 @@
       elements.sidebar.classList.remove('open');
     });
 
-    elements.addFriendButton.addEventListener('click', openBottomSheet);
-
-    elements.addButton.addEventListener('click', addFriend);
-
-    elements.cancelButton.addEventListener('click', closeBottomSheet);
-
-    elements.friendEmailInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        addFriend();
-      }
+    elements.addFriendButton.addEventListener('click', () => {
+      window.location.href = 'add.html';
     });
 
     document.addEventListener('DOMContentLoaded', initializeFirebase);
