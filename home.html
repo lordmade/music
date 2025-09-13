@@ -212,136 +212,6 @@
       stroke: var(--text-primary);
     }
 
-    .bottom-sheet-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 30;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-
-    .bottom-sheet-overlay.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .bottom-sheet {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--card-bg);
-      border-top-left-radius: 1rem;
-      border-top-right-radius: 1rem;
-      padding: 1.5rem;
-      transform: translateY(100%);
-      transition: transform 0.3s ease;
-      z-index: 40;
-      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-
-    .bottom-sheet.open {
-      transform: translateY(0);
-    }
-
-    .bottom-sheet h3 {
-      margin: 0 0 1rem;
-      font-size: 1.25rem;
-      color: var(--text-primary);
-      font-weight: 600;
-    }
-
-    .bottom-sheet input {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      background: #2D3748;
-      color: var(--text-primary);
-      font-size: 1rem;
-      outline: none;
-      margin-bottom: 1rem;
-    }
-
-    .bottom-sheet .search-results {
-      max-height: 300px;
-      overflow-y: auto;
-      margin-bottom: 1rem;
-    }
-
-    .bottom-sheet .user-result {
-      display: flex;
-      align-items: center;
-      padding: 0.75rem;
-      border-bottom: 1px solid var(--border);
-      transition: background 0.3s;
-    }
-
-    .bottom-sheet .user-result:hover {
-      background: #2D3748;
-    }
-
-    .bottom-sheet .user-info {
-      flex: 1;
-    }
-
-    .bottom-sheet .user-info h4 {
-      margin: 0;
-      font-size: 1rem;
-      color: var(--text-primary);
-    }
-
-    .bottom-sheet .user-info p {
-      margin: 0;
-      font-size: 0.875rem;
-      color: var(--text-secondary);
-      opacity: 0.8;
-    }
-
-    .bottom-sheet .add-button {
-      background: var(--highlight);
-      color: var(--text-primary);
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      font-size: 0.875rem;
-      transition: background 0.3s;
-    }
-
-    .bottom-sheet .add-button:hover {
-      background: #2C7A74;
-    }
-
-    .bottom-sheet .cancel-button {
-      background: #4A5568;
-      color: var(--text-primary);
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background 0.3s;
-    }
-
-    .bottom-sheet .cancel-button:hover {
-      background: #2D3748;
-    }
-
-    .bottom-sheet .message {
-      color: var(--text-primary);
-      font-size: 0.875rem;
-      margin: 0.5rem 0;
-      text-align: center;
-    }
-
     #sidebar {
       transform: translateX(-100%);
       transition: transform 0.3s ease;
@@ -433,22 +303,11 @@
         <path d="M12 4v8m0 0v8m8-8H4"/>
       </svg>
     </button>
-    <div class="bottom-sheet-overlay hidden" id="bottom-sheet-overlay">
-      <div class="bottom-sheet" id="bottom-sheet">
-        <h3>Add a Friend</h3>
-        <input type="email" id="friend-email-input" placeholder="Search by email" aria-label="Search friend's email">
-        <div class="search-results" id="search-results"></div>
-        <p class="message hidden" id="search-message"></p>
-        <div style="display: flex; justify-content: flex-end;">
-          <button class="cancel-button">Cancel</button>
-        </div>
-      </div>
-    </div>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, limitToLast, query, set, onDisconnect, serverTimestamp, push, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, limitToLast, query, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -474,12 +333,6 @@
       closeSidebar: document.getElementById('close-sidebar'),
       conversationList: document.getElementById('conversation-list'),
       addFriendButton: document.getElementById('add-friend-button'),
-      bottomSheetOverlay: document.getElementById('bottom-sheet-overlay'),
-      bottomSheet: document.getElementById('bottom-sheet'),
-      friendEmailInput: document.getElementById('friend-email-input'),
-      searchResults: document.getElementById('search-results'),
-      searchMessage: document.getElementById('search-message'),
-      cancelButton: document.querySelector('.cancel-button'),
       chatsTab: document.getElementById('chats-tab'),
       statusTab: document.getElementById('status-tab'),
       callsTab: document.getElementById('calls-tab')
@@ -691,63 +544,6 @@
       elements.friendsList.appendChild(div);
     }
 
-    function openBottomSheet() {
-      elements.bottomSheetOverlay.classList.add('open');
-      elements.bottomSheet.classList.add('open');
-      elements.friendEmailInput.focus();
-      elements.searchResults.innerHTML = '';
-      elements.searchMessage.classList.add('hidden');
-    }
-
-    function closeBottomSheet() {
-      elements.bottomSheetOverlay.classList.remove('open');
-      elements.bottomSheet.classList.remove('open');
-      elements.friendEmailInput.value = '';
-      elements.searchResults.innerHTML = '';
-      elements.searchMessage.classList.add('hidden');
-    }
-
-    async function searchUsers(email) {
-      if (!email) {
-        elements.searchResults.innerHTML = '';
-        elements.searchMessage.classList.add('hidden');
-        return;
-      }
-      elements.searchMessage.textContent = 'Searching...';
-      elements.searchMessage.classList.remove('hidden');
-      const usersRef = ref(db, 'users');
-      const snapshot = await new Promise(resolve => onValue(usersRef, resolve, { onlyOnce: true }));
-      elements.searchResults.innerHTML = '';
-      const users = snapshot.val();
-      let found = false;
-      for (const uid in users) {
-        if (users[uid].email.toLowerCase().includes(email.toLowerCase()) && uid !== state.currentUser.uid) {
-          found = true;
-          const user = users[uid];
-          const div = document.createElement('div');
-          div.className = 'user-result';
-          div.innerHTML = `
-            <div class="user-info">
-              <h4>${user.displayName || 'User'}</h4>
-              <p>${user.email}</p>
-            </div>
-            <button class="add-button" data-uid="${uid}" data-name="${user.displayName || 'User'}">Add</button>
-          `;
-          elements.searchResults.appendChild(div);
-        }
-      }
-      elements.searchMessage.textContent = found ? '' : 'No users found.';
-      elements.searchMessage.classList.toggle('hidden', found);
-    }
-
-    async function addFriend(uid, displayName) {
-      const friendsRef = ref(db, `users/${state.currentUser.uid}/friends/${uid}`);
-      await set(friendsRef, { uid, displayName });
-      elements.searchMessage.textContent = `${displayName} added as a friend!`;
-      elements.searchMessage.classList.remove('hidden');
-      setTimeout(closeBottomSheet, 1000);
-    }
-
     function setActiveTab(tab) {
       [elements.chatsTab, elements.statusTab, elements.callsTab].forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
@@ -776,20 +572,8 @@
       elements.sidebar.classList.remove('open');
     });
 
-    elements.addFriendButton.addEventListener('click', openBottomSheet);
-
-    elements.cancelButton.addEventListener('click', closeBottomSheet);
-
-    elements.friendEmailInput.addEventListener('input', (e) => {
-      searchUsers(e.target.value.trim());
-    });
-
-    elements.searchResults.addEventListener('click', (e) => {
-      if (e.target.classList.contains('add-button')) {
-        const uid = e.target.dataset.uid;
-        const displayName = e.target.dataset.name;
-        addFriend(uid, displayName);
-      }
+    elements.addFriendButton.addEventListener('click', () => {
+      window.location.href = 'add.html';
     });
 
     document.addEventListener('DOMContentLoaded', initializeFirebase);
