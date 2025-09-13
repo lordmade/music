@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Vynix AI</title>
+  <title>Vynix Chat</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
@@ -88,134 +87,74 @@
       display: none;
     }
 
-    .chat-input-container {
-      position: fixed;
-      bottom: 1rem;
-      left: 50%;
-      transform: translateX(-50%);
+    .friends-list {
+      margin-top: 5rem;
+      padding: 1rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 6rem);
+    }
+
+    .friend-card {
       display: flex;
       align-items: center;
-      width: 90%;
-      max-width: 600px;
-      background: var(--card-bg);
-      border-radius: 1.5rem;
-      padding: 0.5rem 0.75rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    #chat-input {
-      flex: 1;
-      background: transparent;
-      color: var(--text-primary);
-      border: none;
-      padding: 0.75rem 0.5rem;
-      outline: none;
-      font-size: 1rem;
-    }
-
-    #send-button, #image-upload-button {
-      background: transparent;
-      border: none;
-      padding: 0.5rem;
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border);
       cursor: pointer;
-      border-radius: 0.5rem;
       transition: background 0.2s;
     }
 
-    #send-button:hover, #image-upload-button:hover {
-      background: rgba(255, 255, 255, 0.1);
+    .friend-card:hover {
+      background: var(--highlight);
     }
 
-    #send-button svg, #image-upload-button svg {
+    .friend-card img {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      margin-right: 1rem;
+    }
+
+    .friend-info {
+      flex: 1;
+    }
+
+    .friend-info h3 {
+      margin: 0;
+      font-size: 1rem;
+      color: #1E1E1E;
+    }
+
+    .friend-info p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .add-friend-button {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      background: var(--highlight);
+      border: none;
+      border-radius: 50%;
+      width: 3rem;
+      height: 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: background 0.2s;
+    }
+
+    .add-friend-button:hover {
+      background: var(--card-bg);
+    }
+
+    .add-friend-button svg {
       width: 1.5rem;
       height: 1.5rem;
       stroke: var(--text-primary);
-    }
-
-    #chat-messages {
-      margin: 5rem 1rem 6rem 1rem;
-      padding: 1rem;
-      overflow-y: auto;
-      max-height: calc(100vh - 11rem);
-    }
-
-    .message {
-      max-width: 70%;
-      padding: 0.75rem 1.25rem;
-      border-radius: 1.5rem;
-      margin: 0.5rem 1rem;
-      word-wrap: break-word;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-      animation: slideIn 0.3s ease-out;
-      position: relative;
-      display: inline-block;
-    }
-
-    .message.user {
-      background: linear-gradient(135deg, var(--user-msg-bg), #C7D2FE);
-      color: #1E1E1E;
-      margin-left: auto;
-      border-bottom-right-radius: 0.25rem;
-    }
-
-    .message.ai {
-      background: linear-gradient(135deg, var(--ai-msg-bg), #2D3748);
-      color: var(--text-primary);
-      margin-right: auto;
-      border-bottom-left-radius: 0.25rem;
-    }
-
-    .message.processing {
-      background: var(--ai-msg-bg);
-      color: var(--text-primary);
-      font-style: italic;
-      opacity: 0.7;
-    }
-
-    .message img {
-      max-width: 100%;
-      border-radius: 0.5rem;
-      margin-top: 0.5rem;
-    }
-
-    .typing-indicator {
-      display: inline-flex;
-      gap: 0.25rem;
-      align-items: center;
-    }
-
-    .typing-dot {
-      width: 0.5rem;
-      height: 0.5rem;
-      background: var(--text-primary);
-      border-radius: 50%;
-      animation: typing 1.2s infinite;
-    }
-
-    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes typing {
-      0%, 100% { opacity: 0.3; transform: translateY(0); }
-      50% { opacity: 1; transform: translateY(-3px); }
-    }
-
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes vibrate {
-      0% { transform: translateX(0); }
-      20% { transform: translateX(-2px); }
-      40% { transform: translateX(2px); }
-      60% { transform: translateX(-2px); }
-      80% { transform: translateX(2px); }
-      100% { transform: translateX(0); }
-    }
-
-    .vibrate {
-      animation: vibrate 0.2s ease-in-out;
     }
 
     #sidebar {
@@ -276,48 +215,41 @@
       <div id="conversation-list" class="flex-1 overflow-y-auto p-4"></div>
     </div>
     <div class="tab-container">
-      <a href="profile.html" class="tab" id="profile-tab">
+      <button class="tab active" id="chats-tab">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
         </svg>
-        Profile
-      </a>
-      <a href="settings.html" class="tab" id="settings-tab">
+        Chats
+      </button>
+      <button class="tab" id="status-tab">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-          <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6a2 2 0 110-4 2 2 0 010 4z"/>
         </svg>
-        Settings
-      </a>
-      <button id="new-conversation-button" class="tab">
+        Status
+      </button>
+      <button class="tab" id="calls-tab">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M12 4v8m0 0v8m8-8H4"/>
+          <path d="M20 7l-3-3m0 0l-3 3m3-3v12"/>
         </svg>
-        New Chat
+        Calls
       </button>
     </div>
     <div class="welcome-container" id="welcome-container">
       <h1>Hey there, friend!</h1>
     </div>
-    <div id="chat-messages" class="flex-1 overflow-y-auto"></div>
-    <div class="chat-input-container">
-      <button id="image-upload-button" class="p-2">
-        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-        </svg>
-      </button>
-      <input type="text" id="chat-input" placeholder="What's on your mind?" aria-label="Type your prompt">
-      <button id="send-button">
-        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M5 12h14M5 12l6-6m-6 6l6 6"/>
-        </svg>
-      </button>
+    <div class="friends-list" id="friends-list">
+      <!-- Friend cards will be dynamically added here -->
     </div>
+    <button class="add-friend-button" id="add-friend-button">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M12 4v8m0 0v8m8-8H4"/>
+      </svg>
+    </button>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -331,23 +263,21 @@
     };
 
     const state = {
-      messages: [],
-      geminiApiKey: 'AIzaSyD79iPuCs7sW4DQJ7ij9SZZXtEJm6po8K8', // Move to environment variable in production
-      hasChatted: false,
-      conversationId: null
+      friends: [],
+      currentUser: null
     };
 
     const elements = {
-      chatMessages: document.getElementById('chat-messages'),
-      chatInput: document.getElementById('chat-input'),
-      sendButton: document.getElementById('send-button'),
+      friendsList: document.getElementById('friends-list'),
       welcomeContainer: document.getElementById('welcome-container'),
-      newConversationButton: document.getElementById('new-conversation-button'),
       hamburgerButton: document.getElementById('hamburger-button'),
       sidebar: document.getElementById('sidebar'),
       closeSidebar: document.getElementById('close-sidebar'),
       conversationList: document.getElementById('conversation-list'),
-      imageUploadButton: document.getElementById('image-upload-button')
+      addFriendButton: document.getElementById('add-friend-button'),
+      chatsTab: document.getElementById('chats-tab'),
+      statusTab: document.getElementById('status-tab'),
+      callsTab: document.getElementById('calls-tab')
     };
 
     let app, auth, db;
@@ -358,182 +288,91 @@
       db = getDatabase(app);
       onAuthStateChanged(auth, (user) => {
         if (user) {
-          elements.chatInput.disabled = false;
-          elements.sendButton.disabled = false;
-          loadConversations();
+          state.currentUser = user;
           elements.welcomeContainer.querySelector('h1').textContent = `Hey there, ${user.displayName || 'friend'}!`;
+          loadFriends();
         } else {
           window.location.href = 'signup.html';
         }
       });
     }
 
-    function appendMessage(content, sender, isTyping = false, isImage = false) {
+    function loadFriends() {
+      const usersRef = ref(db, 'users');
+      onValue(usersRef, (snapshot) => {
+        elements.friendsList.innerHTML = '';
+        const users = snapshot.val();
+        state.friends = [];
+        for (const uid in users) {
+          if (uid !== state.currentUser.uid) {
+            const user = users[uid];
+            state.friends.push({ uid, displayName: user.displayName || 'User', email: user.email });
+            appendFriendCard({ uid, displayName: user.displayName || 'User', email: user.email });
+          }
+        }
+      }, { onlyOnce: true });
+    }
+
+    function appendFriendCard(friend) {
       const div = document.createElement('div');
-      div.className = `message ${sender}${isTyping ? ' processing' : ''}`;
-      if (isTyping) {
-        div.innerHTML = '<div class="typing-indicator"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
-      } else if (isImage) {
-        const img = document.createElement('img');
-        img.src = content;
-        img.alt = 'Uploaded image';
-        div.appendChild(img);
-      } else {
-        div.textContent = content;
-      }
-      state.messages.push({ content, sender, isImage, timestamp: Date.now() });
-      if (sender === 'ai' && !isTyping) {
-        div.classList.add('vibrate');
-        if ('vibrate' in navigator) {
-          navigator.vibrate(100);
-        }
-      }
-      div.style.opacity = '0';
-      setTimeout(() => div.style.opacity = '1', 10);
-      elements.chatMessages.appendChild(div);
-      elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-      return div;
+      div.className = 'friend-card';
+      div.innerHTML = `
+        <img src="https://via.placeholder.com/40" alt="${friend.displayName}'s profile">
+        <div class="friend-info">
+          <h3>${friend.displayName}</h3>
+          <p>Last message preview...</p>
+        </div>
+      `;
+      div.addEventListener('click', () => {
+        window.location.href = `chat.html?friendId=${friend.uid}&friendName=${encodeURIComponent(friend.displayName)}`;
+      });
+      elements.friendsList.appendChild(div);
     }
 
-    async function getAIResponse(prompt, imageUrl = null) {
-      if (!state.hasChatted) {
-        state.hasChatted = true;
-        elements.welcomeContainer.classList.add('hidden');
-      }
-      const tempMsg = appendMessage('', 'ai', true);
-      try {
-        let requestBody = {
-          contents: [{
-            parts: [{ text: `You are Vynix AI, crafted by Katlego in Mokopane, South Africa. Respond like a friendly, human buddy with a warm, conversational tone. Keep it concise and fun! Query: ${prompt}` }]
-          }]
-        };
-        if (imageUrl) {
-          requestBody.contents[0].parts[0].text = `Hey, let's check out this image! Describe what you see in a fun, friendly way.`;
-          requestBody.contents[0].parts.push({ inlineData: { mimeType: 'image/jpeg', data: imageUrl } });
-        }
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${state.geminiApiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
-        });
-        const data = await res.json();
-        const response = data.candidates[0].content.parts[0].text || 'Oops, something went wrong, pal!';
-        tempMsg.textContent = response;
-        tempMsg.classList.remove('processing');
-        state.messages.push({ text: response, sender: 'ai', timestamp: Date.now() });
-      } catch (error) {
-        tempMsg.textContent = 'Whoops, hit a snag! Try again?';
-        tempMsg.classList.remove('processing');
-        state.messages.push({ text: tempMsg.textContent, sender: 'ai', timestamp: Date.now() });
-        console.error('API Error:', error);
+    function addFriend() {
+      const email = prompt('Enter your friend’s email:');
+      if (email) {
+        // Placeholder for adding friend logic
+        alert(`Adding friend with email: ${email}`);
+        // Later, implement Firebase query to verify email and add to friends list
       }
     }
 
-    function saveConversation() {
-      if (state.messages.length === 0) return;
-      const firstMessage = state.messages.find(msg => msg.sender === 'user' && !msg.isImage)?.content || 'Untitled';
-      const title = firstMessage.split(' ').slice(0, 3).join(' ');
-      const user = auth.currentUser;
-      if (user) {
-        push(ref(db, `users/${user.uid}/conversations`), { title, messages: state.messages });
-      }
+    function setActiveTab(tab) {
+      [elements.chatsTab, elements.statusTab, elements.callsTab].forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
     }
 
-    function startNewConversation() {
-      saveConversation();
-      state.messages = [];
-      elements.chatMessages.innerHTML = '';
+    elements.chatsTab.addEventListener('click', () => {
+      setActiveTab(elements.chatsTab);
+      elements.friendsList.classList.remove('hidden');
+      elements.welcomeContainer.classList.add('hidden');
+    });
+
+    elements.statusTab.addEventListener('click', () => {
+      setActiveTab(elements.statusTab);
+      elements.friendsList.classList.add('hidden');
       elements.welcomeContainer.classList.remove('hidden');
-      state.hasChatted = false;
-      state.conversationId = null;
-    }
-
-    function loadConversations() {
-      const user = auth.currentUser;
-      if (user) {
-        const refConversations = ref(db, `users/${user.uid}/conversations`);
-        onValue(refConversations, snapshot => {
-          elements.conversationList.innerHTML = '';
-          snapshot.forEach(child => {
-            const convo = child.val();
-            const div = document.createElement('div');
-            div.className = 'conversation-item';
-            div.textContent = convo.title;
-            div.addEventListener('click', () => {
-              state.messages = convo.messages;
-              elements.chatMessages.innerHTML = '';
-              state.messages.forEach(msg => {
-                if (msg.isImage) {
-                  appendMessage(msg.content, msg.sender, false, true);
-                } else {
-                  appendMessage(msg.content, msg.sender);
-                }
-              });
-              elements.sidebar.classList.remove('open');
-              state.conversationId = child.key;
-            });
-            elements.conversationList.appendChild(div);
-          });
-        }, { onlyOnce: true });
-      }
-    }
-
-    elements.sendButton.addEventListener('click', async () => {
-      const prompt = elements.chatInput.value.trim();
-      if (!prompt) return;
-      elements.chatInput.value = '';
-      appendMessage(prompt, 'user');
-      await getAIResponse(prompt);
+      elements.welcomeContainer.querySelector('h1').textContent = 'Status coming soon!';
     });
 
-    elements.chatInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        elements.sendButton.click();
-      }
+    elements.callsTab.addEventListener('click', () => {
+      setActiveTab(elements.callsTab);
+      elements.friendsList.classList.add('hidden');
+      elements.welcomeContainer.classList.remove('hidden');
+      elements.welcomeContainer.querySelector('h1').textContent = 'Calls coming soon!';
     });
-
-    elements.newConversationButton.addEventListener('click', startNewConversation);
 
     elements.hamburgerButton.addEventListener('click', () => {
       elements.sidebar.classList.add('open');
-      loadConversations();
+      // Optionally load conversation history here if needed
     });
 
     elements.closeSidebar.addEventListener('click', () => {
       elements.sidebar.classList.remove('open');
     });
 
-    elements.imageUploadButton.addEventListener('click', () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'banter_box');
-        const tempMsg = appendMessage('', 'user', true);
-        try {
-          const uploadResponse = await fetch('https://api.cloudinary.com/v1_1/dqkujefxj/image/upload', {
-            method: 'POST',
-            body: formData
-          });
-          const uploadData = await uploadResponse.json();
-          const imageUrl = uploadData.secure_url;
-          tempMsg.innerHTML = '';
-          tempMsg.classList.remove('processing');
-          appendMessage(imageUrl, 'user', false, true);
-          await getAIResponse('Describe this image', imageUrl);
-        } catch (error) {
-          tempMsg.textContent = 'Oops, couldn’t upload the image!';
-          tempMsg.classList.remove('processing');
-          state.messages.push({ text: tempMsg.textContent, sender: 'user', timestamp: Date.now() });
-          console.error('Upload Error:', error);
-        }
-      };
-      input.click();
-    });
+    elements.addFriendButton.addEventListener('click', addFriend);
 
     document.addEventListener('DOMContentLoaded', initializeFirebase);
   </script>
