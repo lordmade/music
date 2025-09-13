@@ -32,40 +32,42 @@
 
     .tab-container {
       position: fixed;
-      top: 0;
+      bottom: 0;
       left: 0;
       right: 0;
-      padding: 0.75rem;
+      padding: 0.5rem;
       display: flex;
-      justify-content: center;
-      gap: 0.5rem;
+      justify-content: space-around;
+      align-items: center;
       z-index: 10;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .tab {
-      background: var(--card-bg);
+      background: transparent;
       color: var(--text-primary);
-      border: 1px solid var(--border);
-      padding: 0.5rem 1rem;
-      border-radius: 9999px;
+      padding: 0.5rem;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: color 0.3s;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 0.875rem;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      flex: 1;
+      text-align: center;
     }
 
     .tab:hover, .tab.active {
-      background: var(--highlight);
+      color: var(--highlight);
     }
 
     .tab svg {
-      width: 1rem;
-      height: 1rem;
-      stroke: var(--text-primary);
+      width: 1.5rem;
+      height: 1.5rem;
+      stroke: currentColor;
     }
 
     .welcome-container {
@@ -74,7 +76,7 @@
       left: 50%;
       transform: translate(-50%, -50%);
       text-align: center;
-      margin-top: 3rem;
+      margin-top: 1rem;
     }
 
     .welcome-container h1 {
@@ -88,7 +90,7 @@
     }
 
     .friends-list {
-      margin-top: 5rem;
+      margin: 1rem 1rem 5rem 1rem;
       padding: 1rem;
       overflow-y: auto;
       max-height: calc(100vh - 6rem);
@@ -132,7 +134,7 @@
 
     .add-friend-button {
       position: fixed;
-      bottom: 1rem;
+      bottom: 5rem;
       right: 1rem;
       background: var(--highlight);
       border: none;
@@ -202,7 +204,7 @@
 <body>
   <main class="flex flex-col h-screen">
     <button id="hamburger-button" class="fixed top-4 left-4 w-10 h-10 bg-black rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 transition">
-      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+      <svg class="w-5 h-5 text among us-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
         <path d="M4 6h16M4 12h16M4 18h16"/>
       </svg>
     </button>
@@ -213,6 +215,12 @@
         </svg>
       </button>
       <div id="conversation-list" class="flex-1 overflow-y-auto p-4"></div>
+    </div>
+    <div class="welcome-container" id="welcome-container">
+      <h1>Hey there, friend!</h1>
+    </div>
+    <div class="friends-list" id="friends-list">
+      <!-- Friend cards will be dynamically added here -->
     </div>
     <div class="tab-container">
       <button class="tab active" id="chats-tab">
@@ -233,12 +241,6 @@
         </svg>
         Calls
       </button>
-    </div>
-    <div class="welcome-container" id="welcome-container">
-      <h1>Hey there, friend!</h1>
-    </div>
-    <div class="friends-list" id="friends-list">
-      <!-- Friend cards will be dynamically added here -->
     </div>
     <button class="add-friend-button" id="add-friend-button">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -332,7 +334,6 @@
     function addFriend() {
       const email = prompt('Enter your friend’s email:');
       if (email) {
-        // Placeholder for adding friend logic
         alert(`Adding friend with email: ${email}`);
         // Later, implement Firebase query to verify email and add to friends list
       }
@@ -365,7 +366,6 @@
 
     elements.hamburgerButton.addEventListener('click', () => {
       elements.sidebar.classList.add('open');
-      // Optionally load conversation history here if needed
     });
 
     elements.closeSidebar.addEventListener('click', () => {
