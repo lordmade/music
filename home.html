@@ -388,7 +388,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, limitToLast, query } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, limitToLast, query, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -413,14 +413,14 @@
       closeSidebar: document.getElementById('close-sidebar'),
       conversationList: document.getElementById('conversation-list'),
       addFriendButton: document.getElementById('add-friend-button'),
-      chatsTab: document.getElementById('chats-tab'),
-      statusTab: document.getElementById('status-tab'),
-      callsTab: document.getElementById('calls-tab'),
       bottomSheetOverlay: document.getElementById('bottom-sheet-overlay'),
       bottomSheet: document.getElementById('bottom-sheet'),
       friendEmailInput: document.getElementById('friend-email-input'),
       addButton: document.querySelector('.add-button'),
-      cancelButton: document.querySelector('.cancel-button')
+      cancelButton: document.querySelector('.cancel-button'),
+      chatsTab: document.getElementById('chats-tab'),
+      statusTab: document.getElementById('status-tab'),
+      callsTab: document.getElementById('calls-tab')
     };
 
     let app, auth, db;
@@ -432,11 +432,24 @@
       onAuthStateChanged(auth, (user) => {
         if (user) {
           state.currentUser = user;
+          setupPresence(user.uid);
           loadFriends();
         } else {
           window.location.href = 'signup.html';
         }
       });
+    }
+
+    function setupPresence(userId) {
+      const userStatusRef = ref(db, `users/${userId}/status`);
+      const lastSeenRef = ref(db, `users/${userId}/lastSeen`);
+      
+      // Set online status
+      set(userStatusRef, 'online');
+      
+      // Set last seen timestamp when user disconnects
+      onDisconnect(userStatusRef).set('offline');
+      onDisconnect(lastSeenRef).set(serverTimestamp());
     }
 
     function loadFriends() {
@@ -452,15 +465,20 @@
               uid,
               displayName: user.displayName || 'User',
               email: user.email,
-              photoURL: user.photoURL || null
+              photoURL: user.photoURL || null,
+              lastSeen: user.lastSeen || null
             });
-            loadLastMessage(uid, (lastMessage, timestamp) => {
+            loadLastMessage(uid, (lastMessage, messageTimestamp) => {
+              const lastSeenTime = user.lastSeen 
+                ? `Last seen ${new Date(user.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                : 'Last seen recently';
               appendFriendCard({
                 uid,
                 displayName: user.displayName || 'User',
                 photoURL: user.photoURL,
                 lastMessage: lastMessage ? lastMessage.slice(0, 50) + (lastMessage.length > 50 ? '...' : '') : '',
-                timestamp: timestamp ? `Last seen ${timestamp}` : `Last seen ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                lastSeen: lastSeenTime,
+                messageTimestamp
               });
             });
           }
@@ -473,14 +491,14 @@
       const messagesRef = query(ref(db, `chats/${chatId}`), limitToLast(1));
       onValue(messagesRef, (snapshot) => {
         let lastMessage = '';
-        let timestamp = '';
+        let messageTimestamp = '';
         if (snapshot.exists()) {
           snapshot.forEach((child) => {
             lastMessage = child.val().content;
-            timestamp = new Date(child.val().timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            messageTimestamp = new Date(child.val().timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           });
         }
-        callback(lastMessage, timestamp);
+        callback(lastMessage, messageTimestamp);
       }, { onlyOnce: true });
     }
 
@@ -494,10 +512,10 @@
         ${avatarContent}
         <div class="friend-info">
           <h3>${friend.displayName}</h3>
-          <span class="last-seen">${friend.timestamp}</span>
+          <span class="last-seen">${friend.lastSeen}</span>
           <p>${friend.lastMessage}</p>
         </div>
-        <span class="timestamp">${friend.lastMessage ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} </span>
+        <span class="timestamp">${friend.messageTimestamp}</span>
       `;
       div.addEventListener('click', () => {
         window.location.href = `chat.html?friendId=${friend.uid}&friendName=${encodeURIComponent(friend.displayName)}`;
