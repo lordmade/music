@@ -140,66 +140,17 @@
       stroke: var(--text-primary);
     }
 
-    .bottom-nav {
-      position: fixed;
-      bottom: 1rem;
-      left: 1rem;
-      right: 1rem;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 1.5rem;
-      padding: 0.5rem;
-      display: flex;
-      justify-content: space-around;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 10;
-    }
-
-    .nav-item {
-      background: transparent;
-      border: none;
-      padding: 0.5rem;
-      cursor: pointer;
-      border-radius: 0.5rem;
-      transition: background 0.2s;
-      position: relative;
-    }
-
-    .nav-item.active, .nav-item:hover {
-      background: var(--highlight);
-    }
-
-    .nav-item svg {
-      width: 1.5rem;
-      height: 1.5rem;
-      stroke: var(--text-primary);
-    }
-
-    .nav-item .unread-badge {
-      background: var(--badge-bg);
-      color: var(--text-primary);
-      border-radius: 9999px;
-      padding: 0.25rem 0.5rem;
-      font-size: 0.75rem;
-      position: absolute;
-      top: -0.5rem;
-      right: -0.5rem;
-      min-width: 1.5rem;
-      text-align: center;
-    }
-
     .floating-upload-btn {
       position: fixed;
-      bottom: 5rem;
+      bottom: 1.5rem;
       right: 1rem;
       background: var(--highlight);
       border: none;
-      border-radius: 50%;
-      width: 3rem;
-      height: 3rem;
+      border-radius: 9999px; /* Pill shape */
+      padding: 0.75rem 1.5rem;
       display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 0.5rem;
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       z-index: 20;
@@ -216,37 +167,41 @@
       stroke: var(--text-primary);
     }
 
-    .upload-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.8);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 30;
-    }
-
-    .upload-modal.active {
-      display: flex;
-    }
-
-    .upload-modal-content {
-      background: var(--card-bg);
-      border-radius: 10px;
-      padding: 20px;
-      width: 90%;
-      max-width: 400px;
+    .floating-upload-btn span {
+      font-size: 0.875rem;
+      font-weight: 600;
       color: var(--text-primary);
     }
 
-    .upload-modal-content input[type="file"] {
+    .bottom-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      padding: 20px;
+      max-height: 80vh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.3s ease-in-out;
+      z-index: 30;
+    }
+
+    .bottom-sheet.active {
+      transform: translateY(0);
+    }
+
+    .bottom-sheet-content {
+      color: var(--text-primary);
+    }
+
+    .bottom-sheet-content input[type="file"] {
       display: none;
     }
 
-    .upload-modal-content label {
+    .bottom-sheet-content label {
       display: block;
       background: var(--highlight);
       color: var(--text-primary);
@@ -257,7 +212,7 @@
       margin-bottom: 10px;
     }
 
-    .upload-modal-content textarea {
+    .bottom-sheet-content textarea {
       width: 100%;
       padding: 10px;
       border: 1px solid var(--border);
@@ -268,7 +223,7 @@
       resize: none;
     }
 
-    .upload-modal-content button {
+    .bottom-sheet-content button {
       background: var(--highlight);
       color: var(--text-primary);
       border: none;
@@ -278,8 +233,18 @@
       width: 100%;
     }
 
-    .upload-modal-content button:hover {
+    .bottom-sheet-content button:hover {
       background: #2a928d;
+    }
+
+    .bottom-sheet-content .close-btn {
+      background: none;
+      color: var(--text-primary);
+      font-size: 1.5rem;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
     }
 
     .spinner-overlay {
@@ -329,7 +294,7 @@
       }
 
       .floating-upload-btn {
-        bottom: 4.5rem;
+        bottom: 1rem;
       }
     }
   </style>
@@ -340,37 +305,16 @@
       <!-- Reels will be dynamically loaded here -->
     </div>
 
-    <div class="bottom-nav">
-      <button class="nav-item" onclick="window.location.href='home.html'">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-        </svg>
-      </button>
-      <button class="nav-item" onclick="window.location.href='friends.html'" id="friends-nav">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-        </svg>
-      </button>
-      <button class="nav-item active" onclick="window.location.href='index.html'">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-        </svg>
-      </button>
-      <button class="nav-item" onclick="window.location.href='profile.html'">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-        </svg>
-      </button>
-    </div>
-
     <button class="floating-upload-btn" id="upload-btn">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
         <path d="M12 4v8m0 0v8m8-8H4"/>
       </svg>
+      <span>Upload</span>
     </button>
 
-    <div class="upload-modal" id="upload-modal">
-      <div class="upload-modal-content">
+    <div class="bottom-sheet" id="upload-sheet">
+      <div class="bottom-sheet-content">
+        <button class="close-btn" id="close-sheet">&times;</button>
         <label for="media-upload">Select Image/Video</label>
         <input type="file" id="media-upload" accept="image/*,video/*" multiple>
         <textarea id="caption-input" placeholder="Add a caption..." rows="3"></textarea>
@@ -450,7 +394,6 @@
           currentUser = user;
           update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() });
           loadReels();
-          loadUnreadMessages();
         } else {
           window.location.href = 'signup.html';
         }
@@ -548,28 +491,6 @@
       }
     }
 
-    function loadUnreadMessages() {
-      const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
-      onValue(friendsRef, (snapshot) => {
-        const friends = snapshot.val();
-        let totalUnread = 0;
-        if (friends) {
-          Object.values(friends).forEach(friend => {
-            totalUnread += friend.unreadCount || 0;
-          });
-        }
-        const friendsNav = document.getElementById('friends-nav');
-        friendsNav.querySelector('.unread-badge')?.remove();
-        if (totalUnread > 0) {
-          const badge = document.createElement('span');
-          badge.className = 'unread-badge';
-          badge.textContent = totalUnread;
-          badge.style.cssText = 'background: var(--badge-bg); color: var(--text-primary); border-radius: 9999px; padding: 0.25rem 0.5rem; font-size: 0.75rem; position: absolute; top: -0.5rem; right: -0.5rem; min-width: 1.5rem; text-align: center;';
-          friendsNav.appendChild(badge);
-        }
-      });
-    }
-
     async function uploadMedia(files, caption) {
       if (!currentUser || !files.length) return;
       showSpinner();
@@ -600,7 +521,7 @@
             console.error('Upload failed:', data.error?.message);
           }
         }
-        document.getElementById('upload-modal').classList.remove('active');
+        document.getElementById('upload-sheet').classList.remove('active');
         document.getElementById('media-upload').value = '';
         document.getElementById('caption-input').value = '';
         loadReels();
@@ -611,7 +532,13 @@
     }
 
     document.getElementById('upload-btn').addEventListener('click', () => {
-      document.getElementById('upload-modal').classList.add('active');
+      document.getElementById('upload-sheet').classList.add('active');
+    });
+
+    document.getElementById('close-sheet').addEventListener('click', () => {
+      document.getElementById('upload-sheet').classList.remove('active');
+      document.getElementById('media-upload').value = '';
+      document.getElementById('caption-input').value = '';
     });
 
     document.getElementById('submit-upload').addEventListener('click', () => {
