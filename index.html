@@ -253,7 +253,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0,0,0,0.3); /* Semi-transparent to keep video visible */
       display: none;
       align-items: center;
       justify-content: center;
@@ -464,6 +464,14 @@
                 </div>
               `;
               reelsContainer.appendChild(div);
+              if (isVideo) {
+                const video = div.querySelector('.reel-media');
+                video.addEventListener('waiting', () => showSpinner());
+                video.addEventListener('stalled', () => showSpinner());
+                video.addEventListener('playing', () => hideSpinner());
+                video.addEventListener('canplay', () => hideSpinner());
+                video.addEventListener('error', () => showSpinner());
+              }
             }, { onlyOnce: true });
           }
           hideSpinner();
