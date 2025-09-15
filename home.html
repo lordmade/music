@@ -3,43 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Vynix Chat</title>
+  <title>Vynix AI</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-    }
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: linear-gradient(135deg, #F7F7F8, #E0E7FF);
-      --card-bg: #FFFFFF;
-      --text-primary: #1E1E1E;
+      --bg: #F7F7F8;
+      --card-bg: #1C2526;
+      --text-primary: #FFFFFF;
       --text-secondary: #4B5EAA;
-      --border: #E2E8F0;
+      --border: #4A5568;
       --highlight: #38B2AC;
       --user-msg-bg: #E0E7FF;
-      --ai-msg-bg: #F7FAFC;
-      --tab-bg: linear-gradient(135deg, #1C2526, #2D3748);
-      --tab-border: #4A5568;
-    }
-
-    .dark {
-      --bg: linear-gradient(135deg, #1A202C, #2D3748);
-      --card-bg: #2D3748;
-      --text-primary: #FFFFFF;
-      --text-secondary: #A0AEC0;
-      --border: #4A5568;
-      --highlight: #4FD1C5;
-      --user-msg-bg: #4A5568;
-      --ai-msg-bg: #1A202C;
-      --tab-bg: linear-gradient(135deg, #F7FAFC, #EDF2F7);
-      --tab-border: #E2E8F0;
+      --ai-msg-bg: #1C2526;
     }
 
     body {
@@ -48,203 +28,250 @@
       color: var(--text-secondary);
       min-height: 100vh;
       margin: 0;
-      transition: background 0.3s ease, color 0.3s ease;
-      scroll-behavior: smooth;
+      transition: background 0.3s ease;
     }
 
     .tab-container {
       position: fixed;
-      bottom: 0;
+      top: 0;
       left: 0;
       right: 0;
-      padding: 0.5rem;
+      padding: 0.75rem;
       display: flex;
-      justify-content: space-around;
-      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
       z-index: 10;
-      background: var(--tab-bg);
-      border-top: 1px solid var(--tab-border);
-      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
-      border-top-left-radius: 1rem;
-      border-top-right-radius: 1rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
     }
 
     .tab {
-      background: transparent;
+      background: var(--card-bg);
       color: var(--text-primary);
-      padding: 0.5rem;
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
       cursor: pointer;
-      transition: color 0.3s, transform 0.2s;
+      transition: background 0.3s;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 0.25rem;
-      font-size: 0.75rem;
-      flex: 1;
-      text-align: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
     }
 
     .tab:hover, .tab.active {
-      color: var(--highlight);
-      transform: translateY(-2px);
+      background: var(--highlight);
     }
 
     .tab svg {
-      width: 1.5rem;
-      height: 1.5rem;
-      stroke: currentColor;
-      transition: stroke 0.3s;
+      width: 1rem;
+      height: 1rem;
+      stroke: var(--text-primary);
+    }
+
+    .suggested-cards-container {
+      display: flex;
+      overflow-x: auto;
+      gap: 1rem;
+      padding: 1rem;
+      margin-top: 3.5rem;
+      scrollbar-width: thin;
+      scrollbar-color: var(--highlight) var(--bg);
+      z-index: 9;
+    }
+
+    .suggested-cards-container::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .suggested-cards-container::-webkit-scrollbar-track {
+      background: var(--bg);
+    }
+
+    .suggested-cards-container::-webkit-scrollbar-thumb {
+      background: var(--highlight);
+      border-radius: 4px;
+    }
+
+    .suggested-card {
+      flex: 0 0 auto;
+      background: var(--card-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1rem;
+      width: 160px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.3s ease, background 0.3s ease;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .suggested-card:hover {
+      background: var(--highlight);
+      transform: scale(1.05);
+    }
+
+    .suggested-card svg {
+      width: 2rem;
+      height: 2rem;
+      stroke: var(--text-primary);
+      margin: 0 auto 0.5rem;
+    }
+
+    .suggested-card p {
+      margin: 0;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .welcome-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      margin-top: 3rem;
+    }
+
+    .welcome-container h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1E1E1E;
     }
 
     .hidden {
       display: none;
     }
 
-    .friends-list, .status-list, .calls-list {
-      margin: 1rem 0 5rem 0;
-      padding: 0 1rem;
-      overflow-y: auto;
-      max-height: calc(100vh - 6rem);
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .friend-card, .status-card {
-      display: flex;
-      align-items: center;
-      padding: 1rem;
-      background: var(--card-bg);
-      border-radius: 1rem;
-      cursor: pointer;
-      transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    }
-
-    .friend-card:hover, .status-card:hover {
-      background: linear-gradient(135deg, var(--user-msg-bg), var(--ai-msg-bg));
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .friend-card .avatar-container, .status-card .avatar-container {
-      position: relative;
-      margin-right: 1rem;
-    }
-
-    .friend-card .avatar, .status-card .avatar {
-      width: 3rem;
-      height: 3rem;
-      border-radius: 50%;
-      background: var(--highlight);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      border: 2px solid var(--highlight);
-      transition: border-color 0.3s;
-    }
-
-    .friend-card img, .status-card img {
-      width: 3rem;
-      height: 3rem;
-      border-radius: 50%;
-      border: 2px solid var(--highlight);
-      transition: border-color 0.3s;
-      object-fit: cover;
-    }
-
-    .online-dot {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      width: 0.75rem;
-      height: 0.75rem;
-      background: #48BB78;
-      border-radius: 50%;
-      border: 2px solid var(--card-bg);
-    }
-
-    .friend-info, .status-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .friend-info h3, .status-info h3 {
-      margin: 0;
-      font-size: 1.125rem;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .friend-info .last-seen, .status-info .last-seen {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      opacity: 0.6;
-    }
-
-    .friend-info p, .status-info p {
-      margin: 0;
-      font-size: 0.875rem;
-      color: var(--text-secondary);
-      opacity: 0.8;
-      max-width: 200px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .timestamp {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      opacity: 0.6;
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .unread-count {
-      background: var(--highlight);
-      color: var(--text-primary);
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 0.25rem 0.5rem;
-      border-radius: 1rem;
-      min-width: 1.5rem;
-      text-align: center;
-    }
-
-    .add-friend-button {
+    .chat-input-container {
       position: fixed;
-      bottom: 5.5rem;
-      right: 1.5rem;
-      background: var(--highlight);
-      border: none;
-      border-radius: 50%;
-      width: 3.5rem;
-      height: 3.5rem;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
       display: flex;
       align-items: center;
-      justify-content: center;
-      cursor: pointer;
+      width: 90%;
+      max-width: 600px;
+      background: var(--card-bg);
+      border-radius: 1.5rem;
+      padding: 0.5rem 0.75rem;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      transition: background 0.3s, transform 0.2s;
-      z-index: 20;
     }
 
-    .add-friend-button:hover {
-      background: darken(var(--highlight), 10%);
-      transform: scale(1.05);
+    #chat-input {
+      flex: 1;
+      background: transparent;
+      color: var(--text-primary);
+      border: none;
+      padding: 0.75rem 0.5rem;
+      outline: none;
+      font-size: 1rem;
     }
 
-    .add-friend-button svg {
-      width: 1.75rem;
-      height: 1.75rem;
+    #send-button, #image-upload-button {
+      background: transparent;
+      border: none;
+      padding: 0.5rem;
+      cursor: pointer;
+      border-radius: 0.5rem;
+      transition: background 0.2s;
+    }
+
+    #send-button:hover, #image-upload-button:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    #send-button svg, #image-upload-button svg {
+      width: 1.5rem;
+      height: 1.5rem;
       stroke: var(--text-primary);
+    }
+
+    #chat-messages {
+      margin: 8rem 1rem 6rem 1rem;
+      padding: 1rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 14rem);
+    }
+
+    .message {
+      max-width: 70%;
+      padding: 0.75rem 1.25rem;
+      border-radius: 1.5rem;
+      margin: 0.5rem 1rem;
+      word-wrap: break-word;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+      animation: slideIn 0.3s ease-out;
+      position: relative;
+      display: inline-block;
+    }
+
+    .message.user {
+      background: linear-gradient(135deg, var(--user-msg-bg), #C7D2FE);
+      color: #1E1E1E;
+      margin-left: auto;
+      border-bottom-right-radius: 0.25rem;
+    }
+
+    .message.ai {
+      background: linear-gradient(135deg, var(--ai-msg-bg), #2D3748);
+      color: var(--text-primary);
+      margin-right: auto;
+      border-bottom-left-radius: 0.25rem;
+    }
+
+    .message.processing {
+      background: var(--ai-msg-bg);
+      color: var(--text-primary);
+      font-style: italic;
+      opacity: 0.7;
+    }
+
+    .message img {
+      max-width: 100%;
+      border-radius: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .typing-indicator {
+      display: inline-flex;
+      gap: 0.25rem;
+      align-items: center;
+    }
+
+    .typing-dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      background: var(--text-primary);
+      border-radius: 50%;
+      animation: typing 1.2s infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 100% { opacity: 0.3; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-3px); }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes vibrate {
+      0% { transform: translateX(0); }
+      20% { transform: translateX(-2px); }
+      40% { transform: translateX(2px); }
+      60% { transform: translateX(-2px); }
+      80% { transform: translateX(2px); }
+      100% { transform: translateX(0); }
+    }
+
+    .vibrate {
+      animation: vibrate 0.2s ease-in-out;
     }
 
     #sidebar {
@@ -261,7 +288,6 @@
       color: var(--text-primary);
       cursor: pointer;
       border-bottom: 1px solid var(--border);
-      transition: background 0.3s;
     }
 
     .conversation-item:hover {
@@ -269,23 +295,18 @@
     }
 
     #hamburger-button {
-      background: var(--card-bg);
+      background: #1C2526;
       border: none;
       padding: 0.4rem;
       cursor: pointer;
       border-radius: 50%;
-      transition: background 0.3s, transform 0.2s;
+      transition: background 0.2s;
       width: 2.5rem;
       height: 2.5rem;
-      position: fixed;
-      top: 1rem;
-      left: 1rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     #hamburger-button:hover {
       background: var(--highlight);
-      transform: rotate(90deg);
     }
 
     #hamburger-button svg {
@@ -293,209 +314,92 @@
       height: 1.25rem;
       stroke: var(--text-primary);
     }
-
-    .status-input-container {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .status-input {
-      flex: 1;
-      padding: 0.75rem;
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      background: var(--card-bg);
-      color: var(--text-primary);
-      font-size: 1rem;
-      outline: none;
-    }
-
-    .status-upload-button, .status-image-button {
-      background: var(--highlight);
-      color: var(--text-primary);
-      padding: 0.75rem;
-      border: none;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      font-size: 0.875rem;
-      transition: background 0.3s;
-    }
-
-    .status-upload-button:hover, .status-image-button:hover {
-      background: darken(var(--highlight), 10%);
-    }
-
-    .status-image {
-      max-width: 100%;
-      max-height: 100px;
-      border-radius: 0.5rem;
-      margin-top: 0.5rem;
-      object-fit: cover;
-    }
-
-    .status-viewer-count {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      opacity: 0.6;
-    }
-
-    .status-viewer-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.9);
-      z-index: 50;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-
-    .status-viewer-overlay.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .status-viewer-content {
-      max-width: 90%;
-      max-height: 80vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .status-viewer-content img {
-      max-width: 100%;
-      max-height: 60vh;
-      border-radius: 0.5rem;
-      object-fit: contain;
-    }
-
-    .status-viewer-content p {
-      color: var(--text-primary);
-      font-size: 1rem;
-      text-align: center;
-    }
-
-    .status-viewer-close {
-      background: var(--highlight);
-      color: var(--text-primary);
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      font-size: 0.875rem;
-      transition: background 0.3s;
-    }
-
-    .status-viewer-close:hover {
-      background: darken(var(--highlight), 10%);
-    }
-
-    .search-input {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      background: var(--card-bg);
-      color: var(--text-primary);
-      font-size: 1rem;
-      outline: none;
-      margin-bottom: 1rem;
-    }
   </style>
 </head>
 <body>
   <main class="flex flex-col h-screen">
-    <button id="hamburger-button" class="w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition">
+    <button id="hamburger-button" class="fixed top-4 left-4 w-10 h-10 bg-black rounded-full flex items-center justify-center shadow-lg hover:bg-gray-800 transition">
       <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
         <path d="M4 6h16M4 12h16M4 18h16"/>
       </svg>
     </button>
-    <div id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-gray-900 flex flex-col transition-transform duration-300 ease-in-out transform -translate-x-full">
-      <button id="close-sidebar" class="p-4 self-end">
+    <div id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-gray-900 hidden flex-col">
+      <button id="close-sidebar" class="p-4">
         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M6 18L18 6M6 6l12 12"/>
         </svg>
       </button>
-      <div id="profile-section" class="p-4 flex items-center gap-3">
-        <!-- Profile will be loaded here -->
-      </div>
-      <hr class="border-gray-700">
-      <div class="p-4 flex justify-between items-center">
-        <span class="text-white">Dark Mode</span>
-        <label class="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" id="dark-mode-toggle" class="sr-only peer">
-          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-        </label>
-      </div>
-      <div class="p-4">
-        <button id="logout-button" class="w-full text-left text-white">Logout</button>
-      </div>
       <div id="conversation-list" class="flex-1 overflow-y-auto p-4"></div>
     </div>
-    <div class="friends-list" id="friends-list">
-      <input type="text" id="search-friends" placeholder="Search friends..." class="search-input">
-    </div>
-    <div class="status-list hidden" id="status-list">
-      <div class="status-input-container">
-        <input type="text" id="status-input" placeholder="What's on your mind?" aria-label="Your status" class="status-input">
-        <button class="status-upload-button">Post</button>
-        <label class="status-image-button">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="width: 1.25rem; height: 1.25rem;">
-            <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-          </svg>
-          <input type="file" id="status-image-input" accept="image/*" hidden>
-        </label>
-      </div>
-      <div id="my-status"></div>
-      <div id="friends-statuses"></div>
-    </div>
-    <div class="calls-list hidden" id="calls-list">
-      <p class="text-center text-gray-500">Recent calls will appear here. (Feature coming soon)</p>
-    </div>
     <div class="tab-container">
-      <button class="tab active" id="chats-tab">
+      <a href="profile.html" class="tab" id="profile-tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        Profile
+      </a>
+      <a href="settings.html" class="tab" id="settings-tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Settings
+      </a>
+      <button id="new-conversation-button" class="tab">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 4v8m0 0v8m8-8H4"/>
+        </svg>
+        New Chat
+      </button>
+    </div>
+    <div class="suggested-cards-container">
+      <div class="suggested-card" onclick="startNewConversation()">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
         </svg>
-        Chats
-      </button>
-      <button class="tab" id="status-tab">
+        <p>Chat with Friends</p>
+      </div>
+      <div class="suggested-card" onclick="document.getElementById('image-upload-button').click()">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6a2 2 0 110-4 2 2 0 010 4z"/>
+          <path d="M7 7h.01M7 3a4 4 0 014 4h2a4 4 0 014 4v10a2 2 0 01-2 2H5a2 2 0 01-2-2V11a4 4 0 014-4z"/>
         </svg>
-        Status
-      </button>
-      <button class="tab" id="calls-tab">
+        <p>Upload a Reel</p>
+      </div>
+      <div class="suggested-card" onclick="window.location.href='news.html'">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M20 7l-3-3m0 0l-3 3m3-3v12"/>
+          <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m-6 11h6m-6-4h6M7 7h.01M7 11h5m-5 4h5"/>
         </svg>
-        Calls
-      </button>
+        <p>Read Breaking News</p>
+      </div>
+      <div class="suggested-card" onclick="alert('Explore more features coming soon!')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        </svg>
+        <p>Explore More</p>
+      </div>
     </div>
-    <button class="add-friend-button" id="add-friend-button">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-        <path d="M12 4v8m0 0v8m8-8H4"/>
-      </svg>
-    </button>
-    <div class="status-viewer-overlay hidden" id="status-viewer-overlay">
-      <div class="status-viewer-content" id="status-viewer-content"></div>
-      <button class="status-viewer-close">Close</button>
+    <div class="welcome-container" id="welcome-container">
+      <h1>Hey there, friend!</h1>
+    </div>
+    <div id="chat-messages" class="flex-1 overflow-y-auto"></div>
+    <div class="chat-input-container">
+      <button id="image-upload-button" class="p-2">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </button>
+      <input type="text" id="chat-input" placeholder="What's on your mind?" aria-label="Type your prompt">
+      <button id="send-button">
+        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M5 12l6-6m-6 6l6 6"/>
+        </svg>
+      </button>
     </div>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, limitToLast, query, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
-    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -509,455 +413,211 @@
     };
 
     const state = {
-      friends: [],
-      currentUser: null,
-      encryptionKeys: {}
+      messages: [],
+      geminiApiKey: 'AIzaSyD79iPuCs7sW4DQJ7ij9SZZXtEJm6po8K8', // Move to environment variable in production
+      hasChatted: false,
+      conversationId: null
     };
 
     const elements = {
-      friendsList: document.getElementById('friends-list'),
-      statusList: document.getElementById('status-list'),
-      callsList: document.getElementById('calls-list'),
-      myStatus: document.getElementById('my-status'),
-      friendsStatuses: document.getElementById('friends-statuses'),
-      statusInput: document.getElementById('status-input'),
-      statusImageInput: document.getElementById('status-image-input'),
-      statusUploadButton: document.querySelector('.status-upload-button'),
-      statusViewerOverlay: document.getElementById('status-viewer-overlay'),
-      statusViewerContent: document.getElementById('status-viewer-content'),
-      statusViewerClose: document.querySelector('.status-viewer-close'),
+      chatMessages: document.getElementById('chat-messages'),
+      chatInput: document.getElementById('chat-input'),
+      sendButton: document.getElementById('send-button'),
+      welcomeContainer: document.getElementById('welcome-container'),
+      newConversationButton: document.getElementById('new-conversation-button'),
       hamburgerButton: document.getElementById('hamburger-button'),
       sidebar: document.getElementById('sidebar'),
       closeSidebar: document.getElementById('close-sidebar'),
       conversationList: document.getElementById('conversation-list'),
-      addFriendButton: document.getElementById('add-friend-button'),
-      chatsTab: document.getElementById('chats-tab'),
-      statusTab: document.getElementById('status-tab'),
-      callsTab: document.getElementById('calls-tab'),
-      profileSection: document.getElementById('profile-section'),
-      darkModeToggle: document.getElementById('dark-mode-toggle'),
-      logoutButton: document.getElementById('logout-button'),
-      searchFriends: document.getElementById('search-friends')
+      imageUploadButton: document.getElementById('image-upload-button')
     };
 
-    let app, auth, db, storage;
-
-    // Encryption Functions
-    async function generateEncryptionKey() {
-      return await crypto.subtle.generateKey(
-        { name: "AES-GCM", length: 256 },
-        true,
-        ["encrypt", "decrypt"]
-      );
-    }
-
-    async function exportKey(key) {
-      const exported = await crypto.subtle.exportKey("raw", key);
-      return btoa(String.fromCharCode(...new Uint8Array(exported)));
-    }
-
-    async function importKey(base64Key) {
-      const keyBuffer = Uint8Array.from(atob(base64Key), c => c.charCodeAt(0));
-      return await crypto.subtle.importKey(
-        "raw",
-        keyBuffer,
-        { name: "AES-GCM" },
-        true,
-        ["encrypt", "decrypt"]
-      );
-    }
-
-    async function encryptMessage(message, key) {
-      const encoder = new TextEncoder();
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const encrypted = await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv },
-        key,
-        encoder.encode(message)
-      );
-      return {
-        ciphertext: btoa(String.fromCharCode(...new Uint8Array(encrypted))),
-        iv: btoa(String.fromCharCode(...iv))
-      };
-    }
-
-    async function decryptMessage(ciphertext, iv, key) {
-      try {
-        const decoder = new TextDecoder();
-        const encryptedBuffer = Uint8Array.from(atob(ciphertext), c => c.charCodeAt(0));
-        const ivBuffer = Uint8Array.from(atob(iv), c => c.charCodeAt(0));
-        const decrypted = await crypto.subtle.decrypt(
-          { name: "AES-GCM", iv: ivBuffer },
-          key,
-          encryptedBuffer
-        );
-        return decoder.decode(decrypted);
-      } catch (e) {
-        console.error('Decryption failed:', e);
-        return '[Decryption Error]';
-      }
-    }
-
-    async function getChatKey(chatId) {
-      if (state.encryptionKeys[chatId]) {
-        return state.encryptionKeys[chatId];
-      }
-      const keyRef = ref(db, `chatKeys/${chatId}/key`);
-      const snapshot = await new Promise(resolve => onValue(keyRef, resolve, { onlyOnce: true }));
-      if (snapshot.exists()) {
-        const base64Key = snapshot.val();
-        state.encryptionKeys[chatId] = await importKey(base64Key);
-        return state.encryptionKeys[chatId];
-      } else {
-        const newKey = await generateEncryptionKey();
-        const base64Key = await exportKey(newKey);
-        await set(keyRef, base64Key);
-        state.encryptionKeys[chatId] = newKey;
-        return newKey;
-      }
-    }
+    let app, auth, db;
 
     function initializeFirebase() {
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       db = getDatabase(app);
-      storage = getStorage(app);
       onAuthStateChanged(auth, (user) => {
         if (user) {
-          state.currentUser = user;
-          setupPresence(user.uid);
-          loadFriends();
-          loadStatuses();
-          loadProfile(user);
+          elements.chatInput.disabled = false;
+          elements.sendButton.disabled = false;
+          loadConversations();
+          elements.welcomeContainer.querySelector('h1').textContent = `Hey there, ${user.displayName || 'friend'}!`;
         } else {
           window.location.href = 'signup.html';
         }
       });
     }
 
-    function loadProfile(user) {
-      elements.profileSection.innerHTML = `
-        <img src="${user.photoURL || ''}" class="w-10 h-10 rounded-full object-cover" alt="Profile">
-        <div>
-          <h3 class="text-white font-semibold">${user.displayName || 'User'}</h3>
-          <p class="text-gray-400 text-sm">Online</p>
-        </div>
-      `;
-    }
-
-    function setupPresence(userId) {
-      const userStatusRef = ref(db, `users/${userId}/status`);
-      const lastSeenRef = ref(db, `users/${userId}/lastSeen`);
-      set(userStatusRef, 'online');
-      onDisconnect(userStatusRef).set('offline');
-      onDisconnect(lastSeenRef).set(serverTimestamp());
-    }
-
-    async function loadFriends() {
-      const friendsRef = ref(db, `users/${state.currentUser.uid}/friends`);
-      onValue(friendsRef, async (snapshot) => {
-        state.friends = [];
-        const friendPromises = [];
-        
-        if (snapshot.exists()) {
-          const friends = snapshot.val();
-          for (const friendUid in friends) {
-            friendPromises.push(
-              new Promise(async (resolve) => {
-                const userRef = ref(db, `users/${friendUid}`);
-                const userSnapshot = await new Promise(resolve => onValue(userRef, resolve, { onlyOnce: true }));
-                const user = userSnapshot.val();
-                if (user) {
-                  const { lastMessage, messageTimestamp, unreadCount } = await loadLastMessage(friendUid);
-                  const lastSeen = user.status === 'online' ? 'Online' : (user.lastSeen 
-                    ? `Last seen ${new Date(user.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                    : 'Last seen recently');
-                  resolve({
-                    uid: friendUid,
-                    displayName: user.displayName || 'User',
-                    email: user.email,
-                    photoURL: user.photoURL || null,
-                    lastSeen,
-                    online: user.status === 'online',
-                    lastMessage: lastMessage ? lastMessage.slice(0, 50) + (lastMessage.length > 50 ? '...' : '') : '',
-                    messageTimestamp: messageTimestamp ? new Date(messageTimestamp).getTime() : 0,
-                    unreadCount
-                  });
-                }
-              })
-            );
-          }
+    function appendMessage(content, sender, isTyping = false, isImage = false) {
+      const div = document.createElement('div');
+      div.className = `message ${sender}${isTyping ? ' processing' : ''}`;
+      if (isTyping) {
+        div.innerHTML = '<div class="typing-indicator"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
+      } else if (isImage) {
+        const img = document.createElement('img');
+        img.src = content;
+        img.alt = 'Uploaded image';
+        div.appendChild(img);
+      } else {
+        div.textContent = content;
+      }
+      state.messages.push({ content, sender, isImage, timestamp: Date.now() });
+      if (sender === 'ai' && !isTyping) {
+        div.classList.add('vibrate');
+        if ('vibrate' in navigator) {
+          navigator.vibrate(100);
         }
+      }
+      div.style.opacity = '0';
+      setTimeout(() => div.style.opacity = '1', 10);
+      elements.chatMessages.appendChild(div);
+      elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+      return div;
+    }
 
-        state.friends = await Promise.all(friendPromises);
-        state.friends.sort((a, b) => {
-          if (a.unreadCount > 0 && b.unreadCount > 0) {
-            return b.unreadCount - a.unreadCount;
-          }
-          if (a.unreadCount > 0) return -1;
-          if (b.unreadCount > 0) return 1;
-          return b.messageTimestamp - a.messageTimestamp;
+    async function getAIResponse(prompt, imageUrl = null) {
+      if (!state.hasChatted) {
+        state.hasChatted = true;
+        elements.welcomeContainer.classList.add('hidden');
+      }
+      const tempMsg = appendMessage('', 'ai', true);
+      try {
+        let requestBody = {
+          contents: [{
+            parts: [{ text: `You are Vynix AI, crafted by Katlego in Mokopane, South Africa. Respond like a friendly, human buddy with a warm, conversational tone. Keep it concise and fun! Query: ${prompt}` }]
+          }]
+        };
+        if (imageUrl) {
+          requestBody.contents[0].parts[0].text = `Hey, let's check out this image! Describe what you see in a fun, friendly way.`;
+          requestBody.contents[0].parts.push({ inlineData: { mimeType: 'image/jpeg', data: imageUrl } });
+        }
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${state.geminiApiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
         });
-
-        renderFriends();
-      });
+        const data = await res.json();
+        const response = data.candidates[0].content.parts[0].text || 'Oops, something went wrong, pal!';
+        tempMsg.textContent = response;
+        tempMsg.classList.remove('processing');
+        state.messages.push({ text: response, sender: 'ai', timestamp: Date.now() });
+      } catch (error) {
+        tempMsg.textContent = 'Whoops, hit a snag! Try again?';
+        tempMsg.classList.remove('processing');
+        state.messages.push({ text: tempMsg.textContent, sender: 'ai', timestamp: Date.now() });
+        console.error('API Error:', error);
+      }
     }
 
-    function renderFriends(filter = '') {
-      elements.friendsList.innerHTML = '<input type="text" id="search-friends" placeholder="Search friends..." class="search-input">';
-      elements.searchFriends = document.getElementById('search-friends'); // Re-bind after innerHTML
-      const filteredFriends = state.friends.filter(f => f.displayName.toLowerCase().includes(filter.toLowerCase()));
-      filteredFriends.forEach(appendFriendCard);
+    function saveConversation() {
+      if (state.messages.length === 0) return;
+      const firstMessage = state.messages.find(msg => msg.sender === 'user' && !msg.isImage)?.content || 'Untitled';
+      const title = firstMessage.split(' ').slice(0, 3).join(' ');
+      const user = auth.currentUser;
+      if (user) {
+        push(ref(db, `users/${user.uid}/conversations`), { title, messages: state.messages });
+      }
     }
 
-    async function loadLastMessage(friendId) {
-      const chatId = [state.currentUser.uid, friendId].sort().join('_');
-      const messagesRef = query(ref(db, `chats/${chatId}`), limitToLast(1));
-      const key = await getChatKey(chatId);
-      return new Promise((resolve) => {
-        onValue(messagesRef, async (snapshot) => {
-          let lastMessage = '';
-          let messageTimestamp = '';
-          let unreadCount = 0;
-          if (snapshot.exists()) {
-            snapshot.forEach((child) => {
-              const msg = child.val();
-              lastMessage = msg.ciphertext ? decryptMessage(msg.ciphertext, msg.iv, key) : '';
-              messageTimestamp = msg.timestamp;
+    function startNewConversation() {
+      saveConversation();
+      state.messages = [];
+      elements.chatMessages.innerHTML = '';
+      elements.welcomeContainer.classList.remove('hidden');
+      state.hasChatted = false;
+      state.conversationId = null;
+    }
+
+    function loadConversations() {
+      const user = auth.currentUser;
+      if (user) {
+        const refConversations = ref(db, `users/${user.uid}/conversations`);
+        onValue(refConversations, snapshot => {
+          elements.conversationList.innerHTML = '';
+          snapshot.forEach(child => {
+            const convo = child.val();
+            const div = document.createElement('div');
+            div.className = 'conversation-item';
+            div.textContent = convo.title;
+            div.addEventListener('click', () => {
+              state.messages = convo.messages;
+              elements.chatMessages.innerHTML = '';
+              state.messages.forEach(msg => {
+                if (msg.isImage) {
+                  appendMessage(msg.content, msg.sender, false, true);
+                } else {
+                  appendMessage(msg.content, msg.sender);
+                }
+              });
+              elements.sidebar.classList.remove('open');
+              state.conversationId = child.key;
             });
-            const allMessagesRef = ref(db, `chats/${chatId}`);
-            onValue(allMessagesRef, (allSnapshot) => {
-              unreadCount = 0;
-              if (allSnapshot.exists()) {
-                allSnapshot.forEach((msg) => {
-                  if (msg.val().unread && msg.val().sender !== state.currentUser.uid) {
-                    unreadCount++;
-                  }
-                });
-              }
-            }, { onlyOnce: true });
-          }
-          resolve({ lastMessage: await lastMessage, messageTimestamp, unreadCount });
+            elements.conversationList.appendChild(div);
+          });
         }, { onlyOnce: true });
-      });
-    }
-
-    function appendFriendCard(friend) {
-      const div = document.createElement('div');
-      div.className = 'friend-card';
-      const avatarContent = friend.photoURL
-        ? `<img src="${friend.photoURL}" alt="${friend.displayName}'s profile">`
-        : `<div class="avatar">${friend.displayName[0].toUpperCase()}</div>`;
-      div.innerHTML = `
-        <div class="avatar-container">
-          ${avatarContent}
-          ${friend.online ? '<div class="online-dot"></div>' : ''}
-        </div>
-        <div class="friend-info">
-          <h3>${friend.displayName}</h3>
-          <span class="last-seen">${friend.lastSeen}</span>
-          <p>${friend.lastMessage}</p>
-        </div>
-        <span class="timestamp">
-          ${friend.messageTimestamp ? new Date(friend.messageTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-          ${friend.unreadCount > 0 ? `<span class="unread-count">${friend.unreadCount}</span>` : ''}
-        </span>
-      `;
-      div.addEventListener('click', () => {
-        window.location.href = `chat.html?friendId=${friend.uid}&friendName=${encodeURIComponent(friend.displayName)}`;
-      });
-      elements.friendsList.appendChild(div);
-    }
-
-    async function loadStatuses() {
-      // Load current user's status
-      const myStatusRef = ref(db, `statuses/${state.currentUser.uid}`);
-      onValue(myStatusRef, (snapshot) => {
-        elements.myStatus.innerHTML = '<h3 style="font-size: 1rem; color: var(--text-primary); margin-bottom: 0.5rem;">My Status</h3>';
-        if (snapshot.exists()) {
-          const statuses = snapshot.val();
-          for (const statusId in statuses) {
-            const status = statuses[statusId];
-            if (new Date().getTime() - status.timestamp < 24 * 60 * 60 * 1000) {
-              appendStatusCard(state.currentUser.uid, state.currentUser.displayName || 'Me', status, statusId);
-            }
-          }
-        } else {
-          elements.myStatus.innerHTML += '<p style="font-size: 0.875rem; color: var(--text-secondary); opacity: 0.8;">No status yet. Add one above!</p>';
-        }
-      });
-
-      // Load friends' statuses
-      const friendsRef = ref(db, `users/${state.currentUser.uid}/friends`);
-      onValue(friendsRef, async (snapshot) => {
-        elements.friendsStatuses.innerHTML = '<h3 style="font-size: 1rem; color: var(--text-primary); margin-bottom: 0.5rem;">Friends\' Statuses</h3>';
-        if (snapshot.exists()) {
-          const friends = snapshot.val();
-          for (const friendUid in friends) {
-            const statusRef = ref(db, `statuses/${friendUid}`);
-            const statusSnapshot = await new Promise(resolve => onValue(statusRef, resolve, { onlyOnce: true }));
-            if (statusSnapshot.exists()) {
-              const statuses = statusSnapshot.val();
-              for (const statusId in statuses) {
-                const status = statuses[statusId];
-                if (new Date().getTime() - status.timestamp < 24 * 60 * 60 * 1000) {
-                  appendStatusCard(friendUid, friends[friendUid].displayName, status, statusId);
-                }
-              }
-            }
-          }
-        } else {
-          elements.friendsStatuses.innerHTML += '<p style="font-size: 0.875rem; color: var(--text-secondary); opacity: 0.8;">No friends\' statuses yet.</p>';
-        }
-      });
-    }
-
-    function appendStatusCard(uid, displayName, status, statusId) {
-      const div = document.createElement('div');
-      div.className = 'status-card';
-      const avatarContent = state.friends.find(f => f.uid === uid)?.photoURL || (uid === state.currentUser.uid && state.currentUser.photoURL)
-        ? `<img src="${state.friends.find(f => f.uid === uid)?.photoURL || state.currentUser.photoURL}" alt="${displayName}'s profile">`
-        : `<div class="avatar">${displayName[0].toUpperCase()}</div>`;
-      const content = status.type === 'image'
-        ? `<img src="${status.content}" class="status-image" alt="Status image">`
-        : `<p>${status.content}</p>`;
-      const viewerCount = status.viewers ? Object.keys(status.viewers).length : 0;
-      div.innerHTML = `
-        <div class="avatar-container">
-          ${avatarContent}
-        </div>
-        <div class="status-info">
-          <h3>${displayName}</h3>
-          <span class="last-seen">${new Date(status.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          ${content}
-          <span class="status-viewer-count">${viewerCount} view${viewerCount === 1 ? '' : 's'}</span>
-        </div>
-      `;
-      div.addEventListener('click', () => viewStatus(uid, displayName, status, statusId));
-      if (uid === state.currentUser.uid) {
-        elements.myStatus.appendChild(div);
-      } else {
-        elements.friendsStatuses.appendChild(div);
       }
     }
 
-    async function viewStatus(uid, displayName, status, statusId) {
-      if (uid !== state.currentUser.uid) {
-        const viewerRef = ref(db, `statuses/${uid}/${statusId}/viewers/${state.currentUser.uid}`);
-        await set(viewerRef, true);
-      }
-      elements.statusViewerContent.innerHTML = `
-        <h3 style="color: var(--text-primary);">${displayName}</h3>
-        ${status.type === 'image' ? `<img src="${status.content}" alt="Status image">` : `<p>${status.content}</p>`}
-        <span style="color: var(--text-primary); font-size: 0.75rem;">${new Date(status.timestamp).toLocaleString()}</span>
-      `;
-      elements.statusViewerOverlay.classList.add('open');
-    }
-
-    async function uploadStatus() {
-      const text = elements.statusInput.value.trim();
-      if (!text && !elements.statusImageInput.files[0]) {
-        alert('Please enter a status or select an image.');
-        return;
-      }
-      const statusId = Date.now().toString();
-      const statusRef = ref(db, `statuses/${state.currentUser.uid}/${statusId}`);
-      if (elements.statusImageInput.files[0]) {
-        const file = elements.statusImageInput.files[0];
-        const storagePath = `statuses/${state.currentUser.uid}/${statusId}`;
-        const fileRef = storageRef(storage, storagePath);
-        await uploadBytes(fileRef, file);
-        const url = await getDownloadURL(fileRef);
-        await set(statusRef, {
-          type: 'image',
-          content: url,
-          timestamp: serverTimestamp(),
-          viewers: {}
-        });
-      } else {
-        await set(statusRef, {
-          type: 'text',
-          content: text,
-          timestamp: serverTimestamp(),
-          viewers: {}
-        });
-      }
-      elements.statusInput.value = '';
-      elements.statusImageInput.value = '';
-    }
-
-    function setActiveTab(tab) {
-      [elements.chatsTab, elements.statusTab, elements.callsTab].forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      elements.friendsList.classList.add('hidden');
-      elements.statusList.classList.add('hidden');
-      elements.callsList.classList.add('hidden');
-      if (tab === elements.chatsTab) {
-        elements.friendsList.classList.remove('hidden');
-      } else if (tab === elements.statusTab) {
-        elements.statusList.classList.remove('hidden');
-      } else if (tab === elements.callsTab) {
-        elements.callsList.classList.remove('hidden');
-      }
-    }
-
-    elements.chatsTab.addEventListener('click', () => {
-      setActiveTab(elements.chatsTab);
+    elements.sendButton.addEventListener('click', async () => {
+      const prompt = elements.chatInput.value.trim();
+      if (!prompt) return;
+      elements.chatInput.value = '';
+      appendMessage(prompt, 'user');
+      await getAIResponse(prompt);
     });
 
-    elements.statusTab.addEventListener('click', () => {
-      setActiveTab(elements.statusTab);
+    elements.chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        elements.sendButton.click();
+      }
     });
 
-    elements.callsTab.addEventListener('click', () => {
-      setActiveTab(elements.callsTab);
-    });
+    elements.newConversationButton.addEventListener('click', startNewConversation);
 
     elements.hamburgerButton.addEventListener('click', () => {
       elements.sidebar.classList.add('open');
+      loadConversations();
     });
 
     elements.closeSidebar.addEventListener('click', () => {
       elements.sidebar.classList.remove('open');
     });
 
-    elements.addFriendButton.addEventListener('click', () => {
-      window.location.href = 'add.html';
+    elements.imageUploadButton.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'banter_box');
+        const tempMsg = appendMessage('', 'user', true);
+        try {
+          const uploadResponse = await fetch('https://api.cloudinary.com/v1_1/dqkujefxj/image/upload', {
+            method: 'POST',
+            body: formData
+          });
+          const uploadData = await uploadResponse.json();
+          const imageUrl = uploadData.secure_url;
+          tempMsg.innerHTML = '';
+          tempMsg.classList.remove('processing');
+          appendMessage(imageUrl, 'user', false, true);
+          await getAIResponse('Describe this image', imageUrl);
+        } catch (error) {
+          tempMsg.textContent = 'Oops, couldn’t upload the image!';
+          tempMsg.classList.remove('processing');
+          state.messages.push({ text: tempMsg.textContent, sender: 'user', timestamp: Date.now() });
+          console.error('Upload Error:', error);
+        }
+      };
+      input.click();
     });
 
-    elements.statusUploadButton.addEventListener('click', uploadStatus);
-
-    elements.statusInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        uploadStatus();
-      }
-    });
-
-    elements.statusImageInput.addEventListener('change', () => {
-      if (elements.statusImageInput.files[0]) {
-        uploadStatus();
-      }
-    });
-
-    elements.statusViewerClose.addEventListener('click', () => {
-      elements.statusViewerOverlay.classList.remove('open');
-      elements.statusViewerContent.innerHTML = '';
-    });
-
-    elements.darkModeToggle.addEventListener('change', () => {
-      document.body.classList.toggle('dark', elements.darkModeToggle.checked);
-    });
-
-    elements.logoutButton.addEventListener('click', () => {
-      signOut(auth);
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-      initializeFirebase();
-      elements.searchFriends.addEventListener('input', (e) => {
-        renderFriends(e.target.value);
-      });
-    });
+    document.addEventListener('DOMContentLoaded', initializeFirebase);
   </script>
 </body>
 </html>
