@@ -29,48 +29,8 @@
       overflow-x: hidden;
     }
 
-    .header {
-      background: var(--card-bg);
-      padding: 10px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .logo {
-      font-size: 28px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .header-icons {
-      display: flex;
-      gap: 20px;
-      align-items: center;
-    }
-
-    .header-icons svg {
-      width: 24px;
-      height: 24px;
-      stroke: var(--text-primary);
-      cursor: pointer;
-      padding: 5px;
-      border-radius: 50%;
-      transition: background-color 0.3s;
-    }
-
-    .header-icons svg:hover {
-      background-color: rgba(255,255,255,0.1);
-    }
-
     .reels-container {
-      height: calc(100vh - 60px);
+      height: 100vh;
       overflow-y: auto;
       scroll-snap-type: y mandatory;
       scroll-behavior: smooth;
@@ -85,7 +45,7 @@
       background: var(--card-bg);
     }
 
-    .reel-video {
+    .reel-media {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -228,6 +188,100 @@
       text-align: center;
     }
 
+    .floating-upload-btn {
+      position: fixed;
+      bottom: 5rem;
+      right: 1rem;
+      background: var(--highlight);
+      border: none;
+      border-radius: 50%;
+      width: 3rem;
+      height: 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      z-index: 20;
+      transition: background 0.2s;
+    }
+
+    .floating-upload-btn:hover {
+      background: #2a928d;
+    }
+
+    .floating-upload-btn svg {
+      width: 1.5rem;
+      height: 1.5rem;
+      stroke: var(--text-primary);
+    }
+
+    .upload-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+    }
+
+    .upload-modal.active {
+      display: flex;
+    }
+
+    .upload-modal-content {
+      background: var(--card-bg);
+      border-radius: 10px;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      color: var(--text-primary);
+    }
+
+    .upload-modal-content input[type="file"] {
+      display: none;
+    }
+
+    .upload-modal-content label {
+      display: block;
+      background: var(--highlight);
+      color: var(--text-primary);
+      padding: 10px;
+      text-align: center;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    .upload-modal-content textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--bg);
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+      resize: none;
+    }
+
+    .upload-modal-content button {
+      background: var(--highlight);
+      color: var(--text-primary);
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .upload-modal-content button:hover {
+      background: #2a928d;
+    }
+
     .spinner-overlay {
       position: fixed;
       top: 0;
@@ -238,7 +292,7 @@
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 30;
+      z-index: 40;
     }
 
     .spinner-overlay.active {
@@ -270,36 +324,18 @@
     }
 
     @media (max-width: 768px) {
-      .reels-container {
-        height: calc(100vh - 50px);
-      }
-
-      .header {
-        padding: 10px;
-      }
-
       .reel-actions {
         bottom: 70px;
+      }
+
+      .floating-upload-btn {
+        bottom: 4.5rem;
       }
     }
   </style>
 </head>
 <body>
   <main class="flex flex-col h-screen" id="main-content">
-    <div class="header">
-      <div class="logo">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-        </svg>
-        <span>Vynix AI Reels</span>
-      </div>
-      <div class="header-icons">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" onclick="createReel()">
-          <path d="M12 4v8m0 0v8m8-8H4"/>
-        </svg>
-      </div>
-    </div>
-
     <div class="reels-container" id="reels-container">
       <!-- Reels will be dynamically loaded here -->
     </div>
@@ -307,7 +343,7 @@
     <div class="bottom-nav">
       <button class="nav-item" onclick="window.location.href='home.html'">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
         </svg>
       </button>
       <button class="nav-item" onclick="window.location.href='friends.html'" id="friends-nav">
@@ -325,6 +361,21 @@
           <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
         </svg>
       </button>
+    </div>
+
+    <button class="floating-upload-btn" id="upload-btn">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M12 4v8m0 0v8m8-8H4"/>
+      </svg>
+    </button>
+
+    <div class="upload-modal" id="upload-modal">
+      <div class="upload-modal-content">
+        <label for="media-upload">Select Image/Video</label>
+        <input type="file" id="media-upload" accept="image/*,video/*" multiple>
+        <textarea id="caption-input" placeholder="Add a caption..." rows="3"></textarea>
+        <button id="submit-upload">Upload</button>
+      </div>
     </div>
 
     <div id="spinner-overlay" class="spinner-overlay">
@@ -347,6 +398,10 @@
       appId: "1:658673187627:web:6e4c29af661785f0afa36e",
       measurementId: "G-V4W97VMSKL"
     };
+
+    // Cloudinary configuration for unsigned uploads
+    const CLOUDINARY_CLOUD_NAME = 'your_cloud_name'; // Replace with your Cloudinary cloud name
+    const CLOUDINARY_UPLOAD_PRESET = 'your_upload_preset'; // Replace with your unsigned upload preset
 
     let app, auth, db, currentUser;
     const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456');
@@ -427,8 +482,11 @@
                 : reel.caption || '';
               const div = document.createElement('div');
               div.className = 'reel';
+              const isVideo = reel.mediaType === 'video';
               div.innerHTML = `
-                <video class="reel-video" src="${reel.videoURL}" autoplay loop muted playsinline></video>
+                ${isVideo
+                  ? `<video class="reel-media" src="${reel.mediaURL}" autoplay loop muted playsinline></video>`
+                  : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
                 <div class="reel-overlay">
                   <div class="reel-header">
                     ${userData?.photoURL
@@ -512,15 +570,59 @@
       });
     }
 
-    function createReel() {
-      console.log('Create reel functionality to be implemented');
-      // Placeholder for reel creation (e.g., open modal or redirect to upload page)
+    async function uploadMedia(files, caption) {
+      if (!currentUser || !files.length) return;
+      showSpinner();
+      try {
+        for (const file of files) {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+          const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${file.type.startsWith('video') ? 'video' : 'image'}/upload`, {
+            method: 'POST',
+            body: formData
+          });
+          const data = await response.json();
+          if (data.secure_url) {
+            const encryptedCaption = caption ? await encryptMessage(caption) : null;
+            const reelsRef = ref(db, 'reels');
+            await push(reelsRef, {
+              userId: currentUser.uid,
+              mediaURL: data.secure_url,
+              mediaType: file.type.startsWith('video') ? 'video' : 'image',
+              captionEncrypted: encryptedCaption,
+              timestamp: new Date().toISOString(),
+              likedBy: {},
+              comments: {}
+            });
+          } else {
+            console.error('Upload failed:', data.error?.message);
+          }
+        }
+        document.getElementById('upload-modal').classList.remove('active');
+        document.getElementById('media-upload').value = '';
+        document.getElementById('caption-input').value = '';
+        loadReels();
+      } catch (error) {
+        console.error('Error uploading media:', error);
+        hideSpinner();
+      }
     }
+
+    document.getElementById('upload-btn').addEventListener('click', () => {
+      document.getElementById('upload-modal').classList.add('active');
+    });
+
+    document.getElementById('submit-upload').addEventListener('click', () => {
+      const files = document.getElementById('media-upload').files;
+      const caption = document.getElementById('caption-input').value.trim();
+      uploadMedia(files, caption);
+    });
 
     document.addEventListener('DOMContentLoaded', initializeFirebase);
 
     window.toggleLike = toggleLike;
-    window.createReel = createReel;
   </script>
 </body>
 </html>
