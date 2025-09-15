@@ -140,6 +140,22 @@
       stroke: var(--text-primary);
     }
 
+    .comment-input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--bg);
+      color: var(--text-secondary);
+      margin-top: 10px;
+      resize: none;
+    }
+
+    .comment-input:focus {
+      outline: none;
+      border-color: var(--highlight);
+    }
+
     .floating-upload-btn {
       position: fixed;
       bottom: 1.5rem;
@@ -237,14 +253,70 @@
       background: #2a928d;
     }
 
-    .bottom-sheet-content .close-btn {
-      background: none;
-      color: var(--text-primary);
-      font-size: 1.5rem;
+    .preview-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .preview-item {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .preview-item img,
+    .preview-item video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .preview-item .remove-preview {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: 5px;
+      right: 5px;
+      background: var(--badge-bg);
+      color: var(--text-primary);
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
+      font-size: 12px;
+    }
+
+    .alert {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--badge-bg);
+      color: var(--text-primary);
+      padding: 10px 20px;
+      border-radius: 5px;
+      z-index: 50;
+      display: none;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .alert.active {
+      display: block;
+      animation: slideInAlert 0.3s ease-out;
+    }
+
+    @keyframes slideInAlert {
+      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
 
     .spinner-overlay {
@@ -253,7 +325,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0,0,0,0.3); /* Semi-transparent to keep video visible */
+      background: rgba(0,0,0,0.3); /* Semi-transparent for video visibility */
       display: none;
       align-items: center;
       justify-content: center;
@@ -314,9 +386,9 @@
 
     <div class="bottom-sheet" id="upload-sheet">
       <div class="bottom-sheet-content">
-        <button class="close-btn" id="close-sheet">&times;</button>
         <label for="media-upload">Select Image/Video</label>
         <input type="file" id="media-upload" accept="image/*,video/*" multiple>
+        <div class="preview-container" id="preview-container"></div>
         <textarea id="caption-input" placeholder="Add a caption..." rows="3"></textarea>
         <button id="submit-upload">Upload</button>
       </div>
@@ -325,6 +397,8 @@
     <div id="spinner-overlay" class="spinner-overlay">
       <div class="spinner"></div>
     </div>
+
+    <div id="alert-message" class="alert"></div>
   </main>
 
   <script type="module">
@@ -344,8 +418,8 @@
     };
 
     // Cloudinary configuration for unsigned uploads
-    const CLOUDINARY_CLOUD_NAME = 'your_cloud_name'; // Replace with your Cloudinary cloud name
-    const CLOUDINARY_UPLOAD_PRESET = 'your_upload_preset'; // Replace with your unsigned upload preset
+    const CLOUDINARY_CLOUD_NAME = 'dqkujefxj'; // Replace with your Cloudinary cloud name
+    const CLOUDINARY_UPLOAD_PRESET = 'banter_box'; // Replace with your unsigned upload preset
 
     let app, auth, db, currentUser;
     const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456');
@@ -358,6 +432,13 @@
     const hideSpinner = () => {
       document.getElementById('spinner-overlay').classList.remove('active');
       document.getElementById('main-content').setAttribute('aria-busy', 'false');
+    };
+
+    const showAlert = (message) => {
+      const alert = document.getElementById('alert-message');
+      alert.textContent = message;
+      alert.classList.add('active');
+      setTimeout(() => alert.classList.remove('active'), 3000);
     };
 
     async function encryptMessage(message) {
@@ -441,6 +522,7 @@
                     </div>
                   </div>
                   <div class="reel-caption">${caption.slice(0, 100)}${caption.length > 100 ? '...' : ''}</div>
+                  <textarea class="comment-input" placeholder="Add a comment..." rows="2" data-reel-id="${reel.reelId}"></textarea>
                 </div>
                 <div class="reel-actions">
                   <button class="reel-action ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
@@ -449,7 +531,7 @@
                     </svg>
                     <span>${Object.keys(reel.likedBy || {}).length}</span>
                   </button>
-                  <button class="reel-action">
+                  <button class="reel-action" onclick="submitComment('${reel.reelId}', this)">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                       <path d="M21 11.5a8.38 8.38 0 01-11.5 7 8.38 8.38 0 01-7-11.5 8.38 8.38 0 0111.5-7c3.1 1.1 5 4 5 7.5z"/>
                     </svg>
@@ -470,7 +552,10 @@
                 video.addEventListener('stalled', () => showSpinner());
                 video.addEventListener('playing', () => hideSpinner());
                 video.addEventListener('canplay', () => hideSpinner());
-                video.addEventListener('error', () => showSpinner());
+                video.addEventListener('error', () => {
+                  showSpinner();
+                  showAlert('Failed to load video. Please check your network.');
+                });
               }
             }, { onlyOnce: true });
           }
@@ -478,6 +563,7 @@
         }, { onlyOnce: false });
       } catch (error) {
         console.error('Error loading reels:', error);
+        showAlert('Failed to load reels. Please try again.');
         hideSpinner();
       }
     }
@@ -496,14 +582,80 @@
         countSpan.textContent = isLiked ? currentCount - 1 : currentCount + 1;
       } catch (error) {
         console.error('Error toggling like:', error);
+        showAlert('Failed to like reel. Please try again.');
       }
     }
 
+    async function submitComment(reelId, button) {
+      if (!currentUser) return;
+      const commentInput = button.closest('.reel').querySelector('.comment-input');
+      const commentText = commentInput.value.trim();
+      if (!commentText) {
+        showAlert('Please enter a comment.');
+        return;
+      }
+      try {
+        const encryptedComment = await encryptMessage(commentText);
+        const commentsRef = ref(db, `reels/${reelId}/comments`);
+        await push(commentsRef, {
+          userId: currentUser.uid,
+          commentEncrypted: encryptedComment,
+          timestamp: new Date().toISOString()
+        });
+        commentInput.value = '';
+        const countSpan = button.querySelector('span');
+        const currentCount = parseInt(countSpan.textContent) || 0;
+        countSpan.textContent = currentCount + 1;
+      } catch (error) {
+        console.error('Error submitting comment:', error);
+        showAlert('Failed to add comment. Please try again.');
+      }
+    }
+
+    function showPreviews(files) {
+      const previewContainer = document.getElementById('preview-container');
+      previewContainer.innerHTML = '';
+      Array.from(files).forEach((file, index) => {
+        const isVideo = file.type.startsWith('video');
+        const url = URL.createObjectURL(file);
+        const previewItem = document.createElement('div');
+        previewItem.className = 'preview-item';
+        previewItem.innerHTML = `
+          ${isVideo
+            ? `<video src="${url}" muted></video>`
+            : `<img src="${url}" alt="Preview ${index + 1}">`}
+          <button class="remove-preview" data-index="${index}">&times;</button>
+        `;
+        previewContainer.appendChild(previewItem);
+      });
+
+      const removeButtons = previewContainer.querySelectorAll('.remove-preview');
+      removeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const index = parseInt(button.dataset.index);
+          const input = document.getElementById('media-upload');
+          const dt = new DataTransfer();
+          Array.from(input.files)
+            .filter((_, i) => i !== index)
+            .forEach(file => dt.items.add(file));
+          input.files = dt.files;
+          showPreviews(input.files);
+        });
+      });
+    }
+
     async function uploadMedia(files, caption) {
-      if (!currentUser || !files.length) return;
+      if (!currentUser || !files.length) {
+        showAlert('Please select at least one file to upload.');
+        return;
+      }
       showSpinner();
       try {
         for (const file of files) {
+          if (!file.type.match(/^(image|video)\//)) {
+            showAlert('Invalid file type. Please select images or videos.');
+            continue;
+          }
           const formData = new FormData();
           formData.append('file', file);
           formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
@@ -526,15 +678,17 @@
               comments: {}
             });
           } else {
-            console.error('Upload failed:', data.error?.message);
+            showAlert(`Upload failed: ${data.error?.message || 'Unknown error'}`);
           }
         }
         document.getElementById('upload-sheet').classList.remove('active');
         document.getElementById('media-upload').value = '';
         document.getElementById('caption-input').value = '';
+        document.getElementById('preview-container').innerHTML = '';
         loadReels();
       } catch (error) {
         console.error('Error uploading media:', error);
+        showAlert('Failed to upload media. Please try again.');
         hideSpinner();
       }
     }
@@ -543,10 +697,8 @@
       document.getElementById('upload-sheet').classList.add('active');
     });
 
-    document.getElementById('close-sheet').addEventListener('click', () => {
-      document.getElementById('upload-sheet').classList.remove('active');
-      document.getElementById('media-upload').value = '';
-      document.getElementById('caption-input').value = '';
+    document.getElementById('media-upload').addEventListener('change', (e) => {
+      showPreviews(e.target.files);
     });
 
     document.getElementById('submit-upload').addEventListener('click', () => {
@@ -555,9 +707,20 @@
       uploadMedia(files, caption);
     });
 
+    document.addEventListener('click', (e) => {
+      const bottomSheet = document.getElementById('upload-sheet');
+      if (bottomSheet.classList.contains('active') && !bottomSheet.contains(e.target) && e.target !== document.getElementById('upload-btn')) {
+        bottomSheet.classList.remove('active');
+        document.getElementById('media-upload').value = '';
+        document.getElementById('caption-input').value = '';
+        document.getElementById('preview-container').innerHTML = '';
+      }
+    });
+
     document.addEventListener('DOMContentLoaded', initializeFirebase);
 
     window.toggleLike = toggleLike;
+    window.submitComment = submitComment;
   </script>
 </body>
 </html>
