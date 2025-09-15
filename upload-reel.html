@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vynix AI - Upload Reel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F7F7F8;
+      --card-bg: #1C2526;
+      --text-primary: #FFFFFF;
+      --text-secondary: #4B5EAA;
+      --border: #4A5568;
+      --highlight: #38B2AC;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-secondary);
+      min-height: 100vh;
+      margin: 0;
+      transition: background 0.3s ease;
+    }
+
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header button {
+      background: var(--card-bg);
+      border: none;
+      padding: 0.4rem;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: background 0.2s;
+      width: 2.5rem;
+      height: 2.5rem;
+    }
+
+    .header button:hover {
+      background: var(--highlight);
+    }
+
+    .header button svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      stroke: var(--text-primary);
+    }
+
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1E1E1E;
+    }
+
+    .upload-container {
+      margin-top: 4rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .upload-card {
+      background: var(--card-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 600px;
+      text-align: center;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .upload-card input[type="file"] {
+      display: none;
+    }
+
+    .upload-card label {
+      background: var(--highlight);
+      color: var(--text-primary);
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      display: inline-block;
+      margin-bottom: 1rem;
+      transition: background 0.2s;
+    }
+
+    .upload-card label:hover {
+      background: #2a928d;
+    }
+
+    #preview {
+      max-width: 100%;
+      max-height: 300px;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .upload-card button {
+      background: var(--highlight);
+      color: var(--text-primary);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .upload-card button:hover {
+      background: #2a928d;
+    }
+
+    .upload-card p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .upload-card {
+      animation: slideIn 0.3s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <main class="flex flex-col h-screen">
+    <div class="header">
+      <button onclick="window.location.href='index.html'">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <h1>Upload Reel</h1>
+      <div style="width: 2.5rem;"></div> <!-- Spacer for alignment -->
+    </div>
+    <div class="upload-container">
+      <div class="upload-card">
+        <label for="reel-upload">Choose Image or Video</label>
+        <input type="file" id="reel-upload" accept="image/*,video/*">
+        <img id="preview" alt="Reel preview">
+        <button id="upload-button" disabled>Upload</button>
+        <p id="status"></p>
+      </div>
+    </div>
+  </main>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
+      authDomain: "fire-b-a8878.firebaseapp.com",
+      databaseURL: "https://fire-b-a8878.firebaseio.com",
+      projectId: "fire-b-a8878",
+      storageBucket: "fire-b-a8878.firebasestorage.app",
+      messagingSenderId: "658673187627",
+      appId: "1:658673187627:web:6e4c29af661785f0afa36e",
+      measurementId: "G-V4W97VMSKL"
+    };
+
+    let app, auth;
+
+    function initializeFirebase() {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      onAuthStateChanged(auth, (user) => {
+        if (!user) {
+          window.location.href = 'signup.html';
+        }
+      });
+    }
+
+    const elements = {
+      reelUpload: document.getElementById('reel-upload'),
+      preview: document.getElementById('preview'),
+      uploadButton: document.getElementById('upload-button'),
+      status: document.getElementById('status')
+    };
+
+    elements.reelUpload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      elements.uploadButton.disabled = false;
+      elements.status.textContent = '';
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          elements.preview.src = e.target.result;
+          elements.preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        elements.preview.style.display = 'none';
+        elements.status.textContent = 'Video preview not supported. Ready to upload!';
+      }
+    });
+
+    elements.uploadButton.addEventListener('click', async () => {
+      const file = elements.reelUpload.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'banter_box');
+      elements.uploadButton.disabled = true;
+      elements.status.textContent = 'Uploading...';
+      try {
+        const uploadResponse = await fetch('https://api.cloudinary.com/v1_1/dqkujefxj/auto/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const uploadData = await uploadResponse.json();
+        if (uploadData.secure_url) {
+          elements.status.textContent = 'Reel uploaded successfully!';
+          elements.preview.style.display = 'none';
+          elements.reelUpload.value = '';
+          elements.uploadButton.disabled = true;
+        } else {
+          elements.status.textContent = 'Upload failed. Try again!';
+        }
+      } catch (error) {
+        elements.status.textContent = 'Oops, couldn’t upload the reel!';
+        console.error('Upload Error:', error);
+      }
+      elements.uploadButton.disabled = false;
+    });
+
+    document.addEventListener('DOMContentLoaded', initializeFirebase);
+  </script>
+</body>
+</html>
