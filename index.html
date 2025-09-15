@@ -112,7 +112,7 @@
     .reel-actions {
       position: absolute;
       right: 15px;
-      bottom: 80px;
+      bottom: 120px;
       display: flex;
       flex-direction: column;
       gap: 15px;
@@ -197,10 +197,12 @@
       z-index: 40;
       -webkit-user-select: none;
       user-select: none;
+      visibility: hidden;
     }
 
     .bottom-sheet.active {
       transform: translateY(0);
+      visibility: visible;
     }
 
     .bottom-sheet-content {
@@ -434,9 +436,15 @@
       animation: slideIn 0.3s ease-out;
     }
 
+    body, .reel, .reel-actions, .reel-action, .bottom-sheet, .floating-upload-btn {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
     @media (max-width: 768px) {
       .reel-actions {
-        bottom: 70px;
+        bottom: 110px;
       }
 
       .floating-upload-btn {
@@ -527,7 +535,7 @@
     };
 
     const openBottomSheet = (type, reelId = null) => {
-      console.log(`Opening ${type} bottom sheet`);
+      console.log(`Opening ${type} bottom sheet for reelId: ${reelId}`);
       if (type === 'upload') {
         document.getElementById('upload-sheet').classList.add('active');
         document.getElementById('comment-sheet').classList.remove('active');
@@ -617,33 +625,40 @@
       console.log('Loading reels');
       showSpinner();
       const reelsRef = ref(db, 'reels');
+      const renderedReels = new Set(); // Track rendered reel IDs
       try {
         onValue(reelsRef, async (snapshot) => {
           console.log('Reels snapshot received:', snapshot.exists());
           const reelsContainer = document.getElementById('reels-container');
-          reelsContainer.innerHTML = '';
-          const reels = snapshot.val();
-          if (!snapshot.exists() || !reels) {
+          if (!snapshot.exists()) {
             console.log('No reels data found');
             reelsContainer.innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">No reels available.</p>';
             hideSpinner();
             return;
           }
+          const reels = snapshot.val();
           console.log('Data fetched:', Object.keys(reels).length, 'reels');
           const reelsArray = Object.entries(reels)
             .map(([reelId, reelData]) => ({ reelId, ...reelData }))
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          
+          // Clear only if significant data change to avoid flicker
+          if (reelsContainer.children.length !== reelsArray.length) {
+            reelsContainer.innerHTML = '';
+            renderedReels.clear();
+          }
+          
           for (const reel of reelsArray) {
+            if (renderedReels.has(reel.reelId)) continue; // Skip if already rendered
             const userRef = ref(db, `users/${reel.userId}`);
             try {
               onValue(userRef, async (userSnapshot) => {
                 const userData = userSnapshot.val();
                 console.log('User data for reel', reel.reelId, ':', userData);
-                const caption = reel.captionEncrypted
-                  ? await decryptMessage(reel.captionEncrypted.data, reel.captionEncrypted.iv)
-                  : reel.caption || '';
+                const caption = reel.caption || '';
                 const div = document.createElement('div');
                 div.className = 'reel';
+                div.dataset.reelId = reel.reelId; // Add reelId to DOM for reference
                 const isVideo = reel.mediaType === 'video';
                 div.innerHTML = `
                   ${isVideo
@@ -683,6 +698,7 @@
                   </div>
                 `;
                 reelsContainer.appendChild(div);
+                renderedReels.add(reel.reelId); // Mark as rendered
                 if (isVideo) {
                   const video = div.querySelector('.reel-media');
                   video.addEventListener('waiting', () => showSpinner());
@@ -725,12 +741,16 @@
       }
       try {
         const isLiked = button.classList.contains('liked');
+        const countSpan = button.querySelector('span');
+        const currentCount = parseInt(countSpan.textContent) || 0;
+        
+        // Update Firebase
         await update(ref(db, `reels/${reelId}/likedBy`), {
           [currentUser.uid]: isLiked ? null : true
         });
+        
+        // Update UI without reloading
         button.classList.toggle('liked');
-        const countSpan = button.querySelector('span');
-        const currentCount = parseInt(countSpan.textContent) || 0;
         countSpan.textContent = isLiked ? currentCount - 1 : currentCount + 1;
         console.log(`Toggled like for reel ${reelId}: ${isLiked ? 'Unliked' : 'Liked'}`);
       } catch (error) {
@@ -971,13 +991,12 @@
           });
           const data = await response.json();
           if (data.secure_url) {
-            const encryptedCaption = caption ? await encryptMessage(caption) : null;
             const reelsRef = ref(db, 'reels');
             await push(reelsRef, {
               userId: currentUser.uid,
               mediaURL: data.secure_url,
               mediaType: file.type.startsWith('video') ? 'video' : 'image',
-              captionEncrypted: encryptedCaption || (caption ? { iv: [], data: [], text: caption } : null),
+              caption: caption || null,
               timestamp: new Date().toISOString(),
               likedBy: {},
               comments: {}
@@ -1040,6 +1059,10 @@
         console.log('Click outside, closing all bottom sheets');
         closeBottomSheet();
       }
+    });
+
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); // Disable context menu on long press
     });
 
     document.addEventListener('DOMContentLoaded', () => {
