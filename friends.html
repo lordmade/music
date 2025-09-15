@@ -25,55 +25,65 @@
       color: var(--text-secondary);
       min-height: 100vh;
       margin: 0;
+      padding-bottom: 5rem;
       transition: background 0.3s ease;
     }
 
-    .header {
+    .search-container {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      padding: 0.75rem;
+      top: 1rem;
+      left: 1rem;
+      right: 1rem;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 0.5rem;
       z-index: 10;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
     }
 
-    .header button {
+    .search-bar {
+      flex: 1;
       background: var(--card-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      outline: none;
+      width: 100%;
+    }
+
+    .search-bar::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .add-friend-button {
+      background: var(--highlight);
       border: none;
-      padding: 0.4rem;
-      cursor: pointer;
       border-radius: 50%;
-      transition: background 0.2s;
       width: 2.5rem;
       height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
     }
 
-    .header button:hover {
-      background: var(--highlight);
+    .add-friend-button:hover {
+      background: #2a928d;
     }
 
-    .header button svg {
+    .add-friend-button svg {
       width: 1.25rem;
       height: 1.25rem;
       stroke: var(--text-primary);
     }
 
-    .header h1 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #1E1E1E;
-    }
-
     .friends-list {
-      margin-top: 4rem;
+      margin-top: 5rem;
       padding: 1rem;
       overflow-y: auto;
-      max-height: calc(100vh - 4rem);
+      max-height: calc(100vh - 10rem);
     }
 
     .friend-card {
@@ -140,33 +150,180 @@
       color: #1E1E1E;
     }
 
+    .bottom-nav {
+      position: fixed;
+      bottom: 1rem;
+      left: 1rem;
+      right: 1rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 1.5rem;
+      padding: 0.5rem;
+      display: flex;
+      justify-content: space-around;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 10;
+    }
+
+    .nav-item {
+      background: transparent;
+      border: none;
+      padding: 0.5rem;
+      cursor: pointer;
+      border-radius: 0.5rem;
+      transition: background 0.2s;
+    }
+
+    .nav-item.active, .nav-item:hover {
+      background: var(--highlight);
+    }
+
+    .nav-item svg {
+      width: 1.5rem;
+      height: 1.5rem;
+      stroke: var(--text-primary);
+    }
+
+    .bottom-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      border-radius: 1rem 1rem 0 0;
+      padding: 1rem;
+      max-height: 80vh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      z-index: 20;
+    }
+
+    .bottom-sheet.open {
+      transform: translateY(0);
+    }
+
+    .bottom-sheet .close-button {
+      background: transparent;
+      border: none;
+      padding: 0.5rem;
+      cursor: pointer;
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+    }
+
+    .bottom-sheet .close-button svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      stroke: var(--text-primary);
+    }
+
+    .bottom-sheet input {
+      background: var(--bg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      outline: none;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    .user-card {
+      background: var(--card-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .user-card .avatar {
+      width: 2.5rem;
+      height: 2.5rem;
+      background: var(--text-secondary);
+      border-radius: 50%;
+      margin-right: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .user-card button {
+      background: var(--highlight);
+      color: var(--text-primary);
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .user-card button:hover {
+      background: #2a928d;
+    }
+
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .friend-card {
+    .friend-card, .user-card {
       animation: slideIn 0.3s ease-out;
     }
   </style>
 </head>
 <body>
   <main class="flex flex-col h-screen">
-    <div class="header">
-      <button onclick="window.location.href='index.html'">
+    <div class="search-container">
+      <input type="text" id="friend-search" class="search-bar" placeholder="Search friends...">
+      <button id="add-friend-button" class="add-friend-button">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M15 19l-7-7 7-7"/>
+          <path d="M12 4v8m0 0v8m8-8H4"/>
         </svg>
       </button>
-      <h1>Friends</h1>
-      <div style="width: 2.5rem;"></div> <!-- Spacer for alignment -->
     </div>
     <div id="friends-list" class="friends-list"></div>
+    <div id="bottom-sheet" class="bottom-sheet">
+      <button id="close-bottom-sheet" class="close-button">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+      <input type="text" id="user-search" placeholder="Search users to add...">
+      <div id="user-list"></div>
+    </div>
+    <div class="bottom-nav">
+      <button class="nav-item" onclick="window.location.href='index.html'">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+      </button>
+      <button class="nav-item active">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+      </button>
+      <button class="nav-item" onclick="window.location.href='profile.html'">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+      </button>
+    </div>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -179,7 +336,7 @@
       measurementId: "G-V4W97VMSKL"
     };
 
-    let app, auth, db;
+    let app, auth, db, currentUser;
 
     function initializeFirebase() {
       app = initializeApp(firebaseConfig);
@@ -187,6 +344,7 @@
       db = getDatabase(app);
       onAuthStateChanged(auth, (user) => {
         if (user) {
+          currentUser = user;
           loadFriends();
         } else {
           window.location.href = 'signup.html';
@@ -194,39 +352,121 @@
       });
     }
 
-    function loadFriends() {
-      const user = auth.currentUser;
-      if (user) {
-        const friendsRef = ref(db, `users/${user.uid}/friends`);
-        onValue(friendsRef, (snapshot) => {
-          const friendsList = document.getElementById('friends-list');
-          friendsList.innerHTML = '';
-          const friends = snapshot.val();
-          if (!friends) {
-            friendsList.innerHTML = '<p class="no-friends">No friends added yet. Add some friends to start chatting!</p>';
-            return;
-          }
-          Object.entries(friends).forEach(([friendId, friendData]) => {
-            const div = document.createElement('div');
-            div.className = 'friend-card';
-            div.innerHTML = `
-              <div class="avatar">${friendData.name ? friendData.name[0].toUpperCase() : 'F'}</div>
-              <div class="info">
-                <h2>${friendData.name || 'Friend'}</h2>
-                <p>${friendData.lastMessage || 'No messages yet'}</p>
-              </div>
-              <div class="timestamp">${friendData.lastMessageTime || ''}</div>
-            `;
-            div.addEventListener('click', () => {
-              window.location.href = `conversation.html?friendId=${friendId}`;
-            });
-            friendsList.appendChild(div);
+    function loadFriends(searchQuery = '') {
+      if (!currentUser) return;
+      const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
+      onValue(friendsRef, (snapshot) => {
+        const friendsList = document.getElementById('friends-list');
+        friendsList.innerHTML = '';
+        const friends = snapshot.val();
+        if (!friends) {
+          friendsList.innerHTML = '<p class="no-friends">No friends added yet. Add some friends to start chatting!</p>';
+          return;
+        }
+        const filteredFriends = Object.entries(friends).filter(([_, friendData]) =>
+          friendData.name?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        if (filteredFriends.length === 0 && searchQuery) {
+          friendsList.innerHTML = '<p class="no-friends">No friends found.</p>';
+          return;
+        }
+        filteredFriends.forEach(([friendId, friendData]) => {
+          const div = document.createElement('div');
+          div.className = 'friend-card';
+          div.innerHTML = `
+            <div class="avatar">${friendData.name ? friendData.name[0].toUpperCase() : 'F'}</div>
+            <div class="info">
+              <h2>${friendData.name || 'Friend'}</h2>
+              <p>${friendData.lastMessage || 'No messages yet'}</p>
+            </div>
+            <div class="timestamp">${friendData.lastMessageTime || ''}</div>
+          `;
+          div.addEventListener('click', () => {
+            window.location.href = `conversation.html?friendId=${friendId}`;
           });
-        }, { onlyOnce: true });
-      }
+          friendsList.appendChild(div);
+        });
+      }, { onlyOnce: true });
     }
 
+    function loadUsers(searchQuery = '') {
+      const userList = document.getElementById('user-list');
+      userList.innerHTML = '';
+      const usersRef = ref(db, 'users');
+      onValue(usersRef, (snapshot) => {
+        const users = snapshot.val();
+        if (!users) {
+          userList.innerHTML = '<p class="no-friends">No users found.</p>';
+          return;
+        }
+        const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
+        onValue(friendsRef, (friendSnapshot) => {
+          const friends = friendSnapshot.val() || {};
+          const filteredUsers = Object.entries(users)
+            .filter(([userId, userData]) =>
+              userId !== currentUser.uid &&
+              !friends[userId] &&
+              userData.displayName?.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+          if (filteredUsers.length === 0) {
+            userList.innerHTML = '<p class="no-friends">No users found.</p>';
+            return;
+          }
+          filteredUsers.forEach(([userId, userData]) => {
+            const div = document.createElement('div');
+            div.className = 'user-card';
+            div.innerHTML = `
+              <div class="avatar">${userData.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>
+              <div class="info">
+                <h2>${userData.displayName || 'User'}</h2>
+              </div>
+              <button onclick="addFriend('${userId}', '${userData.displayName || 'User'}')">Add</button>
+            `;
+            userList.appendChild(div);
+          });
+        }, { onlyOnce: true });
+      }, { onlyOnce: true });
+    }
+
+    function addFriend(userId, name) {
+      if (!currentUser) return;
+      const friendRef = ref(db, `users/${currentUser.uid}/friends/${userId}`);
+      set(friendRef, {
+        name,
+        lastMessage: '',
+        lastMessageTime: ''
+      }).then(() => {
+        loadFriends(document.getElementById('friend-search').value);
+        document.getElementById('bottom-sheet').classList.remove('open');
+        document.getElementById('user-search').value = '';
+        document.getElementById('user-list').innerHTML = '';
+      }).catch((error) => {
+        console.error('Error adding friend:', error);
+      });
+    }
+
+    document.getElementById('friend-search').addEventListener('input', (e) => {
+      loadFriends(e.target.value);
+    });
+
+    document.getElementById('add-friend-button').addEventListener('click', () => {
+      document.getElementById('bottom-sheet').classList.add('open');
+      loadUsers();
+    });
+
+    document.getElementById('close-bottom-sheet').addEventListener('click', () => {
+      document.getElementById('bottom-sheet').classList.remove('open');
+      document.getElementById('user-search').value = '';
+      document.getElementById('user-list').innerHTML = '';
+    });
+
+    document.getElementById('user-search').addEventListener('input', (e) => {
+      loadUsers(e.target.value);
+    });
+
     document.addEventListener('DOMContentLoaded', initializeFirebase);
+
+    window.addFriend = addFriend; // Expose addFriend to global scope for onclick
   </script>
 </body>
 </html>
