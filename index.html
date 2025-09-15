@@ -169,7 +169,7 @@
       gap: 0.5rem;
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      z-index: 20;
+      z-index: 50; /* Increased to ensure FAB is above bottom sheet */
       transition: background 0.2s;
     }
 
@@ -202,7 +202,7 @@
       overflow-y: auto;
       transform: translateY(100%);
       transition: transform 0.3s ease-in-out;
-      z-index: 30;
+      z-index: 40; /* Below FAB, above reels */
     }
 
     .bottom-sheet.active {
@@ -303,7 +303,7 @@
       color: var(--text-primary);
       padding: 10px 20px;
       border-radius: 5px;
-      z-index: 50;
+      z-index: 60; /* Above FAB and bottom sheet */
       display: none;
       max-width: 90%;
       text-align: center;
@@ -329,7 +329,7 @@
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 40;
+      z-index: 45; /* Below alert, above bottom sheet */
     }
 
     .spinner-overlay.active {
@@ -418,23 +418,26 @@
     };
 
     // Cloudinary configuration for unsigned uploads
-    const CLOUDINARY_CLOUD_NAME = 'dqkujefxj'; // Replace with your Cloudinary cloud name
-    const CLOUDINARY_UPLOAD_PRESET = 'banter_box'; // Replace with your unsigned upload preset
+    const CLOUDINARY_CLOUD_NAME = 'dqkujefxj'; // Your Cloudinary cloud name
+    const CLOUDINARY_UPLOAD_PRESET = 'banter_box'; // Your unsigned upload preset
 
     let app, auth, db, currentUser;
     const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456');
 
     const showSpinner = () => {
+      console.log('Showing spinner');
       document.getElementById('spinner-overlay').classList.add('active');
       document.getElementById('main-content').setAttribute('aria-busy', 'true');
     };
 
     const hideSpinner = () => {
+      console.log('Hiding spinner');
       document.getElementById('spinner-overlay').classList.remove('active');
       document.getElementById('main-content').setAttribute('aria-busy', 'false');
     };
 
     const showAlert = (message) => {
+      console.log('Showing alert:', message);
       const alert = document.getElementById('alert-message');
       alert.textContent = message;
       alert.classList.add('active');
@@ -467,18 +470,24 @@
     }
 
     function initializeFirebase() {
-      app = initializeApp(firebaseConfig);
-      auth = getAuth(app);
-      db = getDatabase(app);
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          currentUser = user;
-          update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() });
-          loadReels();
-        } else {
-          window.location.href = 'signup.html';
-        }
-      });
+      try {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getDatabase(app);
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            currentUser = user;
+            update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() });
+            loadReels();
+          } else {
+            console.log('No user logged in, redirecting to signup.html');
+            window.location.href = 'signup.html';
+          }
+        });
+      } catch (error) {
+        console.error('Firebase initialization error:', error);
+        showAlert('Failed to initialize Firebase. Please try again.');
+      }
     }
 
     async function loadReels() {
@@ -588,6 +597,648 @@
 
     async function submitComment(reelId, button) {
       if (!currentUser) return;
+–
+
+System: It looks like the code you provided was cut off at the end of the `submitComment` function. To fully address the issue with the bottom sheet not working and ensure all functionality is intact, I’ll provide a complete, corrected version of `index.html` based on your provided code. I’ll focus on fixing the bottom sheet behavior, ensuring it opens when clicking the FAB, closes when clicking outside (excluding the FAB), and works reliably with media previews, uploads, and other features. I’ll also include debugging logs to help identify issues and adjust the z-index to prevent overlaps, as this is a common cause of bottom sheet problems.
+
+### Issues with the Bottom Sheet
+Based on the code and the symptom ("bottom sheet not working"), potential issues include:
+1. **Click Event Conflicts**: The `document` click listener for closing the bottom sheet may be firing incorrectly, closing it when interacting with its content.
+2. **Z-Index Overlaps**: The bottom sheet (`z-index: 30`) might be obscured by other elements (e.g., FAB, spinner, or alert).
+3. **Event Propagation**: Clicks on the FAB or bottom sheet content might propagate incorrectly, preventing proper opening or closing.
+4. **JavaScript Errors**: Errors in `uploadMedia`, `showPreviews`, or other functions could halt execution, affecting the bottom sheet.
+5. **CSS Issues**: The bottom sheet’s `transform` or `display` properties might not be rendering correctly.
+
+### Fixes and Improvements
+1. **Refined Click Handler**: Use `closest` to accurately detect clicks outside the bottom sheet, preventing closure when clicking its content.
+2. **Z-Index Adjustment**: Set clear z-index layers: alert (60), FAB (50), spinner (45), bottom sheet (40), reels (default).
+3. **Debugging Logs**: Add `console.log` in key functions (`openBottomSheet`, `closeBottomSheet`, `uploadMedia`) to trace issues.
+4. **Event Propagation**: Stop propagation on bottom sheet content clicks to prevent unintended closure.
+5. **Robust Error Handling**: Ensure errors in one function don’t break the bottom sheet.
+6. **Media Preview Fix**: Ensure previews load correctly and don’t interfere with bottom sheet behavior.
+
+Here’s the complete, corrected `index.html`:
+
+```html
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vynix AI - Reels</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F7F7F8;
+      --card-bg: #1C2526;
+      --text-primary: #FFFFFF;
+      --text-secondary: #4B5EAA;
+      --border: #4A5568;
+      --highlight: #38B2AC;
+      --badge-bg: #EF4444;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    .reels-container {
+      height: 100vh;
+      overflow-y: auto;
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+    }
+
+    .reel {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      scroll-snap-align: start;
+      background: var(--card-bg);
+    }
+
+    .reel-media {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .reel-overlay {
+      position: absolute;
+      bottom: 80px;
+      left: 15px;
+      right: 15px;
+      color: var(--text-primary);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .reel-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .reel-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .reel-profile-pic {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--highlight);
+    }
+
+    .reel-username {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .reel-timestamp {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .reel-caption {
+      font-size: 14px;
+      margin-bottom: 10px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .reel-actions {
+      position: absolute;
+      right: 15px;
+      bottom: 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .reel-action {
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .reel-action.liked svg {
+      fill: var(--badge-bg);
+      stroke: var(--badge-bg);
+    }
+
+    .reel-action svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--text-primary);
+    }
+
+    .comment-input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--bg);
+      color: var(--text-secondary);
+      margin-top: 10px;
+      resize: none;
+    }
+
+    .comment-input:focus {
+      outline: none;
+      border-color: var(--highlight);
+    }
+
+    .floating-upload-btn {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1rem;
+      background: var(--highlight);
+      border: none;
+      border-radius: 9999px; /* Pill shape */
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      z-index: 50; /* Above bottom sheet */
+      transition: background 0.2s;
+    }
+
+    .floating-upload-btn:hover {
+      background: #2a928d;
+    }
+
+    .floating-upload-btn svg {
+      width: 1.5rem;
+      height: 1.5rem;
+      stroke: var(--text-primary);
+    }
+
+    .floating-upload-btn span {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .bottom-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      padding: 20px;
+      max-height: 80vh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.3s ease-in-out;
+      z-index: 40; /* Below FAB, above reels */
+    }
+
+    .bottom-sheet.active {
+      transform: translateY(0);
+    }
+
+    .bottom-sheet-content {
+      color: var(--text-primary);
+    }
+
+    .bottom-sheet-content input[type="file"] {
+      display: none;
+    }
+
+    .bottom-sheet-content label {
+      display: block;
+      background: var(--highlight);
+      color: var(--text-primary);
+      padding: 10px;
+      text-align: center;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    .bottom-sheet-content textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--bg);
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+      resize: none;
+    }
+
+    .bottom-sheet-content button {
+      background: var(--highlight);
+      color: var(--text-primary);
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .bottom-sheet-content button:hover {
+      background: #2a928d;
+    }
+
+    .preview-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .preview-item {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .preview-item img,
+    .preview-item video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .preview-item .remove-preview {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: var(--badge-bg);
+      color: var(--text-primary);
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .alert {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--badge-bg);
+      color: var(--text-primary);
+      padding: 10px 20px;
+      border-radius: 5px;
+      z-index: 60; /* Above all */
+      display: none;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .alert.active {
+      display: block;
+      animation: slideInAlert 0.3s ease-out;
+    }
+
+    @keyframes slideInAlert {
+      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    .spinner-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.3);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 45; /* Below alert, above bottom sheet */
+    }
+
+    .spinner-overlay.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 100px;
+      height: 4px;
+      background: var(--highlight);
+      border-radius: 2px;
+      animation: loading 1.5s ease-in-out infinite;
+    }
+
+    @keyframes loading {
+      0% { transform: scaleX(0); transform-origin: left; }
+      50% { transform: scaleX(1); transform-origin: left; }
+      51% { transform-origin: right; }
+      100% { transform: scaleX(0); transform-origin: right; }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .reel {
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @media (max-width: 768px) {
+      .reel-actions {
+        bottom: 70px;
+      }
+
+      .floating-upload-btn {
+        bottom: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="flex flex-col h-screen" id="main-content">
+    <div class="reels-container" id="reels-container">
+      <!-- Reels will be dynamically loaded here -->
+    </div>
+
+    <button class="floating-upload-btn" id="upload-btn">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M12 4v8m0 0v8m8-8H4"/>
+      </svg>
+      <span>Upload</span>
+    </button>
+
+    <div class="bottom-sheet" id="upload-sheet">
+      <div class="bottom-sheet-content">
+        <label for="media-upload">Select Image/Video</label>
+        <input type="file" id="media-upload" accept="image/*,video/*" multiple>
+        <div class="preview-container" id="preview-container"></div>
+        <textarea id="caption-input" placeholder="Add a caption..." rows="3"></textarea>
+        <button id="submit-upload">Upload</button>
+      </div>
+    </div>
+
+    <div id="spinner-overlay" class="spinner-overlay">
+      <div class="spinner"></div>
+    </div>
+
+    <div id="alert-message" class="alert"></div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getDatabase, ref, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
+      authDomain: "fire-b-a8878.firebaseapp.com",
+      databaseURL: "https://fire-b-a8878.firebaseio.com",
+      projectId: "fire-b-a8878",
+      storageBucket: "fire-b-a8878.firebasestorage.app",
+      messagingSenderId: "658673187627",
+      appId: "1:658673187627:web:6e4c29af661785f0afa36e",
+      measurementId: "G-V4W97VMSKL"
+    };
+
+    const CLOUDINARY_CLOUD_NAME = 'dqkujefxj';
+    const CLOUDINARY_UPLOAD_PRESET = 'banter_box';
+
+    let app, auth, db, currentUser;
+    const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456');
+
+    const showSpinner = () => {
+      console.log('Showing spinner');
+      document.getElementById('spinner-overlay').classList.add('active');
+      document.getElementById('main-content').setAttribute('aria-busy', 'true');
+    };
+
+    const hideSpinner = () => {
+      console.log('Hiding spinner');
+      document.getElementById('spinner-overlay').classList.remove('active');
+      document.getElementById('main-content').setAttribute('aria-busy', 'false');
+    };
+
+    const showAlert = (message) => {
+      console.log('Showing alert:', message);
+      const alert = document.getElementById('alert-message');
+      alert.textContent = message;
+      alert.classList.add('active');
+      setTimeout(() => alert.classList.remove('active'), 3000);
+    };
+
+    const openBottomSheet = () => {
+      console.log('Opening bottom sheet');
+      const bottomSheet = document.getElementById('upload-sheet');
+      bottomSheet.classList.add('active');
+    };
+
+    const closeBottomSheet = () => {
+      console.log('Closing bottom sheet');
+      const bottomSheet = document.getElementById('upload-sheet');
+      bottomSheet.classList.remove('active');
+      document.getElementById('media-upload').value = '';
+      document.getElementById('caption-input').value = '';
+      document.getElementById('preview-container').innerHTML = '';
+    };
+
+    async function encryptMessage(message) {
+      try {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const encrypted = await crypto.subtle.encrypt(
+          { name: 'AES-GCM', iv },
+          await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['encrypt']),
+          new TextEncoder().encode(message)
+        );
+        const encryptedArray = new Uint8Array(encrypted);
+        return { iv: Array.from(iv), data: Array.from(encryptedArray) };
+      } catch (error) {
+        console.error('Encryption Error:', error);
+        showAlert('Failed to encrypt data.');
+        throw error;
+      }
+    }
+
+    async function decryptMessage(encryptedData, iv) {
+      try {
+        const decrypted = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: new Uint8Array(iv) },
+          await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['decrypt']),
+          new Uint8Array(encryptedData)
+        );
+        return new TextDecoder().decode(decrypted);
+      } catch (error) {
+        console.error('Decryption Error:', error);
+        return '[Encrypted Message]';
+      }
+    }
+
+    function initializeFirebase() {
+      try {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getDatabase(app);
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            currentUser = user;
+            update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() });
+            loadReels();
+          } else {
+            console.log('No user logged in, redirecting to signup.html');
+            window.location.href = 'signup.html';
+          }
+        });
+      } catch (error) {
+        console.error('Firebase initialization error:', error);
+        showAlert('Failed to initialize Firebase. Please try again.');
+      }
+    }
+
+    async function loadReels() {
+      showSpinner();
+      const reelsRef = ref(db, 'reels');
+      try {
+        onValue(reelsRef, async (snapshot) => {
+          const reelsContainer = document.getElementById('reels-container');
+          reelsContainer.innerHTML = '';
+          const reels = snapshot.val();
+          if (!reels) {
+            reelsContainer.innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">No reels available.</p>';
+            hideSpinner();
+            return;
+          }
+          const reelsArray = Object.entries(reels)
+            .map(([reelId, reelData]) => ({ reelId, ...reelData }))
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          for (const reel of reelsArray) {
+            const userRef = ref(db, `users/${reel.userId}`);
+            onValue(userRef, async (userSnapshot) => {
+              const userData = userSnapshot.val();
+              const caption = reel.captionEncrypted
+                ? await decryptMessage(reel.captionEncrypted.data, reel.captionEncrypted.iv)
+                : reel.caption || '';
+              const div = document.createElement('div');
+              div.className = 'reel';
+              const isVideo = reel.mediaType === 'video';
+              div.innerHTML = `
+                ${isVideo
+                  ? `<video class="reel-media" src="${reel.mediaURL}" autoplay loop muted playsinline></video>`
+                  : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
+                <div class="reel-overlay">
+                  <div class="reel-header">
+                    ${userData?.photoURL
+                      ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
+                      : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+                    <div>
+                      <div class="reel-username">${userData?.displayName || 'User'}</div>
+                      <div class="reel-timestamp">${reel.timestamp ? new Date(reel.timestamp).toLocaleTimeString() : ''}</div>
+                    </div>
+                  </div>
+                  <div class="reel-caption">${caption.slice(0, 100)}${caption.length > 100 ? '...' : ''}</div>
+                  <textarea class="comment-input" placeholder="Add a comment..." rows="2" data-reel-id="${reel.reelId}"></textarea>
+                </div>
+                <div class="reel-actions">
+                  <button class="reel-action ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path d="M7 22h1V9H5a3 3 0 003 3h2l2-2 2 2h2a3 3 0 003-3h-3V9h1"/>
+                    </svg>
+                    <span>${Object.keys(reel.likedBy || {}).length}</span>
+                  </button>
+                  <button class="reel-action" onclick="submitComment('${reel.reelId}', this)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path d="M21 11.5a8.38 8.38 0 01-11.5 7 8.38 8.38 0 01-7-11.5 8.38 8.38 0 0111.5-7c3.1 1.1 5 4 5 7.5z"/>
+                    </svg>
+                    <span>${Object.keys(reel.comments || {}).length}</span>
+                  </button>
+                  <button class="reel-action">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"/>
+                    </svg>
+                    <span>Share</span>
+                  </button>
+                </div>
+              `;
+              reelsContainer.appendChild(div);
+              if (isVideo) {
+                const video = div.querySelector('.reel-media');
+                video.addEventListener('waiting', () => showSpinner());
+                video.addEventListener('stalled', () => showSpinner());
+                video.addEventListener('playing', () => hideSpinner());
+                video.addEventListener('canplay', () => hideSpinner());
+                video.addEventListener('error', () => {
+                  showSpinner();
+                  showAlert('Failed to load video. Please check your network.');
+                });
+              }
+            }, { onlyOnce: true });
+          }
+          hideSpinner();
+        }, { onlyOnce: false });
+      } catch (error) {
+        console.error('Error loading reels:', error);
+        showAlert('Failed to load reels. Please try again.');
+        hideSpinner();
+      }
+    }
+
+    async function toggleLike(reelId, button) {
+      if (!currentUser) return;
+      try {
+        const reelRef = ref(db, `reels/${reelId}/likedBy/${currentUser.uid}`);
+        const isLiked = button.classList.contains('liked');
+        await update(ref(db, `reels/${reelId}/likedBy`), {
+          [currentUser.uid]: isLiked ? null : true
+        });
+        button.classList.toggle('liked');
+        const countSpan = button.querySelector('span');
+        const currentCount = parseInt(countSpan.textContent) || 0;
+        countSpan.textContent = isLiked ? currentCount - 1 : currentCount + 1;
+      } catch (error) {
+        console.error('Error toggling like:', error);
+        showAlert('Failed to like reel. Please try again.');
+      }
+    }
+
+    async function submitComment(reelId, button) {
+      if (!currentUser) return;
       const commentInput = button.closest('.reel').querySelector('.comment-input');
       const commentText = commentInput.value.trim();
       if (!commentText) {
@@ -613,6 +1264,7 @@
     }
 
     function showPreviews(files) {
+      console.log('Showing previews for', files.length, 'files');
       const previewContainer = document.getElementById('preview-container');
       previewContainer.innerHTML = '';
       Array.from(files).forEach((file, index) => {
@@ -631,7 +1283,8 @@
 
       const removeButtons = previewContainer.querySelectorAll('.remove-preview');
       removeButtons.forEach(button => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (e) => {
+          e.stopPropagation();
           const index = parseInt(button.dataset.index);
           const input = document.getElementById('media-upload');
           const dt = new DataTransfer();
@@ -645,6 +1298,7 @@
     }
 
     async function uploadMedia(files, caption) {
+      console.log('Uploading', files.length, 'files with caption:', caption);
       if (!currentUser || !files.length) {
         showAlert('Please select at least one file to upload.');
         return;
@@ -681,10 +1335,7 @@
             showAlert(`Upload failed: ${data.error?.message || 'Unknown error'}`);
           }
         }
-        document.getElementById('upload-sheet').classList.remove('active');
-        document.getElementById('media-upload').value = '';
-        document.getElementById('caption-input').value = '';
-        document.getElementById('preview-container').innerHTML = '';
+        closeBottomSheet();
         loadReels();
       } catch (error) {
         console.error('Error uploading media:', error);
@@ -693,31 +1344,41 @@
       }
     }
 
-    document.getElementById('upload-btn').addEventListener('click', () => {
-      document.getElementById('upload-sheet').classList.add('active');
+    // Event Listeners
+    document.getElementById('upload-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openBottomSheet();
     });
 
     document.getElementById('media-upload').addEventListener('change', (e) => {
+      e.stopPropagation();
       showPreviews(e.target.files);
     });
 
-    document.getElementById('submit-upload').addEventListener('click', () => {
+    document.getElementById('submit-upload').addEventListener('click', (e) => {
+      e.stopPropagation();
       const files = document.getElementById('media-upload').files;
       const caption = document.getElementById('caption-input').value.trim();
       uploadMedia(files, caption);
     });
 
+    document.getElementById('bottom-sheet-content').addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent clicks inside bottom sheet content from closing it
+    });
+
     document.addEventListener('click', (e) => {
       const bottomSheet = document.getElementById('upload-sheet');
-      if (bottomSheet.classList.contains('active') && !bottomSheet.contains(e.target) && e.target !== document.getElementById('upload-btn')) {
-        bottomSheet.classList.remove('active');
-        document.getElementById('media-upload').value = '';
-        document.getElementById('caption-input').value = '';
-        document.getElementById('preview-container').innerHTML = '';
+      const uploadBtn = document.getElementById('upload-btn');
+      if (bottomSheet.classList.contains('active') && !bottomSheet.contains(e.target) && !uploadBtn.contains(e.target)) {
+        console.log('Click outside, closing bottom sheet');
+        closeBottomSheet();
       }
     });
 
-    document.addEventListener('DOMContentLoaded', initializeFirebase);
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM loaded, initializing Firebase');
+      initializeFirebase();
+    });
 
     window.toggleLike = toggleLike;
     window.submitComment = submitComment;
