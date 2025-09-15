@@ -181,6 +181,32 @@
       color: var(--text-primary);
     }
 
+    .friends-btn {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: var(--highlight);
+      border: none;
+      border-radius: 9999px;
+      padding: 0.75rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      z-index: 50;
+      transition: background 0.2s;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .friends-btn:hover {
+      background: #2a928d;
+    }
+
+    .friends-btn svg {
+      width: 1.5rem;
+      height: 1.5rem;
+      stroke: var(--text-primary);
+    }
+
     .bottom-sheet {
       position: fixed;
       bottom: 0;
@@ -194,7 +220,7 @@
       overflow-y: auto;
       transform: translateY(100%);
       transition: transform 0.3s ease-in-out;
-      z-index: 40;
+      z-index: 100;
       -webkit-user-select: none;
       user-select: none;
       visibility: hidden;
@@ -436,7 +462,7 @@
       animation: slideIn 0.3s ease-out;
     }
 
-    body, .reel, .reel-actions, .reel-action, .bottom-sheet, .floating-upload-btn {
+    body, .reel, .reel-actions, .reel-action, .bottom-sheet, .floating-upload-btn, .friends-btn {
       -webkit-user-select: none;
       user-select: none;
       -webkit-touch-callout: none;
@@ -458,6 +484,12 @@
     <div class="reels-container" id="reels-container">
       <p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">Loading reels...</p>
     </div>
+
+    <button class="friends-btn" id="friends-btn" aria-label="Go to friends">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+      </svg>
+    </button>
 
     <button class="floating-upload-btn" id="upload-btn">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -535,11 +567,13 @@
     };
 
     const openBottomSheet = (type, reelId = null) => {
-      console.log(`Opening ${type} bottom sheet for reelId: ${reelId}`);
+      console.log(`Attempting to open ${type} bottom sheet for reelId: ${reelId}`);
       if (type === 'upload') {
+        console.log('Opening upload sheet');
         document.getElementById('upload-sheet').classList.add('active');
         document.getElementById('comment-sheet').classList.remove('active');
       } else if (type === 'comment') {
+        console.log('Opening comment sheet for reel:', reelId);
         document.getElementById('comment-sheet').classList.add('active');
         document.getElementById('upload-sheet').classList.remove('active');
         activeCommentReelId = reelId;
@@ -578,7 +612,7 @@
 
     async function decryptMessage(encryptedData, iv) {
       try {
-        if (encryptedData.text) return encryptedData.text; // Fallback for plain text
+        if (encryptedData.text) return encryptedData.text;
         const decrypted = await crypto.subtle.decrypt(
           { name: 'AES-GCM', iv: new Uint8Array(iv) },
           await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['decrypt']),
@@ -625,7 +659,7 @@
       console.log('Loading reels');
       showSpinner();
       const reelsRef = ref(db, 'reels');
-      const renderedReels = new Set(); // Track rendered reel IDs
+      const renderedReels = new Set();
       try {
         onValue(reelsRef, async (snapshot) => {
           console.log('Reels snapshot received:', snapshot.exists());
@@ -642,14 +676,13 @@
             .map(([reelId, reelData]) => ({ reelId, ...reelData }))
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
           
-          // Clear only if significant data change to avoid flicker
           if (reelsContainer.children.length !== reelsArray.length) {
             reelsContainer.innerHTML = '';
             renderedReels.clear();
           }
           
           for (const reel of reelsArray) {
-            if (renderedReels.has(reel.reelId)) continue; // Skip if already rendered
+            if (renderedReels.has(reel.reelId)) continue;
             const userRef = ref(db, `users/${reel.userId}`);
             try {
               onValue(userRef, async (userSnapshot) => {
@@ -658,11 +691,11 @@
                 const caption = reel.caption || '';
                 const div = document.createElement('div');
                 div.className = 'reel';
-                div.dataset.reelId = reel.reelId; // Add reelId to DOM for reference
+                div.dataset.reelId = reel.reelId;
                 const isVideo = reel.mediaType === 'video';
                 div.innerHTML = `
                   ${isVideo
-                    ? `<video class="reel-media" src="${reel.mediaURL}" autoplay loop muted playsinline></video>`
+                    ? `<video class="reel-media" src="${reel.mediaURL}" autoplay loop playsinline></video>`
                     : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
                   <div class="reel-overlay">
                     <div class="reel-header" onclick="goToProfile('${reel.userId}')">
@@ -698,9 +731,18 @@
                   </div>
                 `;
                 reelsContainer.appendChild(div);
-                renderedReels.add(reel.reelId); // Mark as rendered
+                renderedReels.add(reel.reelId);
                 if (isVideo) {
                   const video = div.querySelector('.reel-media');
+                  video.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (video.paused) {
+                      video.play().catch(err => console.error('Error playing video:', err));
+                    } else {
+                      video.pause();
+                    }
+                    console.log(`Video ${video.paused ? 'paused' : 'playing'}`);
+                  });
                   video.addEventListener('waiting', () => showSpinner());
                   video.addEventListener('stalled', () => showSpinner());
                   video.addEventListener('playing', () => hideSpinner());
@@ -744,12 +786,10 @@
         const countSpan = button.querySelector('span');
         const currentCount = parseInt(countSpan.textContent) || 0;
         
-        // Update Firebase
         await update(ref(db, `reels/${reelId}/likedBy`), {
           [currentUser.uid]: isLiked ? null : true
         });
         
-        // Update UI without reloading
         button.classList.toggle('liked');
         countSpan.textContent = isLiked ? currentCount - 1 : currentCount + 1;
         console.log(`Toggled like for reel ${reelId}: ${isLiked ? 'Unliked' : 'Liked'}`);
@@ -851,7 +891,7 @@
 
     function formatTimestamp(timestamp) {
       const date = new Date(timestamp);
-      const now = new Date('2025-09-15T18:25:00Z'); // Current date/time: 06:25 PM SAST, Sep 15, 2025
+      const now = new Date();
       const diffMs = now - date;
       const diffSec = Math.floor(diffMs / 1000);
       const diffMin = Math.floor(diffSec / 60);
@@ -1023,6 +1063,12 @@
       openBottomSheet('upload');
     });
 
+    document.getElementById('friends-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      console.log('Redirecting to friends.html');
+      window.location.href = 'friends.html';
+    });
+
     document.getElementById('media-upload').addEventListener('change', (e) => {
       e.stopPropagation();
       showPreviews(e.target.files);
@@ -1054,15 +1100,17 @@
       const uploadSheet = document.getElementById('upload-sheet');
       const commentSheet = document.getElementById('comment-sheet');
       const uploadBtn = document.getElementById('upload-btn');
+      const friendsBtn = document.getElementById('friends-btn');
       if ((uploadSheet.classList.contains('active') || commentSheet.classList.contains('active')) &&
-          !uploadSheet.contains(e.target) && !commentSheet.contains(e.target) && !uploadBtn.contains(e.target)) {
+          !uploadSheet.contains(e.target) && !commentSheet.contains(e.target) && 
+          !uploadBtn.contains(e.target) && !friendsBtn.contains(e.target)) {
         console.log('Click outside, closing all bottom sheets');
         closeBottomSheet();
       }
     });
 
     document.addEventListener('contextmenu', (e) => {
-      e.preventDefault(); // Disable context menu on long press
+      e.preventDefault();
     });
 
     document.addEventListener('DOMContentLoaded', () => {
