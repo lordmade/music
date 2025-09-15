@@ -340,6 +340,38 @@
       background: #2a928d;
     }
 
+    .spinner-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+    }
+
+    .spinner-overlay.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 100px;
+      height: 4px;
+      background: var(--highlight);
+      border-radius: 2px;
+      animation: loading 1.5s ease-in-out infinite;
+    }
+
+    @keyframes loading {
+      0% { transform: scaleX(0); transform-origin: left; }
+      50% { transform: scaleX(1); transform-origin: left; }
+      51% { transform-origin: right; }
+      100% { transform: scaleX(0); transform-origin: right; }
+    }
+
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
@@ -360,7 +392,7 @@
   </style>
 </head>
 <body>
-  <main class="flex flex-col h-screen">
+  <main class="flex flex-col h-screen" id="main-content">
     <div class="search-container">
       <input type="text" id="friend-search" class="search-bar" placeholder="Search friends...">
       <button id="add-friend-button" class="add-friend-button">
@@ -396,6 +428,9 @@
         </svg>
       </button>
     </div>
+    <div id="spinner-overlay" class="spinner-overlay">
+      <div class="spinner"></div>
+    </div>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -415,6 +450,16 @@
 
     let app, auth, db, currentUser;
     const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456'); // 32-byte key for AES-GCM
+
+    const showSpinner = () => {
+      document.getElementById('spinner-overlay').classList.add('active');
+      document.getElementById('main-content').setAttribute('aria-busy', 'true');
+    };
+
+    const hideSpinner = () => {
+      document.getElementById('spinner-overlay').classList.remove('active');
+      document.getElementById('main-content').setAttribute('aria-busy', 'false');
+    };
 
     async function encryptMessage(message) {
       const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -459,76 +504,85 @@
 
     async function loadFriends(searchQuery = '') {
       if (!currentUser) return;
+      showSpinner();
       const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
-      onValue(friendsRef, async (snapshot) => {
-        const friendsList = document.getElementById('friends-list');
-        friendsList.innerHTML = '';
-        const friends = snapshot.val();
-        if (!friends) {
-          friendsList.innerHTML = '<p class="no-friends">No friends added yet. Add some friends to start chatting!</p>';
-          return;
-        }
-        const friendsArray = Object.entries(friends)
-          .map(([friendId, friendData]) => ({ friendId, ...friendData }))
-          .filter(friend => friend.name?.toLowerCase().includes(searchQuery.toLowerCase()))
-          .sort((a, b) => new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0));
-        if (friendsArray.length === 0 && searchQuery) {
-          friendsList.innerHTML = '<p class="no-friends">No friends found.</p>';
-          return;
-        }
-        let totalUnread = 0;
-        for (const friend of friendsArray) {
-          const userRef = ref(db, `users/${friend.friendId}`);
-          totalUnread += friend.unreadCount || 0;
-          onValue(userRef, async (userSnapshot) => {
-            const userData = userSnapshot.val();
-            const lastMessage = friend.lastMessageEncrypted
-              ? await decryptMessage(friend.lastMessageEncrypted.data, friend.lastMessageEncrypted.iv)
-              : friend.lastMessage || 'No messages yet';
-            const div = document.createElement('div');
-            div.className = 'friend-card';
-            div.dataset.friendId = friend.friendId;
-            div.innerHTML = `
-              ${userData?.photoURL
-                ? `<img src="${userData.photoURL}" class="profile-pic" alt="${friend.name}'s profile picture">`
-                : `<div class="avatar">${friend.name ? friend.name[0].toUpperCase() : 'F'}</div>`}
-              <div class="info">
-                <h2>
-                  ${friend.name || 'Friend'}
-                  ${friend.lastMessageType === 'image'
-                    ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                         <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                       </svg>`
-                    : friend.lastMessageType === 'video'
-                    ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                         <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                       </svg>`
-                    : ''}
-                </h2>
-                <p>${lastMessage.slice(0, 20)}${lastMessage.length > 20 ? '...' : ''}</p>
-              </div>
-              <div class="meta">
-                <div class="timestamp">${friend.lastMessageTime || ''}</div>
-                <div class="last-seen">${userData?.lastSeen ? new Date(userData.lastSeen).toLocaleTimeString() : ''}</div>
-                ${friend.unreadCount > 0 ? `<span class="unread-badge">${friend.unreadCount}</span>` : ''}
-              </div>
-            `;
-            div.addEventListener('click', () => {
-              update(ref(db, `users/${currentUser.uid}/friends/${friend.friendId}`), { unreadCount: 0 });
-              window.location.href = `conversation.html?friendId=${friend.friendId}`;
-            });
-            friendsList.appendChild(div);
-          }, { onlyOnce: true });
-        }
-        const friendsNav = document.getElementById('friends-nav');
-        friendsNav.querySelector('.unread-badge')?.remove();
-        if (totalUnread > 0) {
-          const badge = document.createElement('span');
-          badge.className = 'unread-badge';
-          badge.textContent = totalUnread;
-          friendsNav.appendChild(badge);
-        }
-      }, { onlyOnce: false });
+      try {
+        onValue(friendsRef, async (snapshot) => {
+          const friendsList = document.getElementById('friends-list');
+          friendsList.innerHTML = '';
+          const friends = snapshot.val();
+          if (!friends) {
+            friendsList.innerHTML = '<p class="no-friends">No friends added yet. Add some friends to start chatting!</p>';
+            hideSpinner();
+            return;
+          }
+          const friendsArray = Object.entries(friends)
+            .map(([friendId, friendData]) => ({ friendId, ...friendData }))
+            .filter(friend => friend.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+            .sort((a, b) => new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0));
+          if (friendsArray.length === 0 && searchQuery) {
+            friendsList.innerHTML = '<p class="no-friends">No friends found.</p>';
+            hideSpinner();
+            return;
+          }
+          let totalUnread = 0;
+          for (const friend of friendsArray) {
+            const userRef = ref(db, `users/${friend.friendId}`);
+            totalUnread += friend.unreadCount || 0;
+            onValue(userRef, async (userSnapshot) => {
+              const userData = userSnapshot.val();
+              const lastMessage = friend.lastMessageEncrypted
+                ? await decryptMessage(friend.lastMessageEncrypted.data, friend.lastMessageEncrypted.iv)
+                : friend.lastMessage || 'No messages yet';
+              const div = document.createElement('div');
+              div.className = 'friend-card';
+              div.dataset.friendId = friend.friendId;
+              div.innerHTML = `
+                ${userData?.photoURL
+                  ? `<img src="${userData.photoURL}" class="profile-pic" alt="${friend.name}'s profile picture">`
+                  : `<div class="avatar">${friend.name ? friend.name[0].toUpperCase() : 'F'}</div>`}
+                <div class="info">
+                  <h2>
+                    ${friend.name || 'Friend'}
+                    ${friend.lastMessageType === 'image'
+                      ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                           <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                         </svg>`
+                      : friend.lastMessageType === 'video'
+                      ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                           <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                         </svg>`
+                      : ''}
+                  </h2>
+                  <p>${lastMessage.slice(0, 20)}${lastMessage.length > 20 ? '...' : ''}</p>
+                </div>
+                <div class="meta">
+                  <div class="timestamp">${friend.lastMessageTime || ''}</div>
+                  <div class="last-seen">${userData?.lastSeen ? new Date(userData.lastSeen).toLocaleTimeString() : ''}</div>
+                  ${friend.unreadCount > 0 ? `<span class="unread-badge">${friend.unreadCount}</span>` : ''}
+                </div>
+              `;
+              div.addEventListener('click', () => {
+                update(ref(db, `users/${currentUser.uid}/friends/${friend.friendId}`), { unreadCount: 0 });
+                window.location.href = `conversation.html?friendId=${friend.friendId}`;
+              });
+              friendsList.appendChild(div);
+            }, { onlyOnce: true });
+          }
+          const friendsNav = document.getElementById('friends-nav');
+          friendsNav.querySelector('.unread-badge')?.remove();
+          if (totalUnread > 0) {
+            const badge = document.createElement('span');
+            badge.className = 'unread-badge';
+            badge.textContent = totalUnread;
+            friendsNav.appendChild(badge);
+          }
+          hideSpinner();
+        }, { onlyOnce: false });
+      } catch (error) {
+        console.error('Error loading friends:', error);
+        hideSpinner();
+      }
     }
 
     function listenForNewMessages() {
@@ -551,65 +605,78 @@
       });
     }
 
-    function loadUsers(searchQuery = '') {
+    async function loadUsers(searchQuery = '') {
+      showSpinner();
       const userList = document.getElementById('user-list');
       userList.innerHTML = '';
       const usersRef = ref(db, 'users');
-      onValue(usersRef, (snapshot) => {
-        const users = snapshot.val();
-        if (!users) {
-          userList.innerHTML = '<p class="no-friends">No users found.</p>';
-          return;
-        }
-        const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
-        onValue(friendsRef, (friendSnapshot) => {
-          const friends = friendSnapshot.val() || {};
-          const filteredUsers = Object.entries(users)
-            .filter(([userId, userData]) =>
-              userId !== currentUser.uid &&
-              !friends[userId] &&
-              userData.displayName?.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-          if (filteredUsers.length === 0) {
+      try {
+        onValue(usersRef, (snapshot) => {
+          const users = snapshot.val();
+          if (!users) {
             userList.innerHTML = '<p class="no-friends">No users found.</p>';
+            hideSpinner();
             return;
           }
-          filteredUsers.forEach(([userId, userData]) => {
-            const div = document.createElement('div');
-            div.className = 'user-card';
-            div.innerHTML = `
-              ${userData.photoURL
-                ? `<img src="${userData.photoURL}" class="profile-pic" alt="${userData.displayName}'s profile picture">`
-                : `<div class="avatar">${userData.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
-              <div class="info">
-                <h2>${userData.displayName || 'User'}</h2>
-              </div>
-              <button onclick="addFriend('${userId}', '${userData.displayName || 'User'}')">Add</button>
-            `;
-            userList.appendChild(div);
-          });
+          const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
+          onValue(friendsRef, (friendSnapshot) => {
+            const friends = friendSnapshot.val() || {};
+            const filteredUsers = Object.entries(users)
+              .filter(([userId, userData]) =>
+                userId !== currentUser.uid &&
+                !friends[userId] &&
+                userData.displayName?.toLowerCase().includes(searchQuery.toLowerCase())
+              );
+            if (filteredUsers.length === 0) {
+              userList.innerHTML = '<p class="no-friends">No users found.</p>';
+              hideSpinner();
+              return;
+            }
+            filteredUsers.forEach(([userId, userData]) => {
+              const div = document.createElement('div');
+              div.className = 'user-card';
+              div.innerHTML = `
+                ${userData.photoURL
+                  ? `<img src="${userData.photoURL}" class="profile-pic" alt="${userData.displayName}'s profile picture">`
+                  : `<div class="avatar">${userData.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+                <div class="info">
+                  <h2>${userData.displayName || 'User'}</h2>
+                </div>
+                <button onclick="addFriend('${userId}', '${userData.displayName || 'User'}')">Add</button>
+              `;
+              userList.appendChild(div);
+            });
+            hideSpinner();
+          }, { onlyOnce: true });
         }, { onlyOnce: true });
-      }, { onlyOnce: true });
+      } catch (error) {
+        console.error('Error loading users:', error);
+        hideSpinner();
+      }
     }
 
     async function addFriend(userId, name) {
       if (!currentUser) return;
+      showSpinner();
       const friendRef = ref(db, `users/${currentUser.uid}/friends/${userId}`);
-      set(friendRef, {
-        name,
-        lastMessage: '',
-        lastMessageTime: '',
-        lastMessageType: 'text',
-        lastMessageEncrypted: null,
-        unreadCount: 0
-      }).then(() => {
+      try {
+        await set(friendRef, {
+          name,
+          lastMessage: '',
+          lastMessageTime: '',
+          lastMessageType: 'text',
+          lastMessageEncrypted: null,
+          unreadCount: 0
+        });
         loadFriends(document.getElementById('friend-search').value);
         document.getElementById('bottom-sheet').classList.remove('open');
         document.getElementById('user-search').value = '';
         document.getElementById('user-list').innerHTML = '';
-      }).catch((error) => {
+        hideSpinner();
+      } catch (error) {
         console.error('Error adding friend:', error);
-      });
+        hideSpinner();
+      }
     }
 
     document.getElementById('friend-search').addEventListener('input', (e) => {
