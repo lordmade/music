@@ -17,6 +17,7 @@
       --text-secondary: #4B5EAA;
       --border: #4A5568;
       --highlight: #38B2AC;
+      --badge-bg: #EF4444;
     }
 
     body {
@@ -104,6 +105,10 @@
       transform: translateX(5px);
     }
 
+    .friend-card.vibrate {
+      animation: vibrate 0.2s ease-in-out;
+    }
+
     .friend-card .avatar {
       width: 3rem;
       height: 3rem;
@@ -116,6 +121,15 @@
       font-size: 1.5rem;
       font-weight: 600;
       color: var(--text-primary);
+      object-fit: cover;
+    }
+
+    .friend-card .profile-pic {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 50%;
+      margin-right: 1rem;
+      object-fit: cover;
     }
 
     .friend-card .info {
@@ -126,6 +140,9 @@
       margin: 0;
       font-size: 1rem;
       font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .friend-card .info p {
@@ -138,9 +155,38 @@
       overflow: hidden;
     }
 
+    .friend-card .info svg {
+      width: 1rem;
+      height: 1rem;
+      stroke: var(--text-primary);
+    }
+
+    .friend-card .meta {
+      text-align: right;
+      position: relative;
+    }
+
     .friend-card .timestamp {
       font-size: 0.75rem;
       color: rgba(255, 255, 255, 0.5);
+    }
+
+    .friend-card .last-seen {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .friend-card .unread-badge {
+      background: var(--badge-bg);
+      color: var(--text-primary);
+      border-radius: 9999px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      position: absolute;
+      top: -0.5rem;
+      right: -0.5rem;
+      min-width: 1.5rem;
+      text-align: center;
     }
 
     .no-friends {
@@ -172,6 +218,7 @@
       cursor: pointer;
       border-radius: 0.5rem;
       transition: background 0.2s;
+      position: relative;
     }
 
     .nav-item.active, .nav-item:hover {
@@ -182,6 +229,19 @@
       width: 1.5rem;
       height: 1.5rem;
       stroke: var(--text-primary);
+    }
+
+    .nav-item .unread-badge {
+      background: var(--badge-bg);
+      color: var(--text-primary);
+      border-radius: 9999px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      position: absolute;
+      top: -0.5rem;
+      right: -0.5rem;
+      min-width: 1.5rem;
+      text-align: center;
     }
 
     .bottom-sheet {
@@ -258,6 +318,14 @@
       color: var(--text-primary);
     }
 
+    .user-card .profile-pic {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      margin-right: 1rem;
+      object-fit: cover;
+    }
+
     .user-card button {
       background: var(--highlight);
       color: var(--text-primary);
@@ -275,6 +343,15 @@
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes vibrate {
+      0% { transform: translateX(0); }
+      20% { transform: translateX(-2px); }
+      40% { transform: translateX(2px); }
+      60% { transform: translateX(-2px); }
+      80% { transform: translateX(2px); }
+      100% { transform: translateX(0); }
     }
 
     .friend-card, .user-card {
@@ -308,7 +385,7 @@
           <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
         </svg>
       </button>
-      <button class="nav-item active">
+      <button class="nav-item active" id="friends-nav">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
         </svg>
@@ -323,7 +400,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, set, update, onChildChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -337,6 +414,32 @@
     };
 
     let app, auth, db, currentUser;
+    const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456'); // 32-byte key for AES-GCM
+
+    async function encryptMessage(message) {
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const encrypted = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['encrypt']),
+        new TextEncoder().encode(message)
+      );
+      const encryptedArray = new Uint8Array(encrypted);
+      return { iv: Array.from(iv), data: Array.from(encryptedArray) };
+    }
+
+    async function decryptMessage(encryptedData, iv) {
+      try {
+        const decrypted = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: new Uint8Array(iv) },
+          await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['decrypt']),
+          new Uint8Array(encryptedData)
+        );
+        return new TextDecoder().decode(decrypted);
+      } catch (error) {
+        console.error('Decryption Error:', error);
+        return '[Encrypted Message]';
+      }
+    }
 
     function initializeFirebase() {
       app = initializeApp(firebaseConfig);
@@ -345,17 +448,19 @@
       onAuthStateChanged(auth, (user) => {
         if (user) {
           currentUser = user;
+          update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() });
           loadFriends();
+          listenForNewMessages();
         } else {
           window.location.href = 'signup.html';
         }
       });
     }
 
-    function loadFriends(searchQuery = '') {
+    async function loadFriends(searchQuery = '') {
       if (!currentUser) return;
       const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
-      onValue(friendsRef, (snapshot) => {
+      onValue(friendsRef, async (snapshot) => {
         const friendsList = document.getElementById('friends-list');
         friendsList.innerHTML = '';
         const friends = snapshot.val();
@@ -363,30 +468,87 @@
           friendsList.innerHTML = '<p class="no-friends">No friends added yet. Add some friends to start chatting!</p>';
           return;
         }
-        const filteredFriends = Object.entries(friends).filter(([_, friendData]) =>
-          friendData.name?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        if (filteredFriends.length === 0 && searchQuery) {
+        const friendsArray = Object.entries(friends)
+          .map(([friendId, friendData]) => ({ friendId, ...friendData }))
+          .filter(friend => friend.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+          .sort((a, b) => new Date(b.lastMessageTime || 0) - new Date(a.lastMessageTime || 0));
+        if (friendsArray.length === 0 && searchQuery) {
           friendsList.innerHTML = '<p class="no-friends">No friends found.</p>';
           return;
         }
-        filteredFriends.forEach(([friendId, friendData]) => {
-          const div = document.createElement('div');
-          div.className = 'friend-card';
-          div.innerHTML = `
-            <div class="avatar">${friendData.name ? friendData.name[0].toUpperCase() : 'F'}</div>
-            <div class="info">
-              <h2>${friendData.name || 'Friend'}</h2>
-              <p>${friendData.lastMessage || 'No messages yet'}</p>
-            </div>
-            <div class="timestamp">${friendData.lastMessageTime || ''}</div>
-          `;
-          div.addEventListener('click', () => {
-            window.location.href = `conversation.html?friendId=${friendId}`;
-          });
-          friendsList.appendChild(div);
-        });
-      }, { onlyOnce: true });
+        let totalUnread = 0;
+        for (const friend of friendsArray) {
+          const userRef = ref(db, `users/${friend.friendId}`);
+          totalUnread += friend.unreadCount || 0;
+          onValue(userRef, async (userSnapshot) => {
+            const userData = userSnapshot.val();
+            const lastMessage = friend.lastMessageEncrypted
+              ? await decryptMessage(friend.lastMessageEncrypted.data, friend.lastMessageEncrypted.iv)
+              : friend.lastMessage || 'No messages yet';
+            const div = document.createElement('div');
+            div.className = 'friend-card';
+            div.dataset.friendId = friend.friendId;
+            div.innerHTML = `
+              ${userData?.photoURL
+                ? `<img src="${userData.photoURL}" class="profile-pic" alt="${friend.name}'s profile picture">`
+                : `<div class="avatar">${friend.name ? friend.name[0].toUpperCase() : 'F'}</div>`}
+              <div class="info">
+                <h2>
+                  ${friend.name || 'Friend'}
+                  ${friend.lastMessageType === 'image'
+                    ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                         <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                       </svg>`
+                    : friend.lastMessageType === 'video'
+                    ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                         <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                       </svg>`
+                    : ''}
+                </h2>
+                <p>${lastMessage.slice(0, 20)}${lastMessage.length > 20 ? '...' : ''}</p>
+              </div>
+              <div class="meta">
+                <div class="timestamp">${friend.lastMessageTime || ''}</div>
+                <div class="last-seen">${userData?.lastSeen ? new Date(userData.lastSeen).toLocaleTimeString() : ''}</div>
+                ${friend.unreadCount > 0 ? `<span class="unread-badge">${friend.unreadCount}</span>` : ''}
+              </div>
+            `;
+            div.addEventListener('click', () => {
+              update(ref(db, `users/${currentUser.uid}/friends/${friend.friendId}`), { unreadCount: 0 });
+              window.location.href = `conversation.html?friendId=${friend.friendId}`;
+            });
+            friendsList.appendChild(div);
+          }, { onlyOnce: true });
+        }
+        const friendsNav = document.getElementById('friends-nav');
+        friendsNav.querySelector('.unread-badge')?.remove();
+        if (totalUnread > 0) {
+          const badge = document.createElement('span');
+          badge.className = 'unread-badge';
+          badge.textContent = totalUnread;
+          friendsNav.appendChild(badge);
+        }
+      }, { onlyOnce: false });
+    }
+
+    function listenForNewMessages() {
+      if (!currentUser) return;
+      const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
+      onChildChanged(friendsRef, (snapshot) => {
+        const friendData = snapshot.val();
+        const friendId = snapshot.key;
+        if (friendData.unreadCount > 0) {
+          const friendCard = document.querySelector(`.friend-card[data-friend-id="${friendId}"]`);
+          if (friendCard) {
+            friendCard.classList.add('vibrate');
+            if ('vibrate' in navigator) {
+              navigator.vibrate(100);
+            }
+            setTimeout(() => friendCard.classList.remove('vibrate'), 200);
+          }
+          loadFriends(document.getElementById('friend-search').value);
+        }
+      });
     }
 
     function loadUsers(searchQuery = '') {
@@ -416,7 +578,9 @@
             const div = document.createElement('div');
             div.className = 'user-card';
             div.innerHTML = `
-              <div class="avatar">${userData.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>
+              ${userData.photoURL
+                ? `<img src="${userData.photoURL}" class="profile-pic" alt="${userData.displayName}'s profile picture">`
+                : `<div class="avatar">${userData.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
               <div class="info">
                 <h2>${userData.displayName || 'User'}</h2>
               </div>
@@ -428,13 +592,16 @@
       }, { onlyOnce: true });
     }
 
-    function addFriend(userId, name) {
+    async function addFriend(userId, name) {
       if (!currentUser) return;
       const friendRef = ref(db, `users/${currentUser.uid}/friends/${userId}`);
       set(friendRef, {
         name,
         lastMessage: '',
-        lastMessageTime: ''
+        lastMessageTime: '',
+        lastMessageType: 'text',
+        lastMessageEncrypted: null,
+        unreadCount: 0
       }).then(() => {
         loadFriends(document.getElementById('friend-search').value);
         document.getElementById('bottom-sheet').classList.remove('open');
