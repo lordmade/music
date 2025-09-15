@@ -27,6 +27,8 @@
       min-height: 100vh;
       margin: 0;
       overflow-x: hidden;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     .reels-container {
@@ -65,6 +67,7 @@
       align-items: center;
       gap: 10px;
       margin-bottom: 10px;
+      cursor: pointer;
     }
 
     .reel-avatar {
@@ -127,6 +130,8 @@
       gap: 5px;
       font-size: 12px;
       text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     .reel-action.liked svg {
@@ -138,22 +143,7 @@
       width: 24px;
       height: 24px;
       stroke: var(--text-primary);
-    }
-
-    .comment-input {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      background: var(--bg);
-      color: var(--text-secondary);
-      margin-top: 10px;
-      resize: none;
-    }
-
-    .comment-input:focus {
-      outline: none;
-      border-color: var(--highlight);
+      stroke-width: 2;
     }
 
     .floating-upload-btn {
@@ -171,6 +161,8 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       z-index: 50;
       transition: background 0.2s;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     .floating-upload-btn:hover {
@@ -203,6 +195,8 @@
       transform: translateY(100%);
       transition: transform 0.3s ease-in-out;
       z-index: 40;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     .bottom-sheet.active {
@@ -237,6 +231,8 @@
       color: var(--text-secondary);
       margin-bottom: 10px;
       resize: none;
+      -webkit-user-select: auto;
+      user-select: auto;
     }
 
     .bottom-sheet-content button {
@@ -247,6 +243,8 @@
       border-radius: 5px;
       cursor: pointer;
       width: 100%;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     .bottom-sheet-content button:hover {
@@ -292,6 +290,82 @@
       justify-content: center;
       cursor: pointer;
       font-size: 12px;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .comment-list {
+      margin-bottom: 20px;
+    }
+
+    .comment-item {
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .comment-item.reply {
+      margin-left: 20px;
+      border-left: 1px dotted rgba(255,255,255,0.3);
+      padding-left: 10px;
+    }
+
+    .comment-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 5px;
+    }
+
+    .comment-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .comment-profile-pic {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--highlight);
+    }
+
+    .comment-username {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .comment-timestamp {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .comment-text {
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .reply-link {
+      font-size: 12px;
+      color: var(--highlight);
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .reply-input {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .reply-input.active {
+      display: block;
     }
 
     .alert {
@@ -394,6 +468,14 @@
       </div>
     </div>
 
+    <div class="bottom-sheet" id="comment-sheet">
+      <div class="bottom-sheet-content" id="comment-sheet-content">
+        <div class="comment-list" id="comment-list"></div>
+        <textarea id="comment-input" placeholder="Add a comment..." rows="2"></textarea>
+        <button id="submit-comment">Post</button>
+      </div>
+    </div>
+
     <div id="spinner-overlay" class="spinner-overlay">
       <div class="spinner"></div>
     </div>
@@ -421,6 +503,7 @@
     const CLOUDINARY_UPLOAD_PRESET = 'banter_box';
 
     let app, auth, db, currentUser;
+    let activeCommentReelId = null;
     const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456');
 
     const showSpinner = () => {
@@ -443,18 +526,29 @@
       setTimeout(() => alert.classList.remove('active'), 3000);
     };
 
-    const openBottomSheet = () => {
-      console.log('Opening bottom sheet');
-      document.getElementById('upload-sheet').classList.add('active');
+    const openBottomSheet = (type, reelId = null) => {
+      console.log(`Opening ${type} bottom sheet`);
+      if (type === 'upload') {
+        document.getElementById('upload-sheet').classList.add('active');
+        document.getElementById('comment-sheet').classList.remove('active');
+      } else if (type === 'comment') {
+        document.getElementById('comment-sheet').classList.add('active');
+        document.getElementById('upload-sheet').classList.remove('active');
+        activeCommentReelId = reelId;
+        loadComments(reelId);
+      }
     };
 
     const closeBottomSheet = () => {
-      console.log('Closing bottom sheet');
-      const bottomSheet = document.getElementById('upload-sheet');
-      bottomSheet.classList.remove('active');
+      console.log('Closing all bottom sheets');
+      document.getElementById('upload-sheet').classList.remove('active');
+      document.getElementById('comment-sheet').classList.remove('active');
       document.getElementById('media-upload').value = '';
       document.getElementById('caption-input').value = '';
       document.getElementById('preview-container').innerHTML = '';
+      document.getElementById('comment-input').value = '';
+      document.getElementById('comment-list').innerHTML = '';
+      activeCommentReelId = null;
     };
 
     async function encryptMessage(message) {
@@ -470,12 +564,13 @@
       } catch (error) {
         console.error('Encryption Error:', error);
         showAlert('Encryption failed, using plain text.');
-        return null; // Fallback to plain text in caption
+        return { iv: [], data: [], text: message };
       }
     }
 
     async function decryptMessage(encryptedData, iv) {
       try {
+        if (encryptedData.text) return encryptedData.text; // Fallback for plain text
         const decrypted = await crypto.subtle.decrypt(
           { name: 'AES-GCM', iv: new Uint8Array(iv) },
           await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['decrypt']),
@@ -555,7 +650,7 @@
                     ? `<video class="reel-media" src="${reel.mediaURL}" autoplay loop muted playsinline></video>`
                     : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
                   <div class="reel-overlay">
-                    <div class="reel-header">
+                    <div class="reel-header" onclick="goToProfile('${reel.userId}')">
                       ${userData?.photoURL
                         ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
                         : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
@@ -565,24 +660,23 @@
                       </div>
                     </div>
                     <div class="reel-caption">${caption.slice(0, 100)}${caption.length > 100 ? '...' : ''}</div>
-                    <textarea class="comment-input" placeholder="Add a comment..." rows="2" data-reel-id="${reel.reelId}"></textarea>
                   </div>
                   <div class="reel-actions">
                     <button class="reel-action ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M7 22h1V9H5a3 3 0 003 3h2l2-2 2 2h2a3 3 0 003-3h-3V9h1"/>
+                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
                       </svg>
                       <span>${Object.keys(reel.likedBy || {}).length}</span>
                     </button>
-                    <button class="reel-action" onclick="submitComment('${reel.reelId}', this)">
+                    <button class="reel-action" onclick="openBottomSheet('comment', '${reel.reelId}')">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M21 11.5a8.38 8.38 0 01-11.5 7 8.38 8.38 0 01-7-11.5 8.38 8.38 0 0111.5-7c3.1 1.1 5 4 5 7.5z"/>
+                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                       </svg>
                       <span>${Object.keys(reel.comments || {}).length}</span>
                     </button>
                     <button class="reel-action">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"/>
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
                       </svg>
                       <span>Share</span>
                     </button>
@@ -619,6 +713,11 @@
       }
     }
 
+    function goToProfile(userId) {
+      console.log('Redirecting to profile for user:', userId);
+      window.location.href = `user.html?uid=${userId}`;
+    }
+
     async function toggleLike(reelId, button) {
       if (!currentUser) {
         showAlert('Please log in to like reels.');
@@ -640,12 +739,153 @@
       }
     }
 
-    async function submitComment(reelId, button) {
+    async function loadComments(reelId) {
+      console.log('Loading comments for reel', reelId);
+      const commentList = document.getElementById('comment-list');
+      commentList.innerHTML = '';
+      const commentsRef = ref(db, `reels/${reelId}/comments`);
+      try {
+        onValue(commentsRef, async (snapshot) => {
+          commentList.innerHTML = '';
+          const comments = snapshot.val();
+          if (!comments) {
+            commentList.innerHTML = '<p style="color: var(--text-primary); font-size: 14px;">No comments yet.</p>';
+            return;
+          }
+          const commentArray = Object.entries(comments).map(([commentId, commentData]) => ({
+            commentId,
+            ...commentData
+          }));
+          for (const comment of commentArray) {
+            const userRef = ref(db, `users/${comment.userId}`);
+            onValue(userRef, async (userSnapshot) => {
+              const userData = userSnapshot.val();
+              const commentText = comment.commentEncrypted
+                ? await decryptMessage(comment.commentEncrypted.data, comment.commentEncrypted.iv)
+                : comment.commentEncrypted?.text || '';
+              const commentDiv = document.createElement('div');
+              commentDiv.className = `comment-item ${comment.parentId ? 'reply' : ''}`;
+              commentDiv.innerHTML = `
+                <div class="comment-header">
+                  ${userData?.photoURL
+                    ? `<img src="${userData.photoURL}" class="comment-profile-pic" alt="${userData.displayName}'s profile picture">`
+                    : `<div class="comment-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+                  <div>
+                    <div class="comment-username">${userData?.displayName || 'User'}</div>
+                    <div class="comment-timestamp">${formatTimestamp(comment.timestamp)}</div>
+                  </div>
+                </div>
+                <div class="comment-text">${commentText}</div>
+                <div class="reply-link" onclick="showReplyInput('${comment.commentId}')">Reply</div>
+                <div class="reply-input" id="reply-input-${comment.commentId}">
+                  <textarea placeholder="Reply to ${userData?.displayName || 'User'}..." rows="2"></textarea>
+                  <button onclick="submitReply('${reelId}', '${comment.commentId}')">Post</button>
+                </div>
+                <div class="replies" id="replies-${comment.commentId}"></div>
+              `;
+              commentList.appendChild(commentDiv);
+              if (comment.replies) {
+                const repliesDiv = commentDiv.querySelector(`#replies-${comment.commentId}`);
+                const replyArray = Object.entries(comment.replies).map(([replyId, replyData]) => ({
+                  replyId,
+                  ...replyData
+                }));
+                for (const reply of replyArray) {
+                  const replyUserRef = ref(db, `users/${reply.userId}`);
+                  onValue(replyUserRef, async (replyUserSnapshot) => {
+                    const replyUserData = replyUserSnapshot.val();
+                    const replyText = reply.commentEncrypted
+                      ? await decryptMessage(reply.commentEncrypted.data, reply.commentEncrypted.iv)
+                      : reply.commentEncrypted?.text || '';
+                    const replyDiv = document.createElement('div');
+                    replyDiv.className = 'comment-item reply';
+                    replyDiv.innerHTML = `
+                      <div class="comment-header">
+                        ${replyUserData?.photoURL
+                          ? `<img src="${replyUserData.photoURL}" class="comment-profile-pic" alt="${replyUserData.displayName}'s profile picture">`
+                          : `<div class="comment-avatar">${replyUserData?.displayName ? replyUserData.displayName[0].toUpperCase() : 'U'}</div>`}
+                        <div>
+                          <div class="comment-username">${replyUserData?.displayName || 'User'}</div>
+                          <div class="comment-timestamp">${formatTimestamp(reply.timestamp)}</div>
+                        </div>
+                      </div>
+                      <div class="comment-text">${replyText}</div>
+                      <div class="reply-link" onclick="showReplyInput('${reply.replyId}')">Reply</div>
+                      <div class="reply-input" id="reply-input-${reply.replyId}">
+                        <textarea placeholder="Reply to ${replyUserData?.displayName || 'User'}..." rows="2"></textarea>
+                        <button onclick="submitReply('${reelId}', '${reply.replyId}')">Post</button>
+                      </div>
+                    `;
+                    repliesDiv.appendChild(replyDiv);
+                  }, { onlyOnce: true });
+                }
+              }
+            }, { onlyOnce: true });
+          }
+        }, { onlyOnce: false });
+      } catch (error) {
+        console.error('Error loading comments:', error);
+        showAlert('Failed to load comments. Please try again.');
+      }
+    }
+
+    function formatTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      const now = new Date('2025-09-15T18:25:00Z'); // Current date/time: 06:25 PM SAST, Sep 15, 2025
+      const diffMs = now - date;
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHr = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHr / 24);
+      if (diffSec < 60) return `${diffSec}s ago`;
+      if (diffMin < 60) return `${diffMin}m ago`;
+      if (diffHr < 24) return `${diffHr}h ago`;
+      if (diffDay < 7) return `${diffDay}d ago`;
+      return date.toLocaleDateString();
+    }
+
+    function showReplyInput(commentId) {
+      console.log('Showing reply input for comment:', commentId);
+      const replyInput = document.getElementById(`reply-input-${commentId}`);
+      replyInput.classList.toggle('active');
+    }
+
+    async function submitReply(reelId, parentId) {
       if (!currentUser) {
         showAlert('Please log in to comment.');
         return;
       }
-      const commentInput = button.closest('.reel').querySelector('.comment-input');
+      const replyInput = document.getElementById(`reply-input-${parentId}`).querySelector('textarea');
+      const replyText = replyInput.value.trim();
+      if (!replyText) {
+        showAlert('Please enter a reply.');
+        return;
+      }
+      try {
+        const encryptedReply = await encryptMessage(replyText);
+        const commentsRef = ref(db, `reels/${reelId}/comments`);
+        await push(ref(db, `reels/${reelId}/comments/${parentId}/replies`), {
+          userId: currentUser.uid,
+          commentEncrypted: encryptedReply || { iv: [], data: [], text: replyText },
+          timestamp: new Date().toISOString(),
+          parentId
+        });
+        replyInput.value = '';
+        document.getElementById(`reply-input-${parentId}`).classList.remove('active');
+        console.log(`Reply added to comment ${parentId} on reel ${reelId}`);
+        loadComments(reelId);
+      } catch (error) {
+        console.error('Error submitting reply:', error);
+        showAlert('Failed to add reply. Please try again.');
+      }
+    }
+
+    async function submitComment(reelId) {
+      if (!currentUser) {
+        showAlert('Please log in to comment.');
+        return;
+      }
+      const commentInput = document.getElementById('comment-input');
       const commentText = commentInput.value.trim();
       if (!commentText) {
         showAlert('Please enter a comment.');
@@ -657,13 +897,12 @@
         await push(commentsRef, {
           userId: currentUser.uid,
           commentEncrypted: encryptedComment || { iv: [], data: [], text: commentText },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          parentId: null
         });
         commentInput.value = '';
-        const countSpan = button.querySelector('span');
-        const currentCount = parseInt(countSpan.textContent) || 0;
-        countSpan.textContent = currentCount + 1;
         console.log(`Comment added to reel ${reelId}`);
+        loadComments(reelId);
       } catch (error) {
         console.error('Error submitting comment:', error);
         showAlert('Failed to add comment. Please try again.');
@@ -762,7 +1001,7 @@
     // Event Listeners
     document.getElementById('upload-btn').addEventListener('click', (e) => {
       e.stopPropagation();
-      openBottomSheet();
+      openBottomSheet('upload');
     });
 
     document.getElementById('media-upload').addEventListener('change', (e) => {
@@ -777,15 +1016,28 @@
       uploadMedia(files, caption);
     });
 
+    document.getElementById('submit-comment').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (activeCommentReelId) {
+        submitComment(activeCommentReelId);
+      }
+    });
+
     document.getElementById('bottom-sheet-content').addEventListener('click', (e) => {
       e.stopPropagation();
     });
 
+    document.getElementById('comment-sheet-content').addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
     document.addEventListener('click', (e) => {
-      const bottomSheet = document.getElementById('upload-sheet');
+      const uploadSheet = document.getElementById('upload-sheet');
+      const commentSheet = document.getElementById('comment-sheet');
       const uploadBtn = document.getElementById('upload-btn');
-      if (bottomSheet.classList.contains('active') && !bottomSheet.contains(e.target) && !uploadBtn.contains(e.target)) {
-        console.log('Click outside, closing bottom sheet');
+      if ((uploadSheet.classList.contains('active') || commentSheet.classList.contains('active')) &&
+          !uploadSheet.contains(e.target) && !commentSheet.contains(e.target) && !uploadBtn.contains(e.target)) {
+        console.log('Click outside, closing all bottom sheets');
         closeBottomSheet();
       }
     });
@@ -796,7 +1048,9 @@
     });
 
     window.toggleLike = toggleLike;
-    window.submitComment = submitComment;
+    window.showReplyInput = showReplyInput;
+    window.submitReply = submitReply;
+    window.goToProfile = goToProfile;
   </script>
 </body>
 </html>
