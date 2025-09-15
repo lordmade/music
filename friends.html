@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vynix AI - Friends</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F7F7F8;
+      --card-bg: #1C2526;
+      --text-primary: #FFFFFF;
+      --text-secondary: #4B5EAA;
+      --border: #4A5568;
+      --highlight: #38B2AC;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-secondary);
+      min-height: 100vh;
+      margin: 0;
+      transition: background 0.3s ease;
+    }
+
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header button {
+      background: var(--card-bg);
+      border: none;
+      padding: 0.4rem;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: background 0.2s;
+      width: 2.5rem;
+      height: 2.5rem;
+    }
+
+    .header button:hover {
+      background: var(--highlight);
+    }
+
+    .header button svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      stroke: var(--text-primary);
+    }
+
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1E1E1E;
+    }
+
+    .friends-list {
+      margin-top: 4rem;
+      padding: 1rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 4rem);
+    }
+
+    .friend-card {
+      background: var(--card-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+
+    .friend-card:hover {
+      background: var(--highlight);
+      transform: translateX(5px);
+    }
+
+    .friend-card .avatar {
+      width: 3rem;
+      height: 3rem;
+      background: var(--text-secondary);
+      border-radius: 50%;
+      margin-right: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .friend-card .info {
+      flex: 1;
+    }
+
+    .friend-card .info h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .friend-card .info p {
+      margin: 0.25rem 0 0;
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.7);
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .friend-card .timestamp {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .no-friends {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 1rem;
+      color: #1E1E1E;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .friend-card {
+      animation: slideIn 0.3s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <main class="flex flex-col h-screen">
+    <div class="header">
+      <button onclick="window.location.href='index.html'">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <h1>Friends</h1>
+      <div style="width: 2.5rem;"></div> <!-- Spacer for alignment -->
+    </div>
+    <div id="friends-list" class="friends-list"></div>
+  </main>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
+      authDomain: "fire-b-a8878.firebaseapp.com",
+      databaseURL: "https://fire-b-a8878.firebaseio.com",
+      projectId: "fire-b-a8878",
+      storageBucket: "fire-b-a8878.firebasestorage.app",
+      messagingSenderId: "658673187627",
+      appId: "1:658673187627:web:6e4c29af661785f0afa36e",
+      measurementId: "G-V4W97VMSKL"
+    };
+
+    let app, auth, db;
+
+    function initializeFirebase() {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getDatabase(app);
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          loadFriends();
+        } else {
+          window.location.href = 'signup.html';
+        }
+      });
+    }
+
+    function loadFriends() {
+      const user = auth.currentUser;
+      if (user) {
+        const friendsRef = ref(db, `users/${user.uid}/friends`);
+        onValue(friendsRef, (snapshot) => {
+          const friendsList = document.getElementById('friends-list');
+          friendsList.innerHTML = '';
+          const friends = snapshot.val();
+          if (!friends) {
+            friendsList.innerHTML = '<p class="no-friends">No friends added yet. Add some friends to start chatting!</p>';
+            return;
+          }
+          Object.entries(friends).forEach(([friendId, friendData]) => {
+            const div = document.createElement('div');
+            div.className = 'friend-card';
+            div.innerHTML = `
+              <div class="avatar">${friendData.name ? friendData.name[0].toUpperCase() : 'F'}</div>
+              <div class="info">
+                <h2>${friendData.name || 'Friend'}</h2>
+                <p>${friendData.lastMessage || 'No messages yet'}</p>
+              </div>
+              <div class="timestamp">${friendData.lastMessageTime || ''}</div>
+            `;
+            div.addEventListener('click', () => {
+              window.location.href = `conversation.html?friendId=${friendId}`;
+            });
+            friendsList.appendChild(div);
+          });
+        }, { onlyOnce: true });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', initializeFirebase);
+  </script>
+</body>
+</html>
