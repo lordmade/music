@@ -504,8 +504,6 @@
 
     let app, auth, db, currentUser;
     let activeCommentReelId = null;
-    let isLoadingReels = false;
-    let renderedReelIds = new Set();
     const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456');
 
     const showSpinner = () => {
@@ -572,7 +570,7 @@
 
     async function decryptMessage(encryptedData, iv) {
       try {
-        if (encryptedData.text) return encryptedData.text;
+        if (encryptedData.text) return encryptedData.text; // Fallback for plain text
         const decrypted = await crypto.subtle.decrypt(
           { name: 'AES-GCM', iv: new Uint8Array(iv) },
           await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['decrypt']),
@@ -615,24 +613,7 @@
       }
     }
 
-    function debounce(func, wait彼此
-
-System: wait) {
-      return function (...args) {
-        let timeout;
-        return function () {
-          clearTimeout(timeout);
-          timeout = setTimeout(() => func.apply(this, args), wait);
-        };
-      };
-    }
-
-    const debouncedLoadReels = debounce(async () => {
-      if (isLoadingReels) {
-        console.log('Reels loading in progress, skipping');
-        return;
-      }
-      isLoadingReels = true;
+    async function loadReels() {
       console.log('Loading reels');
       showSpinner();
       const reelsRef = ref(db, 'reels');
@@ -641,13 +622,11 @@ System: wait) {
           console.log('Reels snapshot received:', snapshot.exists());
           const reelsContainer = document.getElementById('reels-container');
           reelsContainer.innerHTML = '';
-          renderedReelIds.clear();
           const reels = snapshot.val();
           if (!snapshot.exists() || !reels) {
             console.log('No reels data found');
             reelsContainer.innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">No reels available.</p>';
             hideSpinner();
-            isLoadingReels = false;
             return;
           }
           console.log('Data fetched:', Object.keys(reels).length, 'reels');
@@ -655,19 +634,16 @@ System: wait) {
             .map(([reelId, reelData]) => ({ reelId, ...reelData }))
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
           for (const reel of reelsArray) {
-            if (renderedReelIds.has(reel.reelId)) {
-              console.log('Skipping already rendered reel:', reel.reelId);
-              continue;
-            }
             const userRef = ref(db, `users/${reel.userId}`);
             try {
-              onValue(userRef, (userSnapshot) => {
+              onValue(userRef, async (userSnapshot) => {
                 const userData = userSnapshot.val();
                 console.log('User data for reel', reel.reelId, ':', userData);
-                const caption = reel.caption || '';
+                const caption = reel.captionEncrypted
+                  ? await decryptMessage(reel.captionEncrypted.data, reel.captionEncrypted.iv)
+                  : reel.caption || '';
                 const div = document.createElement('div');
                 div.className = 'reel';
-                div.dataset.reelId = reel.reelId;
                 const isVideo = reel.mediaType === 'video';
                 div.innerHTML = `
                   ${isVideo
@@ -707,7 +683,6 @@ System: wait) {
                   </div>
                 `;
                 reelsContainer.appendChild(div);
-                renderedReelIds.add(reel.reelId);
                 if (isVideo) {
                   const video = div.querySelector('.reel-media');
                   video.addEventListener('waiting', () => showSpinner());
@@ -726,20 +701,17 @@ System: wait) {
             }
           }
           hideSpinner();
-          isLoadingReels = false;
         }, (error) => {
           console.error('Error in reels onValue:', error);
           showAlert('Failed to fetch reels. Please try again.');
           hideSpinner();
-          isLoadingReels = false;
         });
       } catch (error) {
         console.error('Error loading reels:', error);
         showAlert('Failed to load reels. Please check your connection.');
         hideSpinner();
-        isLoadingReels = false;
       }
-    }, 500);
+    }
 
     function goToProfile(userId) {
       console.log('Redirecting to profile for user:', userId);
@@ -797,7 +769,7 @@ System: wait) {
                 <div class="comment-header">
                   ${userData?.photoURL
                     ? `<img src="${userData.photoURL}" class="comment-profile-pic" alt="${userData.displayName}'s profile picture">`
-                    : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+                    : `<div class="comment-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
                   <div>
                     <div class="comment-username">${userData?.displayName || 'User'}</div>
                     <div class="comment-timestamp">${formatTimestamp(comment.timestamp)}</div>
@@ -831,7 +803,7 @@ System: wait) {
                       <div class="comment-header">
                         ${replyUserData?.photoURL
                           ? `<img src="${replyUserData.photoURL}" class="comment-profile-pic" alt="${replyUserData.displayName}'s profile picture">`
-                          : `<div class="reel-avatar">${replyUserData?.displayName ? replyUserData.displayName[0].toUpperCase() : 'U'}</div>`}
+                          : `<div class="comment-avatar">${replyUserData?.displayName ? replyUserData.displayName[0].toUpperCase() : 'U'}</div>`}
                         <div>
                           <div class="comment-username">${replyUserData?.displayName || 'User'}</div>
                           <div class="comment-timestamp">${formatTimestamp(reply.timestamp)}</div>
@@ -859,7 +831,7 @@ System: wait) {
 
     function formatTimestamp(timestamp) {
       const date = new Date(timestamp);
-      const now = new Date('2025-09-15T18:45:00Z');
+      const now = new Date('2025-09-15T18:25:00Z'); // Current date/time: 06:25 PM SAST, Sep 15, 2025
       const diffMs = now - date;
       const diffSec = Math.floor(diffMs / 1000);
       const diffMin = Math.floor(diffSec / 60);
@@ -891,6 +863,7 @@ System: wait) {
       }
       try {
         const encryptedReply = await encryptMessage(replyText);
+        const commentsRef = ref(db, `reels/${reelId}/comments`);
         await push(ref(db, `reels/${reelId}/comments/${parentId}/replies`), {
           userId: currentUser.uid,
           commentEncrypted: encryptedReply || { iv: [], data: [], text: replyText },
@@ -920,7 +893,8 @@ System: wait) {
       }
       try {
         const encryptedComment = await encryptMessage(commentText);
-        await push(ref(db, `reels/${reelId}/comments`), {
+        const commentsRef = ref(db, `reels/${reelId}/comments`);
+        await push(commentsRef, {
           userId: currentUser.uid,
           commentEncrypted: encryptedComment || { iv: [], data: [], text: commentText },
           timestamp: new Date().toISOString(),
@@ -952,6 +926,7 @@ System: wait) {
         `;
         previewContainer.appendChild(previewItem);
       });
+
       const removeButtons = previewContainer.querySelectorAll('.remove-preview');
       removeButtons.forEach(button => {
         button.addEventListener('click', (e) => {
@@ -989,17 +964,20 @@ System: wait) {
           const formData = new FormData();
           formData.append('file', file);
           formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
           const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${file.type.startsWith('video') ? 'video' : 'image'}/upload`, {
             method: 'POST',
             body: formData
           });
           const data = await response.json();
           if (data.secure_url) {
-            await push(ref(db, 'reels'), {
+            const encryptedCaption = caption ? await encryptMessage(caption) : null;
+            const reelsRef = ref(db, 'reels');
+            await push(reelsRef, {
               userId: currentUser.uid,
               mediaURL: data.secure_url,
               mediaType: file.type.startsWith('video') ? 'video' : 'image',
-              caption: caption || null,
+              captionEncrypted: encryptedCaption || (caption ? { iv: [], data: [], text: caption } : null),
               timestamp: new Date().toISOString(),
               likedBy: {},
               comments: {}
@@ -1011,7 +989,7 @@ System: wait) {
           }
         }
         closeBottomSheet();
-        debouncedLoadReels();
+        loadReels();
       } catch (error) {
         console.error('Error uploading media:', error);
         showAlert('Failed to upload media. Please try again.');
