@@ -29,7 +29,7 @@
       overflow-x: hidden;
       -webkit-user-select: none;
       user-select: none;
-      padding-bottom: 60px; /* Space for bottom nav bar */
+      padding-bottom: 60px;
     }
 
     .reels-container {
@@ -70,6 +70,14 @@
       align-items: center;
       gap: 8px;
       cursor: pointer;
+      margin-bottom: 8px;
+    }
+
+    .reel-header-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
     }
 
     .reel-avatar {
@@ -101,6 +109,7 @@
     .reel-timestamp {
       font-size: 12px;
       color: var(--text-secondary);
+      margin-left: 8px;
     }
 
     .follow-btn {
@@ -114,7 +123,6 @@
       cursor: pointer;
       -webkit-user-select: none;
       user-select: none;
-      margin-left: auto;
     }
 
     .follow-btn.friend {
@@ -130,7 +138,6 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
       max-width: 90%;
-      margin-top: 8px;
     }
 
     .reel-actions {
@@ -224,13 +231,9 @@
       stroke-width: 2;
     }
 
-    .floating-upload-btn {
-      display: none; /* Hidden since upload is now in bottom nav */
-    }
-
     .bottom-sheet {
       position: fixed;
-      bottom: 60px; /* Adjusted for bottom nav */
+      bottom: 60px;
       left: 0;
       right: 0;
       background: var(--card-bg);
@@ -255,6 +258,26 @@
 
     .bottom-sheet-content {
       color: var(--text-primary);
+    }
+
+    .close-sheet {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-primary);
+    }
+
+    .close-sheet:hover {
+      background: rgba(255,255,255,0.2);
     }
 
     .bottom-sheet-content input[type="file"] {
@@ -422,6 +445,25 @@
       display: block;
     }
 
+    .love-animation {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      color: var(--badge-bg);
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0;
+      animation: loveFloat 0.6s ease-out forwards;
+    }
+
+    @keyframes loveFloat {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(0deg); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(180deg); }
+      100% { opacity: 0; transform: translate(-50%, -50%) translateY(-100px) scale(1) rotate(360deg); }
+    }
+
     .alert {
       position: fixed;
       top: 20px;
@@ -487,35 +529,6 @@
       animation: slideIn 0.3s ease-out;
     }
 
-    /* Love animation */
-    .love-animation {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 100px;
-      color: var(--badge-bg);
-      pointer-events: none;
-      z-index: 10;
-      animation: loveFloat 0.6s ease-out forwards;
-      opacity: 0;
-    }
-
-    @keyframes loveFloat {
-      0% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0) rotate(0deg);
-      }
-      50% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1.2) rotate(10deg);
-      }
-      100% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(1) rotate(0deg) translateY(-100px);
-      }
-    }
-
     body, .reel, .reel-actions, .reel-action, .bottom-sheet, .nav-item {
       -webkit-user-select: none;
       user-select: none;
@@ -557,6 +570,11 @@
     </nav>
 
     <div class="bottom-sheet" id="upload-sheet">
+      <button class="close-sheet" onclick="closeBottomSheet()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
       <div class="bottom-sheet-content" id="bottom-sheet-content">
         <label for="media-upload">Select Image/Video</label>
         <input type="file" id="media-upload" accept="image/*,video/*" multiple>
@@ -567,6 +585,11 @@
     </div>
 
     <div class="bottom-sheet" id="comment-sheet">
+      <button class="close-sheet" onclick="closeBottomSheet()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
       <div class="bottom-sheet-content" id="comment-sheet-content">
         <div class="comment-list" id="comment-list"></div>
         <textarea id="comment-input" placeholder="Add comment..." rows="2"></textarea>
@@ -584,7 +607,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, update, set } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -602,8 +625,8 @@
 
     let app, auth, db, currentUser;
     let activeCommentReelId = null;
-    let currentActiveVideo = null;
-    let renderedComments = new Set();
+    let commentListeners = new Map();
+    let currentPlayingVideo = null;
 
     const showSpinner = () => {
       console.log('Showing spinner');
@@ -625,24 +648,21 @@
       setTimeout(() => alert.classList.remove('active'), 3000);
     };
 
-    const showLoveAnimation = () => {
-      const love = document.createElement('div');
-      love.innerHTML = '💖';
-      love.className = 'love-animation';
-      document.body.appendChild(love);
-      setTimeout(() => {
-        document.body.removeChild(love);
-      }, 600);
+    const showLoveAnimation = (reelDiv) => {
+      console.log('Showing love animation');
+      const heart = document.createElement('div');
+      heart.innerHTML = '💖';
+      heart.className = 'love-animation';
+      reelDiv.appendChild(heart);
+      setTimeout(() => heart.remove(), 600);
     };
 
     const openBottomSheet = (type, reelId = null) => {
-      console.log(`Attempting to open ${type} bottom sheet for reelId: ${reelId}`);
+      console.log(`Opening ${type} bottom sheet for reelId: ${reelId}`);
       if (type === 'upload') {
-        console.log('Opening upload sheet');
         document.getElementById('upload-sheet').classList.add('active');
         document.getElementById('comment-sheet').classList.remove('active');
       } else if (type === 'comment') {
-        console.log('Opening comment sheet for reel:', reelId);
         document.getElementById('comment-sheet').classList.add('active');
         document.getElementById('upload-sheet').classList.remove('active');
         activeCommentReelId = reelId;
@@ -660,7 +680,8 @@
       document.getElementById('comment-input').value = '';
       document.getElementById('comment-list').innerHTML = '';
       activeCommentReelId = null;
-      renderedComments.clear();
+      commentListeners.forEach((unsubscribe) => unsubscribe());
+      commentListeners.clear();
     };
 
     function initializeFirebase() {
@@ -669,7 +690,6 @@
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
         db = getDatabase(app);
-        console.log('Firebase initialized, checking auth state');
         onAuthStateChanged(auth, (user) => {
           if (user) {
             console.log('User authenticated:', user.uid);
@@ -693,6 +713,20 @@
       }
     }
 
+    function pauseAllVideos(exceptReelId = null) {
+      console.log('Pausing all videos except reel:', exceptReelId);
+      const videos = document.querySelectorAll('.reel-media');
+      videos.forEach(video => {
+        if (video.tagName === 'VIDEO' && video.closest('.reel').dataset.reelId !== exceptReelId) {
+          video.pause();
+          video.currentTime = 0;
+          const progressBar = document.getElementById(`progress-${video.closest('.reel').dataset.reelId}`);
+          if (progressBar) progressBar.style.width = '0%';
+          console.log(`Paused and reset video for reel ${video.closest('.reel').dataset.reelId}`);
+        }
+      });
+    }
+
     async function loadReels() {
       console.log('Loading reels');
       showSpinner();
@@ -705,6 +739,7 @@
           if (!snapshot.exists()) {
             console.log('No reels data found');
             reelsContainer.innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">No reels available.</p>';
+            pauseAllVideos();
             hideSpinner();
             return;
           }
@@ -735,19 +770,21 @@
                 const isVideo = reel.mediaType === 'video';
                 div.innerHTML = `
                   ${isVideo
-                    ? `<video class="reel-media" src="${reel.mediaURL}" autoplay loop playsinline></video><div class="progress-bar" id="progress-${reel.reelId}"></div>`
+                    ? `<video class="reel-media" src="${reel.mediaURL}" playsinline></video><div class="progress-bar" id="progress-${reel.reelId}"></div>`
                     : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
                   <div class="reel-overlay">
                     <div class="reel-header" onclick="goToProfile('${reel.userId}')">
-                      ${userData?.photoURL
-                        ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
-                        : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
-                      <div>
-                        <div class="reel-username">${userData?.displayName || 'User'}</div>
-                        <div class="reel-timestamp">${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
+                      <div class="reel-header-info">
+                        ${userData?.photoURL
+                          ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
+                          : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+                        <div>
+                          <div class="reel-username">${userData?.displayName || 'User'}</div>
+                          <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
+                        </div>
                       </div>
+                      <button class="follow-btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Friend' : 'Follow'}</button>
                     </div>
-                    <button class="follow-btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Friend' : 'Follow'}</button>
                     <div class="reel-caption">${caption}</div>
                   </div>
                   <div class="reel-actions">
@@ -775,12 +812,23 @@
                 if (isVideo) {
                   const video = div.querySelector('.reel-media');
                   const progressBar = div.querySelector(`#progress-${reel.reelId}`);
-                  video.addEventListener('loadedmetadata', () => {
-                    video.play().catch(err => console.error('Error playing video:', err));
+                  video.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (video.paused) {
+                      pauseAllVideos(reel.reelId);
+                      currentPlayingVideo = video;
+                      video.play().catch(err => console.error('Error playing video:', err));
+                    } else {
+                      video.pause();
+                      currentPlayingVideo = null;
+                    }
+                    console.log(`Video ${video.paused ? 'paused' : 'playing'} for reel ${reel.reelId}`);
                   });
                   video.addEventListener('timeupdate', () => {
-                    const progress = (video.currentTime / video.duration) * 100;
-                    progressBar.style.width = `${progress}%`;
+                    if (!video.paused) {
+                      const progress = (video.currentTime / video.duration) * 100;
+                      progressBar.style.width = `${progress}%`;
+                    }
                   });
                   video.addEventListener('waiting', () => showSpinner());
                   video.addEventListener('stalled', () => showSpinner());
@@ -797,29 +845,37 @@
                     showAlert('Failed to load video. Please check your network.');
                   });
                 }
-                // Double tap for like
                 let tapCount = 0;
                 let tapTimer;
-                const handleTap = (e) => {
+                div.addEventListener('touchstart', (e) => {
                   e.stopPropagation();
                   tapCount++;
                   if (tapCount === 1) {
-                    tapTimer = setTimeout(() => {
-                      tapCount = 0;
-                    }, 300);
+                    tapTimer = setTimeout(() => { tapCount = 0; }, 300);
                   } else {
                     clearTimeout(tapTimer);
                     tapCount = 0;
-                    if (!div.querySelector('.reel-action.liked')) {
-                      toggleLike(reel.reelId, div.querySelector('.reel-action'));
-                    }
-                    showLoveAnimation();
+                    showLoveAnimation(div);
+                    toggleLike(reel.reelId, div.querySelector('.reel-action'));
                   }
-                };
-                div.addEventListener('click', handleTap);
-                div.addEventListener('touchend', handleTap, { passive: true });
+                }, { passive: true });
+
+                div.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  tapCount++;
+                  if (tapCount === 1) {
+                    tapTimer = setTimeout(() => { tapCount = 0; }, 300);
+                  } else {
+                    clearTimeout(tapTimer);
+                    tapCount = 0;
+                    showLoveAnimation(div);
+                    toggleLike(reel.reelId, div.querySelector('.reel-action'));
+                  }
+                });
+
                 let pressTimer;
                 div.addEventListener('touchstart', (e) => {
+                  if (tapCount > 0) return;
                   e.stopPropagation();
                   pressTimer = setTimeout(() => {
                     openBottomSheet('comment', reel.reelId);
@@ -837,25 +893,19 @@
             }
           }
           hideSpinner();
+          observeReels();
         }, (error) => {
           console.error('Error in reels onValue:', error);
           showAlert('Failed to fetch reels. Please try again.');
+          pauseAllVideos();
           hideSpinner();
         });
       } catch (error) {
         console.error('Error loading reels:', error);
         showAlert('Failed to load reels. Please check your connection.');
+        pauseAllVideos();
         hideSpinner();
       }
-    }
-
-    function pauseAllVideos() {
-      const videos = document.querySelectorAll('video');
-      videos.forEach(video => {
-        video.pause();
-        const progressBar = document.getElementById(`progress-${video.closest('.reel').dataset.reelId}`);
-        if (progressBar) progressBar.style.width = '0%';
-      });
     }
 
     function goToProfile(userId) {
@@ -946,24 +996,29 @@
     async function loadComments(reelId) {
       console.log('Loading comments for reel', reelId);
       const commentList = document.getElementById('comment-list');
+      commentList.innerHTML = '';
       const commentsRef = ref(db, `reels/${reelId}/comments`);
       try {
-        onValue(commentsRef, async (snapshot) => {
+        if (commentListeners.has(reelId)) {
+          commentListeners.get(reelId)();
+          commentListeners.delete(reelId);
+        }
+        const unsubscribe = onValue(commentsRef, async (snapshot) => {
+          commentList.innerHTML = '';
           const comments = snapshot.val();
           if (!comments) {
             commentList.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No comments yet.</p>';
             return;
           }
-          const commentArray = Object.entries(comments)
-            .filter(([commentId]) => !renderedComments.has(commentId))
-            .map(([commentId, commentData]) => ({ commentId, ...commentData }));
-          if (commentArray.length === 0) return;
+          const commentArray = Object.entries(comments).map(([commentId, commentData]) => ({
+            commentId,
+            ...commentData
+          }));
           for (const comment of commentArray) {
-            renderedComments.add(comment.commentId);
             const userRef = ref(db, `users/${comment.userId}`);
             onValue(userRef, async (userSnapshot) => {
               const userData = userSnapshot.val();
-              const commentText = comment.comment || '';
+              const commentText = comment.comment;
               const commentDiv = document.createElement('div');
               commentDiv.className = `comment-item ${comment.parentId ? 'reply' : ''}`;
               commentDiv.innerHTML = `
@@ -985,15 +1040,15 @@
               commentList.appendChild(commentDiv);
               if (comment.replies) {
                 const repliesDiv = commentDiv.querySelector(`#replies-${comment.commentId}`);
-                const replyArray = Object.entries(comment.replies)
-                  .filter(([replyId]) => !renderedComments.has(replyId))
-                  .map(([replyId, replyData]) => ({ replyId, ...replyData }));
+                const replyArray = Object.entries(comment.replies).map(([replyId, replyData]) => ({
+                  replyId,
+                  ...replyData
+                }));
                 for (const reply of replyArray) {
-                  renderedComments.add(reply.replyId);
                   const replyUserRef = ref(db, `users/${reply.userId}`);
                   onValue(replyUserRef, async (replyUserSnapshot) => {
                     const replyUserData = replyUserSnapshot.val();
-                    const replyText = reply.comment || '';
+                    const replyText = reply.comment;
                     const replyDiv = document.createElement('div');
                     replyDiv.className = 'comment-item reply';
                     replyDiv.innerHTML = `
@@ -1018,6 +1073,7 @@
             }, { onlyOnce: true });
           }
         }, { onlyOnce: false });
+        commentListeners.set(reelId, unsubscribe);
       } catch (error) {
         console.error('Error loading comments:', error);
         showAlert('Failed to load comments. Please try again.');
@@ -1026,16 +1082,16 @@
 
     function formatTimestamp(timestamp) {
       const date = new Date(timestamp);
-      const now = new Date();
+      const now = new Date('2025-09-16T13:58:00+02:00'); // Current date: September 16, 2025, 01:58 PM SAST
       const diffMs = now - date;
       const diffSec = Math.floor(diffMs / 1000);
       const diffMin = Math.floor(diffSec / 60);
       const diffHr = Math.floor(diffMin / 60);
       const diffDay = Math.floor(diffHr / 24);
-      if (diffSec < 60) return `${diffSec}s ago`;
-      if (diffMin < 60) return `${diffMin}m ago`;
-      if (diffHr < 24) return `${diffHr}h ago`;
-      if (diffDay < 7) return `${diffDay}d ago`;
+      if (diffSec < 60) return `${diffSec} seconds ago`;
+      if (diffMin < 60) return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
+      if (diffHr < 24) return `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`;
+      if (diffDay < 7) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
       return date.toLocaleDateString();
     }
 
@@ -1192,31 +1248,62 @@
 
     let observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        const reelDiv = entry.target;
-        const video = reelDiv.querySelector('.reel-media');
+        const video = entry.target.querySelector('.reel-media');
         if (video && video.tagName === 'VIDEO') {
           if (entry.isIntersecting) {
-            currentActiveVideo = video;
+            pauseAllVideos(entry.target.dataset.reelId);
+            currentPlayingVideo = video;
             video.muted = false;
-            video.play().catch(err => console.error('Error resuming video:', err));
-            console.log(`Unmuted and playing video for reel ${reelDiv.dataset.reelId}`);
+            video.play().catch(err => console.error('Error playing video:', err));
+            console.log(`Playing video for reel ${entry.target.dataset.reelId}`);
           } else {
-            video.muted = true;
             video.pause();
-            const progressBar = document.getElementById(`progress-${reelDiv.dataset.reelId}`);
+            video.currentTime = 0;
+            video.muted = true;
+            const progressBar = document.getElementById(`progress-${entry.target.dataset.reelId}`);
             if (progressBar) progressBar.style.width = '0%';
-            console.log(`Muted and paused video for reel ${reelDiv.dataset.reelId}`);
+            if (currentPlayingVideo === video) currentPlayingVideo = null;
+            console.log(`Paused video for reel ${entry.target.dataset.reelId}`);
           }
         }
       });
-    }, { threshold: 0.5 });
+    }, { threshold: 0.6 });
+
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    const handleScroll = debounce(() => {
+      console.log('Scroll detected, checking video states');
+      const reels = document.querySelectorAll('.reel');
+      reels.forEach(reel => {
+        const video = reel.querySelector('.reel-media');
+        if (video && video.tagName === 'VIDEO' && video !== currentPlayingVideo) {
+          video.pause();
+          video.currentTime = 0;
+          const progressBar = document.getElementById(`progress-${reel.dataset.reelId}`);
+          if (progressBar) progressBar.style.width = '0%';
+        }
+      });
+    }, 100);
 
     function observeReels() {
+      console.log('Observing reels for visibility');
       const reels = document.querySelectorAll('.reel');
       reels.forEach(reel => observer.observe(reel));
     }
 
     // Event Listeners
+    document.getElementById('reels-container').addEventListener('scroll', handleScroll);
+
     document.getElementById('upload-nav-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       openBottomSheet('upload');
@@ -1283,7 +1370,6 @@
     document.addEventListener('DOMContentLoaded', () => {
       console.log('DOM loaded, initializing Firebase and observers');
       initializeFirebase();
-      observeReels();
     });
 
     window.toggleLike = toggleLike;
@@ -1292,6 +1378,7 @@
     window.showReplyInput = showReplyInput;
     window.submitReply = submitReply;
     window.goToProfile = goToProfile;
+    window.closeBottomSheet = closeBottomSheet;
   </script>
 </body>
 </html>
