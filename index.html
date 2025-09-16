@@ -31,7 +31,6 @@
       overflow-x: hidden;
       -webkit-user-select: none;
       user-select: none;
-      padding-bottom: 80px;
     }
 
     .btn {
@@ -43,14 +42,14 @@
     }
 
     .reels-container {
-      height: calc(100vh - 80px);
+      height: 100vh;
       overflow-y: auto;
       scroll-snap-type: y mandatory;
       scroll-behavior: smooth;
     }
 
     .reel {
-      height: calc(100vh - 80px);
+      height: 100vh;
       display: flex;
       flex-direction: column;
       position: relative;
@@ -65,6 +64,21 @@
       background: var(--bg);
     }
 
+    .reel-top-actions {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 16px;
+      color: var(--text-primary);
+      background: linear-gradient(to bottom, var(--glass-bg) 0%, transparent 100%);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      z-index: 40;
+    }
+
     .reel-overlay {
       position: absolute;
       bottom: 0;
@@ -77,6 +91,7 @@
       backdrop-filter: var(--glass-blur);
       border-top: 1px solid var(--border);
       box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
+      z-index: 30;
     }
 
     .reel-header {
@@ -303,7 +318,7 @@
 
     .bottom-sheet-content {
       color: var(--text-primary);
-      padding-top: 40px; /* Space for close button */
+      padding-top: 40px;
     }
 
     .close-sheet {
@@ -613,6 +628,9 @@
     }
 
     @media (max-width: 768px) {
+      .reel-top-actions {
+        padding: 12px;
+      }
       .reel-actions {
         right: 8px;
       }
@@ -854,7 +872,7 @@
                 console.log('User data for reel', reel.reelId, ':', userData);
                 const caption = reel.caption || '';
                 const isFollowing = await checkFollowingStatus(currentUser.uid, reel.userId);
-                await trackImpression(reel.reelId); // Track impression for this reel
+                await trackImpression(reel.reelId);
                 const div = document.createElement('div');
                 div.className = 'reel';
                 div.dataset.reelId = reel.reelId;
@@ -863,7 +881,7 @@
                   ${isVideo
                     ? `<video class="reel-media" src="${reel.mediaURL}" playsinline loop></video><div class="progress-bar" id="progress-${reel.reelId}"></div>`
                     : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
-                  <div class="reel-overlay">
+                  <div class="reel-top-actions">
                     <div class="reel-header" onclick="goToProfile('${reel.userId}')">
                       <div class="reel-header-info">
                         ${userData?.photoURL
@@ -876,9 +894,11 @@
                       </div>
                       <div class="reel-header-buttons">
                         <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
-                        <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments</button>
+                        <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>
                       </div>
                     </div>
+                  </div>
+                  <div class="reel-overlay">
                     <div class="reel-caption">${caption}</div>
                   </div>
                   <div class="reel-actions">
@@ -939,35 +959,8 @@
                     showAlert('Failed to load video. Please check your network.');
                   });
                 }
-                let tapCount = 0;
-                let tapTimer;
-                div.addEventListener('touchstart', (e) => {
-                  e.stopPropagation();
-                  tapCount++;
-                  if (tapCount === 1) {
-                    tapTimer = setTimeout(() => { tapCount = 0; }, 300);
-                  } else if (tapCount === 2) {
-                    clearTimeout(tapTimer);
-                    tapCount = 0;
-                    showLoveAnimation(div);
-                    toggleLike(reel.reelId, div.querySelector('.reel-action'));
-                  }
-                }, { passive: true });
-                div.addEventListener('click', (e) => {
-                  e.stopPropagation();
-                  tapCount++;
-                  if (tapCount === 1) {
-                    tapTimer = setTimeout(() => { tapCount = 0; }, 300);
-                  } else if (tapCount === 2) {
-                    clearTimeout(tapTimer);
-                    tapCount = 0;
-                    showLoveAnimation(div);
-                    toggleLike(reel.reelId, div.querySelector('.reel-action'));
-                  }
-                });
                 let pressTimer;
                 div.addEventListener('touchstart', (e) => {
-                  if (tapCount > 0) return;
                   e.stopPropagation();
                   pressTimer = setTimeout(() => {
                     openBottomSheet('comment', reel.reelId);
@@ -1218,17 +1211,23 @@
 
     function formatTimestamp(timestamp) {
       const date = new Date(timestamp);
-      const now = new Date('2025-09-16T15:02:00+02:00'); // Current date: September 16, 2025, 03:02 PM SAST
+      const now = new Date();
       const diffMs = now - date;
       const diffSec = Math.floor(diffMs / 1000);
       const diffMin = Math.floor(diffSec / 60);
       const diffHr = Math.floor(diffMin / 60);
       const diffDay = Math.floor(diffHr / 24);
-      if (diffSec < 60) return `${diffSec}s`;
-      if (diffMin < 60) return `${diffMin}m`;
-      if (diffHr < 24) return `${diffHr}h`;
-      if (diffDay < 7) return `${diffDay}d`;
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const diffWeek = Math.floor(diffDay / 7);
+      const diffMonth = Math.floor(diffDay / 30);
+      const diffYear = Math.floor(diffDay / 365);
+
+      if (diffSec < 60) return `${diffSec} second${diffSec === 1 ? '' : 's'} ago`;
+      if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+      if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
+      if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
+      if (diffWeek < 4) return `${diffWeek} week${diffWeek === 1 ? '' : 's'} ago`;
+      if (diffMonth < 12) return `${diffMonth} month${diffMonth === 1 ? '' : 's'} ago`;
+      return `${diffYear} year${diffYear === 1 ? '' : 's'} ago`;
     }
 
     function showReplyInput(commentId) {
@@ -1408,7 +1407,7 @@
             video.muted = false;
             video.play().catch(err => console.error('Error playing video:', err));
             console.log(`Playing video for reel ${entry.target.dataset.reelId}`);
-            trackImpression(entry.target.dataset.reelId); // Track impression when video is visible
+            trackImpression(entry.target.dataset.reelId);
           } else {
             video.pause();
             video.currentTime = 0;
@@ -1454,7 +1453,6 @@
       reels.forEach(reel => observer.observe(reel));
     }
 
-    // Event Listeners
     document.getElementById('reels-container').addEventListener('scroll', handleScroll);
 
     document.getElementById('upload-nav-btn').addEventListener('click', (e) => {
@@ -1482,11 +1480,17 @@
       showPreviews(e.target.files);
     });
 
-    document.getElementById('submit-upload').addEventListener('click', (e) => {
+    document.getElementById('submit-upload').addEventListener('click', async (e) => {
       e.stopPropagation();
-      const files = document.getElementById('media-upload').files;
-      const caption = document.getElementById('caption-input').value.trim();
-      uploadMedia(files, caption);
+      const button = e.currentTarget;
+      button.disabled = true;
+      try {
+        const files = document.getElementById('media-upload').files;
+        const caption = document.getElementById('caption-input').value.trim();
+        await uploadMedia(files, caption);
+      } finally {
+        button.disabled = false;
+      }
     });
 
     document.getElementById('submit-comment').addEventListener('click', (e) => {
