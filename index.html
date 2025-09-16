@@ -11,13 +11,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #000000; /* Dark background like Instagram */
+      --bg: #000000;
       --card-bg: #000000;
       --text-primary: #FFFFFF;
-      --text-secondary: #8E8E8E; /* Muted text */
-      --border: #262626; /* Subtle borders */
-      --highlight: #0095F6; /* Instagram blue for accents */
-      --badge-bg: #FA3E5F; /* Pink for likes */
+      --text-secondary: #8E8E8E;
+      --border: #262626;
+      --highlight: #0095F6;
+      --badge-bg: #FA3E5F;
     }
 
     body {
@@ -50,7 +50,7 @@
     .reel-media {
       width: 100%;
       height: 100%;
-      object-fit: contain; /* Better for aspect ratios like Instagram */
+      object-fit: contain;
       background: var(--bg);
     }
 
@@ -61,14 +61,13 @@
       right: 0;
       padding: 16px;
       color: var(--text-primary);
-      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%); /* Gradient overlay like Instagram */
+      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
     }
 
     .reel-header {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 8px;
       cursor: pointer;
     }
 
@@ -101,7 +100,6 @@
     .reel-timestamp {
       font-size: 12px;
       color: var(--text-secondary);
-      margin-left: 8px;
     }
 
     .reel-caption {
@@ -112,12 +110,14 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
       max-width: 90%;
+      margin-top: 8px;
     }
 
     .reel-actions {
       position: absolute;
       right: 12px;
-      bottom: 80px;
+      top: 50%;
+      transform: translateY(-50%);
       display: flex;
       flex-direction: column;
       gap: 20px;
@@ -141,6 +141,11 @@
     .reel-action.liked svg {
       fill: var(--badge-bg);
       stroke: var(--badge-bg);
+    }
+
+    .reel-action.bookmarked svg {
+      fill: var(--text-primary);
+      stroke: var(--text-primary);
     }
 
     .reel-action svg {
@@ -284,7 +289,7 @@
     .preview-item {
       position: relative;
       width: 100%;
-      aspect-ratio: 9/16; /* Instagram-like aspect */
+      aspect-ratio: 9/16;
       border-radius: 8px;
       overflow: hidden;
       border: 1px solid var(--border);
@@ -464,7 +469,7 @@
 
     @media (max-width: 768px) {
       .reel-actions {
-        bottom: 60px;
+        right: 8px;
       }
 
       .floating-upload-btn {
@@ -517,7 +522,6 @@
   </main>
 
   <script type="module">
-    // The JavaScript remains unchanged to retain full functionality
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import { getDatabase, ref, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
@@ -714,9 +718,9 @@
                       </svg>
                       <span>${Object.keys(reel.comments || {}).length}</span>
                     </button>
-                    <button class="reel-action" onclick="downloadReel('${reel.mediaURL}', '${reel.mediaType}')">
+                    <button class="reel-action ${reel.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reel.reelId}', this)">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
                       </svg>
                     </button>
                   </div>
@@ -744,19 +748,18 @@
                     showAlert('Failed to load video. Please check your network.');
                   });
                 }
-                // Add long press event listener to the reel
                 let pressTimer;
                 div.addEventListener('touchstart', (e) => {
                   e.stopPropagation();
                   pressTimer = setTimeout(() => {
                     openBottomSheet('comment', reel.reelId);
-                  }, 500); // 500ms long press threshold
+                  }, 500);
                 }, { passive: true });
                 div.addEventListener('touchmove', (e) => {
-                  clearTimeout(pressTimer); // Cancel if user moves
+                  clearTimeout(pressTimer);
                 }, { passive: true });
                 div.addEventListener('touchend', (e) => {
-                  clearTimeout(pressTimer); // Cancel if press ends early
+                  clearTimeout(pressTimer);
                 }, { passive: true });
               }, { onlyOnce: true });
             } catch (error) {
@@ -801,6 +804,25 @@
       } catch (error) {
         console.error('Error toggling like:', error);
         showAlert('Failed to like reel. Please try again.');
+      }
+    }
+
+    async function toggleBookmark(reelId, button) {
+      if (!currentUser) {
+        showAlert('Please log in to bookmark reels.');
+        return;
+      }
+      try {
+        const isBookmarked = button.classList.contains('bookmarked');
+        await update(ref(db, `reels/${reelId}/bookmarkedBy`), {
+          [currentUser.uid]: isBookmarked ? null : true
+        });
+        button.classList.toggle('bookmarked');
+        console.log(`Toggled bookmark for reel ${reelId}: ${isBookmarked ? 'Removed' : 'Added'}`);
+        showAlert(isBookmarked ? 'Removed from bookmarks' : 'Saved to bookmarks');
+      } catch (error) {
+        console.error('Error toggling bookmark:', error);
+        showAlert('Failed to bookmark reel. Please try again.');
       }
     }
 
@@ -892,7 +914,7 @@
 
     function formatTimestamp(timestamp) {
       const date = new Date(timestamp);
-      const now = new Date('2025-09-15T20:01:00Z'); // 10:01 PM SAST, Sep 15, 2025
+      const now = new Date();
       const diffMs = now - date;
       const diffSec = Math.floor(diffMs / 1000);
       const diffMin = Math.floor(diffSec / 60);
@@ -924,7 +946,6 @@
       }
       try {
         const encryptedReply = await encryptMessage(replyText);
-        const commentsRef = ref(db, `reels/${reelId}/comments`);
         await push(ref(db, `reels/${reelId}/comments/${parentId}/replies`), {
           userId: currentUser.uid,
           commentEncrypted: encryptedReply || { iv: [], data: [], text: replyText },
@@ -1040,6 +1061,7 @@
               caption: caption || null,
               timestamp: new Date().toISOString(),
               likedBy: {},
+              bookmarkedBy: {},
               comments: {}
             });
             console.log('Uploaded file:', data.secure_url);
@@ -1058,27 +1080,16 @@
       }
     }
 
-    function downloadReel(mediaURL, mediaType) {
-      console.log(`Downloading ${mediaType} from ${mediaURL}`);
-      const link = document.createElement('a');
-      link.href = mediaURL;
-      link.download = `reel_${new Date().toISOString()}.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      console.log('Download initiated');
-    }
-
     let observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         const video = entry.target.querySelector('.reel-media');
         if (video && video.tagName === 'VIDEO') {
           if (entry.isIntersecting) {
-            video.muted = false; // Unmute when in view
+            video.muted = false;
             video.play().catch(err => console.error('Error resuming video:', err));
             console.log(`Unmuted and playing video for reel ${entry.target.dataset.reelId}`);
           } else {
-            video.muted = true; // Mute when out of view
+            video.muted = true;
             video.pause();
             console.log(`Muted and paused video for reel ${entry.target.dataset.reelId}`);
           }
@@ -1154,10 +1165,10 @@
     });
 
     window.toggleLike = toggleLike;
+    window.toggleBookmark = toggleBookmark;
     window.showReplyInput = showReplyInput;
     window.submitReply = submitReply;
     window.goToProfile = goToProfile;
-    window.downloadReel = downloadReel;
   </script>
 </body>
 </html>
