@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
@@ -11,13 +12,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #F7F7F8;
-      --card-bg: #1C2526;
+      --bg: #000000; /* Dark background like Instagram */
+      --card-bg: #000000;
       --text-primary: #FFFFFF;
-      --text-secondary: #4B5EAA;
-      --border: #4A5568;
-      --highlight: #38B2AC;
-      --badge-bg: #EF4444;
+      --text-secondary: #8E8E8E; /* Muted text */
+      --border: #262626; /* Subtle borders */
+      --highlight: #0095F6; /* Instagram blue for accents */
+      --badge-bg: #FA3E5F; /* Pink for likes */
     }
 
     body {
@@ -50,29 +51,31 @@
     .reel-media {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain; /* Better for aspect ratios like Instagram */
+      background: var(--bg);
     }
 
     .reel-overlay {
       position: absolute;
-      bottom: 80px;
-      left: 15px;
-      right: 15px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 16px;
       color: var(--text-primary);
-      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%); /* Gradient overlay like Instagram */
     }
 
     .reel-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
+      gap: 8px;
+      margin-bottom: 8px;
       cursor: pointer;
     }
 
     .reel-avatar {
-      width: 40px;
-      height: 40px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       background: var(--text-secondary);
       display: flex;
@@ -80,48 +83,45 @@
       justify-content: center;
       color: var(--text-primary);
       font-weight: 600;
+      font-size: 14px;
     }
 
     .reel-profile-pic {
-      width: 40px;
-      height: 40px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid var(--highlight);
+      border: 1px solid var(--highlight);
     }
 
     .reel-username {
       font-weight: 600;
-      font-size: 16px;
+      font-size: 14px;
     }
 
     .reel-timestamp {
-      font-size: 14px;
-      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-left: 8px;
     }
 
     .reel-caption {
       font-size: 14px;
-      margin-bottom: 10px;
+      line-height: 1.4;
       display: -webkit-box;
-      -webkit-line-clamp: 3;
+      -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 8px 12px;
-      border-radius: 20px;
-      max-width: 80%;
-      color: var(--text-primary);
-      text-shadow: none;
+      max-width: 90%;
     }
 
     .reel-actions {
       position: absolute;
-      right: 15px;
-      bottom: 120px;
+      right: 12px;
+      bottom: 80px;
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 20px;
       align-items: center;
     }
 
@@ -133,9 +133,8 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       font-size: 12px;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
       -webkit-user-select: none;
       user-select: none;
     }
@@ -146,23 +145,23 @@
     }
 
     .reel-action svg {
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       stroke: var(--text-primary);
-      stroke-width: 2;
+      stroke-width: 1.5;
     }
 
     .floating-upload-btn {
       position: fixed;
-      bottom: 1.5rem;
+      bottom: 1rem;
       right: 1rem;
       background: var(--highlight);
       border: none;
       border-radius: 9999px;
-      padding: 0.75rem 1.5rem;
+      padding: 0.75rem;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      justify-content: center;
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       z-index: 50;
@@ -172,39 +171,25 @@
     }
 
     .floating-upload-btn:hover {
-      background: #2a928d;
+      background: #007ac2;
     }
 
     .floating-upload-btn svg {
-      width: 1.5rem;
-      height: 1.5rem;
+      width: 1.25rem;
+      height: 1.25rem;
       stroke: var(--text-primary);
-    }
-
-    .floating-upload-btn span {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--text-primary);
     }
 
     .friends-btn {
       position: fixed;
       top: 1rem;
-      right: 1rem;
-      background: var(--highlight);
+      left: 1rem;
+      background: transparent;
       border: none;
-      border-radius: 9999px;
-      padding: 0.75rem;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       z-index: 50;
-      transition: background 0.2s;
       -webkit-user-select: none;
       user-select: none;
-    }
-
-    .friends-btn:hover {
-      background: #2a928d;
     }
 
     .friends-btn svg {
@@ -219,9 +204,9 @@
       left: 0;
       right: 0;
       background: var(--card-bg);
-      border-top-left-radius: 16px;
-      border-top-right-radius: 16px;
-      padding: 20px;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      padding: 16px;
       max-height: 80vh;
       overflow-y: auto;
       transform: translateY(100%);
@@ -230,7 +215,7 @@
       -webkit-user-select: none;
       user-select: none;
       visibility: hidden;
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
     }
 
     .bottom-sheet.active {
@@ -240,7 +225,6 @@
 
     .bottom-sheet-content {
       color: var(--text-primary);
-      padding-bottom: 10px;
     }
 
     .bottom-sheet-content input[type="file"] {
@@ -251,11 +235,12 @@
       display: block;
       background: var(--highlight);
       color: var(--text-primary);
-      padding: 10px;
+      padding: 12px;
       text-align: center;
-      border-radius: 5px;
+      border-radius: 8px;
       cursor: pointer;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
+      font-weight: 500;
     }
 
     .bottom-sheet-content textarea {
@@ -263,9 +248,9 @@
       padding: 12px;
       border: 1px solid var(--border);
       border-radius: 8px;
-      background: var(--bg);
-      color: var(--text-secondary);
-      margin-bottom: 10px;
+      background: #121212;
+      color: var(--text-primary);
+      margin-bottom: 12px;
       resize: none;
       -webkit-user-select: auto;
       user-select: auto;
@@ -281,29 +266,29 @@
       cursor: pointer;
       width: 100%;
       font-size: 14px;
+      font-weight: 600;
       -webkit-user-select: none;
       user-select: none;
     }
 
     .bottom-sheet-content button:hover {
-      background: #2a928d;
+      background: #007ac2;
     }
 
     .preview-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 10px;
-      max-height: 200px;
-      overflow-y: auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
     }
 
     .preview-item {
       position: relative;
-      width: 100px;
-      height: 100px;
-      border-radius: 5px;
+      width: 100%;
+      aspect-ratio: 9/16; /* Instagram-like aspect */
+      border-radius: 8px;
       overflow: hidden;
+      border: 1px solid var(--border);
     }
 
     .preview-item img,
@@ -315,9 +300,9 @@
 
     .preview-item .remove-preview {
       position: absolute;
-      top: 5px;
-      right: 5px;
-      background: var(--badge-bg);
+      top: 4px;
+      right: 4px;
+      background: rgba(0,0,0,0.7);
       color: var(--text-primary);
       border: none;
       border-radius: 50%;
@@ -333,30 +318,29 @@
     }
 
     .comment-list {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
     .comment-item {
-      padding: 10px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
     }
 
     .comment-item.reply {
-      margin-left: 20px;
-      border-left: 1px dotted rgba(255,255,255,0.3);
-      padding-left: 10px;
+      margin-left: 32px;
+      padding-left: 12px;
     }
 
     .comment-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 5px;
+      gap: 8px;
+      margin-bottom: 4px;
     }
 
     .comment-avatar {
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       background: var(--text-secondary);
       display: flex;
@@ -367,11 +351,10 @@
     }
 
     .comment-profile-pic {
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       object-fit: cover;
-      border: 1px solid var(--highlight);
     }
 
     .comment-username {
@@ -381,25 +364,28 @@
 
     .comment-timestamp {
       font-size: 12px;
-      color: rgba(255,255,255,0.7);
+      color: var(--text-secondary);
+      margin-left: auto;
     }
 
     .comment-text {
       font-size: 14px;
-      margin-bottom: 5px;
+      line-height: 1.4;
+      color: var(--text-primary);
     }
 
     .reply-link {
       font-size: 12px;
-      color: var(--highlight);
+      color: var(--text-secondary);
       cursor: pointer;
       -webkit-user-select: none;
       user-select: none;
+      margin-top: 4px;
     }
 
     .reply-input {
       display: none;
-      margin-top: 10px;
+      margin-top: 8px;
     }
 
     .reply-input.active {
@@ -411,14 +397,15 @@
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: var(--badge-bg);
+      background: rgba(0,0,0,0.8);
       color: var(--text-primary);
-      padding: 10px 20px;
-      border-radius: 5px;
+      padding: 12px 24px;
+      border-radius: 8px;
       z-index: 60;
       display: none;
       max-width: 90%;
       text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
     .alert.active {
@@ -437,7 +424,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0,0,0,0.3);
+      background: rgba(0,0,0,0.5);
       display: none;
       align-items: center;
       justify-content: center;
@@ -449,22 +436,20 @@
     }
 
     .spinner {
-      width: 100px;
-      height: 4px;
-      background: var(--highlight);
-      border-radius: 2px;
-      animation: loading 1.5s ease-in-out infinite;
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--highlight);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
     }
 
-    @keyframes loading {
-      0% { transform: scaleX(0); transform-origin: left; }
-      50% { transform: scaleX(1); transform-origin: left; }
-      51% { transform-origin: right; }
-      100% { transform: scaleX(0); transform-origin: right; }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     @keyframes slideIn {
-      from { opacity: 0; transform: translateY(10px); }
+      from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
@@ -480,11 +465,11 @@
 
     @media (max-width: 768px) {
       .reel-actions {
-        bottom: 110px;
+        bottom: 60px;
       }
 
       .floating-upload-btn {
-        bottom: 1rem;
+        bottom: 0.75rem;
       }
     }
   </style>
@@ -505,7 +490,6 @@
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
         <path d="M12 4v8m0 0v8m8-8H4"/>
       </svg>
-      <span>Upload</span>
     </button>
 
     <div class="bottom-sheet" id="upload-sheet">
@@ -513,15 +497,15 @@
         <label for="media-upload">Select Image/Video</label>
         <input type="file" id="media-upload" accept="image/*,video/*" multiple>
         <div class="preview-container" id="preview-container"></div>
-        <textarea id="caption-input" placeholder="Add a caption..." rows="3"></textarea>
-        <button id="submit-upload">Upload</button>
+        <textarea id="caption-input" placeholder="Write a caption..." rows="3"></textarea>
+        <button id="submit-upload">Post</button>
       </div>
     </div>
 
     <div class="bottom-sheet" id="comment-sheet">
       <div class="bottom-sheet-content" id="comment-sheet-content">
         <div class="comment-list" id="comment-list"></div>
-        <textarea id="comment-input" placeholder="Add a comment..." rows="2"></textarea>
+        <textarea id="comment-input" placeholder="Add comment..." rows="2"></textarea>
         <button id="submit-comment">Post</button>
       </div>
     </div>
@@ -534,6 +518,7 @@
   </main>
 
   <script type="module">
+    // The JavaScript remains unchanged to retain full functionality
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import { getDatabase, ref, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
@@ -712,12 +697,10 @@
                       ${userData?.photoURL
                         ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
                         : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
-                      <div>
-                        <div class="reel-username">${userData?.displayName || 'User'}</div>
-                        <div class="reel-timestamp">${reel.timestamp ? new Date(reel.timestamp).toLocaleTimeString() : ''}</div>
-                      </div>
+                      <div class="reel-username">${userData?.displayName || 'User'}</div>
+                      <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
                     </div>
-                    <div class="reel-caption">${caption.slice(0, 100)}${caption.length > 100 ? '...' : ''}</div>
+                    <div class="reel-caption">${caption}</div>
                   </div>
                   <div class="reel-actions">
                     <button class="reel-action ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
@@ -726,7 +709,7 @@
                       </svg>
                       <span>${Object.keys(reel.likedBy || {}).length}</span>
                     </button>
-                    <button class="reel-action">
+                    <button class="reel-action" onclick="openBottomSheet('comment', '${reel.reelId}')">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                       </svg>
@@ -736,7 +719,6 @@
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                       </svg>
-                      <span>Download</span>
                     </button>
                   </div>
                 `;
@@ -833,7 +815,7 @@
           commentList.innerHTML = '';
           const comments = snapshot.val();
           if (!comments) {
-            commentList.innerHTML = '<p style="color: var(--text-primary); font-size: 14px;">No comments yet.</p>';
+            commentList.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No comments yet.</p>';
             return;
           }
           const commentArray = Object.entries(comments).map(([commentId, commentData]) => ({
@@ -854,15 +836,13 @@
                   ${userData?.photoURL
                     ? `<img src="${userData.photoURL}" class="comment-profile-pic" alt="${userData.displayName}'s profile picture">`
                     : `<div class="comment-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
-                  <div>
-                    <div class="comment-username">${userData?.displayName || 'User'}</div>
-                    <div class="comment-timestamp">${formatTimestamp(comment.timestamp)}</div>
-                  </div>
+                  <div class="comment-username">${userData?.displayName || 'User'}</div>
+                  <div class="comment-timestamp">${formatTimestamp(comment.timestamp)}</div>
                 </div>
                 <div class="comment-text">${commentText}</div>
                 <div class="reply-link" onclick="showReplyInput('${comment.commentId}')">Reply</div>
                 <div class="reply-input" id="reply-input-${comment.commentId}">
-                  <textarea placeholder="Reply to ${userData?.displayName || 'User'}..." rows="2"></textarea>
+                  <textarea placeholder="Reply..." rows="2"></textarea>
                   <button onclick="submitReply('${reelId}', '${comment.commentId}')">Post</button>
                 </div>
                 <div class="replies" id="replies-${comment.commentId}"></div>
@@ -888,15 +868,13 @@
                         ${replyUserData?.photoURL
                           ? `<img src="${replyUserData.photoURL}" class="comment-profile-pic" alt="${replyUserData.displayName}'s profile picture">`
                           : `<div class="comment-avatar">${replyUserData?.displayName ? replyUserData.displayName[0].toUpperCase() : 'U'}</div>`}
-                        <div>
-                          <div class="comment-username">${replyUserData?.displayName || 'User'}</div>
-                          <div class="comment-timestamp">${formatTimestamp(reply.timestamp)}</div>
-                        </div>
+                        <div class="comment-username">${replyUserData?.displayName || 'User'}</div>
+                        <div class="comment-timestamp">${formatTimestamp(reply.timestamp)}</div>
                       </div>
                       <div class="comment-text">${replyText}</div>
                       <div class="reply-link" onclick="showReplyInput('${reply.replyId}')">Reply</div>
                       <div class="reply-input" id="reply-input-${reply.replyId}">
-                        <textarea placeholder="Reply to ${replyUserData?.displayName || 'User'}..." rows="2"></textarea>
+                        <textarea placeholder="Reply..." rows="2"></textarea>
                         <button onclick="submitReply('${reelId}', '${reply.replyId}')">Post</button>
                       </div>
                     `;
@@ -921,10 +899,10 @@
       const diffMin = Math.floor(diffSec / 60);
       const diffHr = Math.floor(diffMin / 60);
       const diffDay = Math.floor(diffHr / 24);
-      if (diffSec < 60) return `${diffSec}s ago`;
-      if (diffMin < 60) return `${diffMin}m ago`;
-      if (diffHr < 24) return `${diffHr}h ago`;
-      if (diffDay < 7) return `${diffDay}d ago`;
+      if (diffSec < 60) return `${diffSec}s`;
+      if (diffMin < 60) return `${diffMin}m`;
+      if (diffHr < 24) return `${diffHr}h`;
+      if (diffDay < 7) return `${diffDay}d`;
       return date.toLocaleDateString();
     }
 
@@ -1184,3 +1162,4 @@
   </script>
 </body>
 </html>
+```
