@@ -290,9 +290,10 @@
 
     .bottom-sheet {
       position: fixed;
-      bottom: 0;
+      top: calc(100% - 76px); /* Start above nav bar (56px height + 20px margin) */
       left: 0;
       right: 0;
+      bottom: auto;
       background: var(--glass-bg);
       -webkit-backdrop-filter: var(--glass-blur);
       backdrop-filter: var(--glass-blur);
@@ -300,9 +301,9 @@
       border-top-left-radius: 20px;
       border-top-right-radius: 20px;
       padding: 16px;
-      max-height: 100vh;
+      max-height: calc(100vh - 76px); /* Fit above nav bar */
       overflow-y: auto;
-      transform: translateY(100%);
+      transform: translateY(-100%); /* Slide down from above */
       transition: transform 0.3s ease-in-out;
       z-index: 100;
       -webkit-user-select: none;
@@ -791,7 +792,6 @@
           return;
         }
       }
-      document.querySelector('.bottom-nav').style.display = 'none';
       if (type === 'upload') {
         document.getElementById('upload-sheet').classList.add('active');
         document.getElementById('comment-sheet').classList.remove('active');
@@ -816,7 +816,6 @@
       commentListeners.forEach((unsubscribe) => unsubscribe());
       commentListeners.clear();
       commentsLoaded = 0;
-      document.querySelector('.bottom-nav').style.display = 'flex';
     };
 
     async function getUserSettings(reelId) {
