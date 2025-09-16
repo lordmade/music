@@ -242,7 +242,7 @@
       padding: 8px 16px;
       width: 280px;
       max-width: 90%;
-      z-index: 40;
+      z-index: 101; /* Above bottom sheet */
       box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
 
@@ -290,7 +290,7 @@
 
     .bottom-sheet {
       position: fixed;
-      bottom: 80px;
+      bottom: 0; /* Start from bottom of screen */
       left: 0;
       right: 0;
       background: var(--glass-bg);
@@ -300,11 +300,11 @@
       border-top-left-radius: 20px;
       border-top-right-radius: 20px;
       padding: 16px;
-      max-height: calc(80vh - 80px);
+      max-height: 100vh; /* Full screen height */
       overflow-y: auto;
       transform: translateY(100%);
       transition: transform 0.3s ease-in-out;
-      z-index: 100;
+      z-index: 100; /* Below bottom nav */
       -webkit-user-select: none;
       user-select: none;
       visibility: hidden;
@@ -769,11 +769,14 @@
       if (type === 'upload') {
         document.getElementById('upload-sheet').classList.add('active');
         document.getElementById('comment-sheet').classList.remove('active');
+        // Ensure bottom nav remains visible
+        document.querySelector('.bottom-nav').style.display = 'flex';
       } else if (type === 'comment') {
         document.getElementById('comment-sheet').classList.add('active');
         document.getElementById('upload-sheet').classList.remove('active');
         activeCommentReelId = reelId;
         loadComments(reelId);
+        document.querySelector('.bottom-nav').style.display = 'flex';
       }
     };
 
@@ -835,6 +838,9 @@
           console.log(`Paused and reset video for reel ${video.closest('.reel').dataset.reelId}`);
         }
       });
+      if (currentPlayingVideo && currentPlayingVideo.closest('.reel').dataset.reelId !== exceptReelId) {
+        currentPlayingVideo = null;
+      }
     }
 
     // Fisher-Yates shuffle for randomization
@@ -1424,26 +1430,27 @@
 
     let observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        const video = entry.target.querySelector('.reel-media');
+        const reel = entry.target;
+        const video = reel.querySelector('.reel-media');
         if (video && video.tagName === 'VIDEO') {
-          const playIcon = entry.target.querySelector('.play-icon');
-          if (entry.isIntersecting) {
-            pauseAllVideos(entry.target.dataset.reelId);
+          const playIcon = reel.querySelector('.play-icon');
+          const progressBar = document.getElementById(`progress-${reel.dataset.reelId}`);
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+            pauseAllVideos(reel.dataset.reelId);
             currentPlayingVideo = video;
             video.muted = false;
             video.play().catch(err => console.error('Error playing video:', err));
             if (playIcon) playIcon.classList.add('hidden');
-            console.log(`Playing video for reel ${entry.target.dataset.reelId}`);
-            trackImpression(entry.target.dataset.reelId);
+            console.log(`Playing video for reel ${reel.dataset.reelId}`);
+            trackImpression(reel.dataset.reelId);
           } else {
             video.pause();
             video.currentTime = 0;
             video.muted = true;
-            const progressBar = document.getElementById(`progress-${entry.target.dataset.reelId}`);
             if (progressBar) progressBar.style.width = '0%';
             if (playIcon) playIcon.classList.remove('hidden');
             if (currentPlayingVideo === video) currentPlayingVideo = null;
-            console.log(`Paused video for reel ${entry.target.dataset.reelId}`);
+            console.log(`Paused video for reel ${reel.dataset.reelId} due to swipe`);
           }
         }
       });
@@ -1473,6 +1480,7 @@
           if (progressBar) progressBar.style.width = '0%';
           const playIcon = reel.querySelector('.play-icon');
           if (playIcon) playIcon.classList.remove('hidden');
+          console.log(`Paused video for reel ${reel.dataset.reelId} during scroll`);
         }
       });
     }, 100);
