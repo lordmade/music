@@ -90,7 +90,7 @@
       color: var(--text-primary);
       border-bottom: 1px solid var(--border);
       box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-      z-index: 45;
+      z-index: 45; /* Above bottom nav bar */
     }
 
     .reel-header {
@@ -171,7 +171,7 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
       max-width: 90%;
-      margin-top: 8px;
+      margin-top: 8px; /* Space below header */
     }
 
     .reel-actions {
@@ -242,7 +242,7 @@
       padding: 8px 16px;
       width: 280px;
       max-width: 90%;
-      z-index: 101;
+      z-index: 101; /* Above bottom sheet */
       box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
 
@@ -290,10 +290,9 @@
 
     .bottom-sheet {
       position: fixed;
-      top: calc(100% - 76px); /* Start above nav bar (56px height + 20px margin) */
+      bottom: 0; /* Start from bottom of screen */
       left: 0;
       right: 0;
-      bottom: auto;
       background: var(--glass-bg);
       -webkit-backdrop-filter: var(--glass-blur);
       backdrop-filter: var(--glass-blur);
@@ -301,11 +300,11 @@
       border-top-left-radius: 20px;
       border-top-right-radius: 20px;
       padding: 16px;
-      max-height: calc(100vh - 76px); /* Fit above nav bar */
+      max-height: 100vh; /* Full screen height */
       overflow-y: auto;
-      transform: translateY(-100%); /* Slide down from above */
+      transform: translateY(100%);
       transition: transform 0.3s ease-in-out;
-      z-index: 100;
+      z-index: 100; /* Below bottom nav */
       -webkit-user-select: none;
       user-select: none;
       visibility: hidden;
@@ -488,25 +487,6 @@
       font-size: 12px;
       color: var(--text-secondary);
       margin-left: auto;
-    }
-
-    .delete-comment {
-      background: none;
-      border: none;
-      color: var(--badge-bg);
-      cursor: pointer;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .delete-comment svg {
-      width: 20px;
-      height: 20px;
-      stroke: var(--badge-bg);
-      stroke-width: 2;
     }
 
     .comment-text {
@@ -731,7 +711,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, update, remove, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, push, update, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -752,6 +732,7 @@
     let commentListeners = new Map();
     let currentPlayingVideo = null;
     let lastCommentTimestamp = 0;
+    let commentsLoaded = 0;
     const COMMENTS_PER_PAGE = 10;
 
     const showSpinner = () => {
@@ -783,23 +764,19 @@
       setTimeout(() => heart.remove(), 600);
     };
 
-    const openBottomSheet = async (type, reelId = null) => {
+    const openBottomSheet = (type, reelId = null) => {
       console.log(`Opening ${type} bottom sheet for reelId: ${reelId}`);
-      if (type === 'comment' && reelId) {
-        const allowComments = await getUserSettings(reelId);
-        if (!allowComments) {
-          showAlert('Comments are disabled for this reel.');
-          return;
-        }
-      }
       if (type === 'upload') {
         document.getElementById('upload-sheet').classList.add('active');
         document.getElementById('comment-sheet').classList.remove('active');
+        // Ensure bottom nav remains visible
+        document.querySelector('.bottom-nav').style.display = 'flex';
       } else if (type === 'comment') {
         document.getElementById('comment-sheet').classList.add('active');
         document.getElementById('upload-sheet').classList.remove('active');
         activeCommentReelId = reelId;
         loadComments(reelId);
+        document.querySelector('.bottom-nav').style.display = 'flex';
       }
     };
 
@@ -817,22 +794,6 @@
       commentListeners.clear();
       commentsLoaded = 0;
     };
-
-    async function getUserSettings(reelId) {
-      try {
-        const reelRef = ref(db, `reels/${reelId}`);
-        const reelSnapshot = await new Promise((resolve) => onValue(reelRef, resolve, { onlyOnce: true }));
-        const reelData = reelSnapshot.val();
-        if (!reelData) return true;
-        const userRef = ref(db, `users/${reelData.userId}/settings`);
-        const snapshot = await new Promise((resolve) => onValue(userRef, resolve, { onlyOnce: true }));
-        const settings = snapshot.val() || {};
-        return settings.allowComments !== false;
-      } catch (error) {
-        console.error('Error fetching user settings:', error);
-        return true;
-      }
-    }
 
     function initializeFirebase() {
       console.log('Initializing Firebase');
@@ -882,6 +843,7 @@
       }
     }
 
+    // Fisher-Yates shuffle for randomization
     function shuffleArray(array) {
       for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -910,6 +872,7 @@
           console.log('Data fetched:', Object.keys(reels).length, 'reels');
           const reelsArray = Object.entries(reels)
             .map(([reelId, reelData]) => ({ reelId, ...reelData }));
+          // Randomize reels using Fisher-Yates shuffle
           const randomizedReels = shuffleArray(reelsArray);
           
           if (reelsContainer.children.length !== randomizedReels.length) {
@@ -927,7 +890,6 @@
                 console.log('User data for reel', reel.reelId, ':', userData);
                 const caption = reel.caption || '';
                 const isFollowing = await checkFollowingStatus(currentUser.uid, reel.userId);
-                const allowComments = await getUserSettings(reel.reelId);
                 await trackImpression(reel.reelId);
                 const div = document.createElement('div');
                 div.className = 'reel';
@@ -954,7 +916,7 @@
                       </div>
                       <div class="reel-header-buttons">
                         <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
-                        ${allowComments ? `<button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>` : ''}
+                        <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>
                       </div>
                     </div>
                     <div class="reel-caption">${caption}</div>
@@ -1028,21 +990,19 @@
                     if (playIcon) playIcon.classList.remove('hidden');
                   });
                 }
-                if (allowComments) {
-                  let pressTimer;
-                  div.addEventListener('touchstart', (e) => {
-                    e.stopPropagation();
-                    pressTimer = setTimeout(() => {
-                      openBottomSheet('comment', reel.reelId);
-                    }, 500);
-                  }, { passive: true });
-                  div.addEventListener('touchmove', (e) => {
-                    clearTimeout(pressTimer);
-                  }, { passive: true });
-                  div.addEventListener('touchend', (e) => {
-                    clearTimeout(pressTimer);
-                  }, { passive: true });
-                }
+                let pressTimer;
+                div.addEventListener('touchstart', (e) => {
+                  e.stopPropagation();
+                  pressTimer = setTimeout(() => {
+                    openBottomSheet('comment', reel.reelId);
+                  }, 500);
+                }, { passive: true });
+                div.addEventListener('touchmove', (e) => {
+                  clearTimeout(pressTimer);
+                }, { passive: true });
+                div.addEventListener('touchend', (e) => {
+                  clearTimeout(pressTimer);
+                }, { passive: true });
               }, { onlyOnce: true });
             } catch (error) {
               console.error('Error fetching user data for reel', reel.reelId, ':', error);
@@ -1198,7 +1158,6 @@
               const userData = userSnapshot.val();
               const commentText = comment.comment;
               const replyCount = Object.keys(comment.replies || {}).length;
-              const isOwner = currentUser && comment.userId === currentUser.uid;
               const commentDiv = document.createElement('div');
               commentDiv.className = `comment-item ${comment.parentId ? 'reply' : ''}`;
               commentDiv.innerHTML = `
@@ -1208,13 +1167,6 @@
                     : `<div class="comment-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
                   <div class="comment-username">${userData?.displayName || 'User'}</div>
                   <div class="comment-timestamp">${formatTimestamp(comment.timestamp)}</div>
-                  ${isOwner ? `
-                    <button class="delete-comment" onclick="deleteComment('${reelId}', '${comment.commentId}', null)">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                      </svg>
-                    </button>
-                  ` : ''}
                 </div>
                 <div class="comment-text">${commentText}</div>
                 <div class="reply-link" onclick="showReplyInput('${comment.commentId}')">Reply${replyCount > 0 ? ` (${replyCount})` : ''}</div>
@@ -1236,7 +1188,6 @@
                   onValue(replyUserRef, async (replyUserSnapshot) => {
                     const replyUserData = replyUserSnapshot.val();
                     const replyText = reply.comment;
-                    const isReplyOwner = currentUser && reply.userId === currentUser.uid;
                     const replyDiv = document.createElement('div');
                     replyDiv.className = 'comment-item reply';
                     replyDiv.innerHTML = `
@@ -1246,13 +1197,6 @@
                           : `<div class="comment-avatar">${replyUserData?.displayName ? replyUserData.displayName[0].toUpperCase() : 'U'}</div>`}
                         <div class="comment-username">${replyUserData?.displayName || 'User'}</div>
                         <div class="comment-timestamp">${formatTimestamp(reply.timestamp)}</div>
-                        ${isReplyOwner ? `
-                          <button class="delete-comment" onclick="deleteComment('${reelId}', '${comment.commentId}', '${reply.replyId}')">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                            </svg>
-                          </button>
-                        ` : ''}
                       </div>
                       <div class="comment-text">${replyText}</div>
                       <div class="reply-link" onclick="showReplyInput('${reply.replyId}')">Reply</div>
@@ -1296,25 +1240,6 @@
       }
     }
 
-    async function deleteComment(reelId, commentId, replyId = null) {
-      if (!currentUser) {
-        showAlert('Please log in to delete comments.');
-        return;
-      }
-      try {
-        const path = replyId
-          ? `reels/${reelId}/comments/${commentId}/replies/${replyId}`
-          : `reels/${reelId}/comments/${commentId}`;
-        await remove(ref(db, path));
-        console.log(`Deleted ${replyId ? 'reply' : 'comment'} ${replyId || commentId} for reel ${reelId}`);
-        showAlert('Comment deleted.');
-        loadComments(reelId);
-      } catch (error) {
-        console.error('Error deleting comment:', error);
-        showAlert('Failed to delete comment. Please try again.');
-      }
-    }
-
     function formatTimestamp(timestamp) {
       const date = new Date(timestamp);
       const now = new Date();
@@ -1350,11 +1275,6 @@
         showAlert('Please log in to comment.');
         return;
       }
-      const allowComments = await getUserSettings(reelId);
-      if (!allowComments) {
-        showAlert('Comments are disabled for this reel.');
-        return;
-      }
       const now = Date.now();
       if (now - lastCommentTimestamp < 3000) {
         showAlert('Please wait a few seconds before posting another reply.');
@@ -1387,11 +1307,6 @@
     async function submitComment(reelId) {
       if (!currentUser) {
         showAlert('Please log in to comment.');
-        return;
-      }
-      const allowComments = await getUserSettings(reelId);
-      if (!allowComments) {
-        showAlert('Comments are disabled for this reel.');
         return;
       }
       const now = Date.now();
@@ -1658,7 +1573,6 @@
     window.toggleFollow = toggleFollow;
     window.showReplyInput = showReplyInput;
     window.submitReply = submitReply;
-    window.deleteComment = deleteComment;
     window.goToProfile = goToProfile;
     window.closeBottomSheet = closeBottomSheet;
     window.openBottomSheet = (type, reelId, event) => {
