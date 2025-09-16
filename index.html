@@ -88,28 +88,9 @@
       right: 0;
       padding: 16px;
       color: var(--text-primary);
-      background: linear-gradient(to bottom, var(--glass-bg) 0%, transparent 100%);
-      -webkit-backdrop-filter: var(--glass-blur);
-      backdrop-filter: var(--glass-blur);
       border-bottom: 1px solid var(--border);
       box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-      z-index: 40;
-    }
-
-    .reel-overlay {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 16px;
-      padding-bottom: 100px; /* Increased to avoid nav bar obstruction */
-      color: var(--text-primary);
-      background: linear-gradient(to top, var(--glass-bg) 0%, transparent 100%);
-      -webkit-backdrop-filter: var(--glass-blur);
-      backdrop-filter: var(--glass-blur);
-      border-top: 1px solid var(--border);
-      box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
-      z-index: 45; /* Above nav bar (z-index: 40) */
+      z-index: 45; /* Above bottom nav bar */
     }
 
     .reel-header {
@@ -190,6 +171,7 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
       max-width: 90%;
+      margin-top: 8px; /* Space below header */
     }
 
     .reel-actions {
@@ -237,7 +219,7 @@
     .progress-bar {
       position: absolute;
       bottom: 0;
-      leftソーシャルメディア left: 0;
+      left: 0;
       width: 0;
       height: 3px;
       background: var(--highlight);
@@ -260,7 +242,7 @@
       padding: 8px 16px;
       width: 280px;
       max-width: 90%;
-      z-index: 40; /* Lower than reel-overlay */
+      z-index: 40;
       box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
 
@@ -931,8 +913,6 @@
                         <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>
                       </div>
                     </div>
-                  </div>
-                  <div class="reel-overlay">
                     <div class="reel-caption">${caption}</div>
                   </div>
                   <div class="reel-actions">
