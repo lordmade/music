@@ -64,6 +64,23 @@
       background: var(--bg);
     }
 
+    .play-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 48px;
+      height: 48px;
+      color: var(--text-primary);
+      opacity: 0.8;
+      transition: opacity 0.3s ease;
+      z-index: 20;
+    }
+
+    .play-icon.hidden {
+      opacity: 0;
+    }
+
     .reel-top-actions {
       position: absolute;
       top: 0;
@@ -85,13 +102,14 @@
       left: 0;
       right: 0;
       padding: 16px;
+      padding-bottom: 100px; /* Increased to avoid nav bar obstruction */
       color: var(--text-primary);
       background: linear-gradient(to top, var(--glass-bg) 0%, transparent 100%);
       -webkit-backdrop-filter: var(--glass-blur);
       backdrop-filter: var(--glass-blur);
       border-top: 1px solid var(--border);
       box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
-      z-index: 30;
+      z-index: 45; /* Above nav bar (z-index: 40) */
     }
 
     .reel-header {
@@ -219,7 +237,7 @@
     .progress-bar {
       position: absolute;
       bottom: 0;
-      left: 0;
+      leftソーシャルメディア left: 0;
       width: 0;
       height: 3px;
       background: var(--highlight);
@@ -242,7 +260,7 @@
       padding: 8px 16px;
       width: 280px;
       max-width: 90%;
-      z-index: 50;
+      z-index: 40; /* Lower than reel-overlay */
       box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
 
@@ -654,11 +672,11 @@
     </div>
 
     <nav class="bottom-nav">
-      <button class="nav-item btn active" id="home-btn" aria-label="Home">
+      <button class="nav-item btn active" id="home-btn" aria-label="AI Feed">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M3 12l2-2m0 0l7-7 7 7m-9 2v7a2 2 0 002 2h3a2 2 0 002-2v-7"/>
+          <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 18c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm-4-12h8v2H8v-2zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
         </svg>
-        <span>Home</span>
+        <span>AI Feed</span>
       </button>
       <button class="nav-item upload-btn" id="upload-nav-btn" aria-label="Upload">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -830,9 +848,20 @@
           video.currentTime = 0;
           const progressBar = document.getElementById(`progress-${video.closest('.reel').dataset.reelId}`);
           if (progressBar) progressBar.style.width = '0%';
+          const playIcon = video.closest('.reel').querySelector('.play-icon');
+          if (playIcon) playIcon.classList.remove('hidden');
           console.log(`Paused and reset video for reel ${video.closest('.reel').dataset.reelId}`);
         }
       });
+    }
+
+    // Fisher-Yates shuffle for randomization
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
     }
 
     async function loadReels() {
@@ -854,16 +883,17 @@
           const reels = snapshot.val();
           console.log('Data fetched:', Object.keys(reels).length, 'reels');
           const reelsArray = Object.entries(reels)
-            .map(([reelId, reelData]) => ({ reelId, ...reelData }))
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            .map(([reelId, reelData]) => ({ reelId, ...reelData }));
+          // Randomize reels using Fisher-Yates shuffle
+          const randomizedReels = shuffleArray(reelsArray);
           
-          if (reelsContainer.children.length !== reelsArray.length) {
+          if (reelsContainer.children.length !== randomizedReels.length) {
             reelsContainer.innerHTML = '';
             renderedReels.clear();
             pauseAllVideos();
           }
           
-          for (const reel of reelsArray) {
+          for (const reel of randomizedReels) {
             if (renderedReels.has(reel.reelId)) continue;
             const userRef = ref(db, `users/${reel.userId}`);
             try {
@@ -879,7 +909,11 @@
                 const isVideo = reel.mediaType === 'video';
                 div.innerHTML = `
                   ${isVideo
-                    ? `<video class="reel-media" src="${reel.mediaURL}" playsinline loop></video><div class="progress-bar" id="progress-${reel.reelId}"></div>`
+                    ? `<video class="reel-media" src="${reel.mediaURL}" playsinline loop></video>
+                       <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                         <path d="M5 3l14 9-14 9V3z"/>
+                       </svg>
+                       <div class="progress-bar" id="progress-${reel.reelId}"></div>`
                     : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
                   <div class="reel-top-actions">
                     <div class="reel-header" onclick="goToProfile('${reel.userId}')">
@@ -926,17 +960,26 @@
                 if (isVideo) {
                   const video = div.querySelector('.reel-media');
                   const progressBar = div.querySelector(`#progress-${reel.reelId}`);
+                  const playIcon = div.querySelector('.play-icon');
                   video.addEventListener('click', (e) => {
                     e.stopPropagation();
                     if (video.paused) {
                       pauseAllVideos(reel.reelId);
                       currentPlayingVideo = video;
                       video.play().catch(err => console.error('Error playing video:', err));
+                      if (playIcon) playIcon.classList.add('hidden');
                     } else {
                       video.pause();
                       currentPlayingVideo = null;
+                      if (playIcon) playIcon.classList.remove('hidden');
                     }
                     console.log(`Video ${video.paused ? 'paused' : 'playing'} for reel ${reel.reelId}`);
+                  });
+                  video.addEventListener('play', () => {
+                    if (playIcon) playIcon.classList.add('hidden');
+                  });
+                  video.addEventListener('pause', () => {
+                    if (playIcon) playIcon.classList.remove('hidden');
                   });
                   video.addEventListener('timeupdate', () => {
                     if (!video.paused) {
@@ -952,11 +995,13 @@
                     progressBar.style.width = '0%';
                     video.currentTime = 0;
                     video.play().catch(err => console.error('Error replaying video:', err));
+                    if (playIcon) playIcon.classList.add('hidden');
                   });
                   video.addEventListener('error', () => {
                     console.log('Video error for URL:', reel.mediaURL);
                     showSpinner();
                     showAlert('Failed to load video. Please check your network.');
+                    if (playIcon) playIcon.classList.remove('hidden');
                   });
                 }
                 let pressTimer;
@@ -1401,11 +1446,13 @@
       entries.forEach(entry => {
         const video = entry.target.querySelector('.reel-media');
         if (video && video.tagName === 'VIDEO') {
+          const playIcon = entry.target.querySelector('.play-icon');
           if (entry.isIntersecting) {
             pauseAllVideos(entry.target.dataset.reelId);
             currentPlayingVideo = video;
             video.muted = false;
             video.play().catch(err => console.error('Error playing video:', err));
+            if (playIcon) playIcon.classList.add('hidden');
             console.log(`Playing video for reel ${entry.target.dataset.reelId}`);
             trackImpression(entry.target.dataset.reelId);
           } else {
@@ -1414,6 +1461,7 @@
             video.muted = true;
             const progressBar = document.getElementById(`progress-${entry.target.dataset.reelId}`);
             if (progressBar) progressBar.style.width = '0%';
+            if (playIcon) playIcon.classList.remove('hidden');
             if (currentPlayingVideo === video) currentPlayingVideo = null;
             console.log(`Paused video for reel ${entry.target.dataset.reelId}`);
           }
@@ -1443,6 +1491,8 @@
           video.currentTime = 0;
           const progressBar = document.getElementById(`progress-${reel.dataset.reelId}`);
           if (progressBar) progressBar.style.width = '0%';
+          const playIcon = reel.querySelector('.play-icon');
+          if (playIcon) playIcon.classList.remove('hidden');
         }
       });
     }, 100);
