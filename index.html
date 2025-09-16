@@ -12,12 +12,14 @@
   <style>
     :root {
       --bg: #000000;
-      --card-bg: #000000;
+      --card-bg: rgba(0, 0, 0, 0.2);
       --text-primary: #FFFFFF;
       --text-secondary: #8E8E8E;
-      --border: #262626;
+      --border: rgba(255, 255, 255, 0.1);
       --highlight: #0095F6;
       --badge-bg: #FA3E5F;
+      --glass-bg: rgba(0, 0, 0, 0.2);
+      --glass-blur: blur(10px);
     }
 
     body {
@@ -62,7 +64,11 @@
       right: 0;
       padding: 16px;
       color: var(--text-primary);
-      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+      background: linear-gradient(to top, var(--glass-bg) 0%, transparent 100%);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
     }
 
     .reel-header {
@@ -197,13 +203,16 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: var(--card-bg);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
       border-top: 1px solid var(--border);
       display: flex;
       justify-content: space-around;
       align-items: center;
       height: 60px;
       z-index: 50;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
     }
 
     .nav-item {
@@ -236,7 +245,10 @@
       bottom: 60px;
       left: 0;
       right: 0;
-      background: var(--card-bg);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
       border-top-left-radius: 20px;
       border-top-right-radius: 20px;
       padding: 16px;
@@ -248,7 +260,7 @@
       -webkit-user-select: none;
       user-select: none;
       visibility: hidden;
-      box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
     }
 
     .bottom-sheet.active {
@@ -301,7 +313,9 @@
       padding: 12px;
       border: 1px solid var(--border);
       border-radius: 8px;
-      background: #121212;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
       color: var(--text-primary);
       margin-bottom: 12px;
       resize: none;
@@ -375,13 +389,25 @@
     }
 
     .comment-item {
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
+      padding: 12px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
     }
 
     .comment-item.reply {
       margin-left: 32px;
       padding-left: 12px;
+      border-left: 2px solid var(--highlight);
+    }
+
+    .comment-item:hover {
+      transform: translateY(-2px);
     }
 
     .comment-header {
@@ -429,7 +455,7 @@
 
     .reply-link {
       font-size: 12px;
-      color: var(--text-secondary);
+      color: var(--highlight);
       cursor: pointer;
       -webkit-user-select: none;
       user-select: none;
@@ -442,7 +468,33 @@
     }
 
     .reply-input.active {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .reply-input textarea {
+      flex: 1;
+    }
+
+    .reply-input button.cancel-reply {
+      background: var(--border);
+      color: var(--text-primary);
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+
+    .load-more {
       display: block;
+      margin: 12px auto;
+      padding: 8px 16px;
+      background: var(--highlight);
+      color: var(--text-primary);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
     }
 
     .love-animation {
@@ -469,10 +521,13 @@
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.8);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
       color: var(--text-primary);
       padding: 12px 24px;
       border-radius: 8px;
+      border: 1px solid var(--border);
       z-index: 60;
       display: none;
       max-width: 90%;
@@ -607,7 +662,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, push, update, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -627,6 +682,9 @@
     let activeCommentReelId = null;
     let commentListeners = new Map();
     let currentPlayingVideo = null;
+    let lastCommentTimestamp = 0;
+    let commentsLoaded = 0;
+    const COMMENTS_PER_PAGE = 10;
 
     const showSpinner = () => {
       console.log('Showing spinner');
@@ -682,6 +740,7 @@
       activeCommentReelId = null;
       commentListeners.forEach((unsubscribe) => unsubscribe());
       commentListeners.clear();
+      commentsLoaded = 0;
     };
 
     function initializeFirebase() {
@@ -852,27 +911,25 @@
                   tapCount++;
                   if (tapCount === 1) {
                     tapTimer = setTimeout(() => { tapCount = 0; }, 300);
-                  } else {
+                  } else if (tapCount === 2) {
                     clearTimeout(tapTimer);
                     tapCount = 0;
                     showLoveAnimation(div);
                     toggleLike(reel.reelId, div.querySelector('.reel-action'));
                   }
                 }, { passive: true });
-
                 div.addEventListener('click', (e) => {
                   e.stopPropagation();
                   tapCount++;
                   if (tapCount === 1) {
                     tapTimer = setTimeout(() => { tapCount = 0; }, 300);
-                  } else {
+                  } else if (tapCount === 2) {
                     clearTimeout(tapTimer);
                     tapCount = 0;
                     showLoveAnimation(div);
                     toggleLike(reel.reelId, div.querySelector('.reel-action'));
                   }
                 });
-
                 let pressTimer;
                 div.addEventListener('touchstart', (e) => {
                   if (tapCount > 0) return;
@@ -997,7 +1054,7 @@
       console.log('Loading comments for reel', reelId);
       const commentList = document.getElementById('comment-list');
       commentList.innerHTML = '';
-      const commentsRef = ref(db, `reels/${reelId}/comments`);
+      const commentsRef = query(ref(db, `reels/${reelId}/comments`), limitToLast(COMMENTS_PER_PAGE));
       try {
         if (commentListeners.has(reelId)) {
           commentListeners.get(reelId)();
@@ -1010,15 +1067,16 @@
             commentList.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No comments yet.</p>';
             return;
           }
-          const commentArray = Object.entries(comments).map(([commentId, commentData]) => ({
-            commentId,
-            ...commentData
-          }));
+          const commentArray = Object.entries(comments)
+            .map(([commentId, commentData]) => ({ commentId, ...commentData }))
+            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          commentsLoaded = commentArray.length;
           for (const comment of commentArray) {
             const userRef = ref(db, `users/${comment.userId}`);
             onValue(userRef, async (userSnapshot) => {
               const userData = userSnapshot.val();
               const commentText = comment.comment;
+              const replyCount = Object.keys(comment.replies || {}).length;
               const commentDiv = document.createElement('div');
               commentDiv.className = `comment-item ${comment.parentId ? 'reply' : ''}`;
               commentDiv.innerHTML = `
@@ -1030,20 +1088,20 @@
                   <div class="comment-timestamp">${formatTimestamp(comment.timestamp)}</div>
                 </div>
                 <div class="comment-text">${commentText}</div>
-                <div class="reply-link" onclick="showReplyInput('${comment.commentId}')">Reply</div>
+                <div class="reply-link" onclick="showReplyInput('${comment.commentId}')">Reply${replyCount > 0 ? ` (${replyCount})` : ''}</div>
                 <div class="reply-input" id="reply-input-${comment.commentId}">
                   <textarea placeholder="Reply..." rows="2"></textarea>
                   <button onclick="submitReply('${reelId}', '${comment.commentId}')">Post</button>
+                  <button class="cancel-reply" onclick="showReplyInput('${comment.commentId}')">Cancel</button>
                 </div>
                 <div class="replies" id="replies-${comment.commentId}"></div>
               `;
               commentList.appendChild(commentDiv);
               if (comment.replies) {
                 const repliesDiv = commentDiv.querySelector(`#replies-${comment.commentId}`);
-                const replyArray = Object.entries(comment.replies).map(([replyId, replyData]) => ({
-                  replyId,
-                  ...replyData
-                }));
+                const replyArray = Object.entries(comment.replies)
+                  .map(([replyId, replyData]) => ({ replyId, ...replyData }))
+                  .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                 for (const reply of replyArray) {
                   const replyUserRef = ref(db, `users/${reply.userId}`);
                   onValue(replyUserRef, async (replyUserSnapshot) => {
@@ -1064,6 +1122,7 @@
                       <div class="reply-input" id="reply-input-${reply.replyId}">
                         <textarea placeholder="Reply..." rows="2"></textarea>
                         <button onclick="submitReply('${reelId}', '${reply.replyId}')">Post</button>
+                        <button class="cancel-reply" onclick="showReplyInput('${reply.replyId}')">Cancel</button>
                       </div>
                     `;
                     repliesDiv.appendChild(replyDiv);
@@ -1071,6 +1130,13 @@
                 }
               }
             }, { onlyOnce: true });
+          }
+          if (commentsLoaded >= COMMENTS_PER_PAGE) {
+            const loadMoreBtn = document.createElement('button');
+            loadMoreBtn.className = 'load-more';
+            loadMoreBtn.textContent = 'Load more comments';
+            loadMoreBtn.onclick = () => loadMoreComments(reelId);
+            commentList.appendChild(loadMoreBtn);
           }
         }, { onlyOnce: false });
         commentListeners.set(reelId, unsubscribe);
@@ -1080,9 +1146,22 @@
       }
     }
 
+    async function loadMoreComments(reelId) {
+      console.log('Loading more comments for reel', reelId);
+      const commentsRef = query(ref(db, `reels/${reelId}/comments`), limitToLast(commentsLoaded + COMMENTS_PER_PAGE));
+      try {
+        onValue(commentsRef, (snapshot) => {
+          loadComments(reelId);
+        }, { onlyOnce: true });
+      } catch (error) {
+        console.error('Error loading more comments:', error);
+        showAlert('Failed to load more comments. Please try again.');
+      }
+    }
+
     function formatTimestamp(timestamp) {
       const date = new Date(timestamp);
-      const now = new Date('2025-09-16T13:58:00+02:00'); // Current date: September 16, 2025, 01:58 PM SAST
+      const now = new Date('2025-09-16T14:08:00+02:00'); // Current date: September 16, 2025, 02:08 PM SAST
       const diffMs = now - date;
       const diffSec = Math.floor(diffMs / 1000);
       const diffMin = Math.floor(diffSec / 60);
@@ -1096,14 +1175,22 @@
     }
 
     function showReplyInput(commentId) {
-      console.log('Showing reply input for comment:', commentId);
+      console.log('Toggling reply input for comment:', commentId);
       const replyInput = document.getElementById(`reply-input-${commentId}`);
       replyInput.classList.toggle('active');
+      if (!replyInput.classList.contains('active')) {
+        replyInput.querySelector('textarea').value = '';
+      }
     }
 
     async function submitReply(reelId, parentId) {
       if (!currentUser) {
         showAlert('Please log in to comment.');
+        return;
+      }
+      const now = Date.now();
+      if (now - lastCommentTimestamp < 3000) {
+        showAlert('Please wait a few seconds before posting another reply.');
         return;
       }
       const replyInput = document.getElementById(`reply-input-${parentId}`).querySelector('textarea');
@@ -1119,6 +1206,7 @@
           timestamp: new Date().toISOString(),
           parentId
         });
+        lastCommentTimestamp = now;
         replyInput.value = '';
         document.getElementById(`reply-input-${parentId}`).classList.remove('active');
         console.log(`Reply added to comment ${parentId} on reel ${reelId}`);
@@ -1132,6 +1220,11 @@
     async function submitComment(reelId) {
       if (!currentUser) {
         showAlert('Please log in to comment.');
+        return;
+      }
+      const now = Date.now();
+      if (now - lastCommentTimestamp < 3000) {
+        showAlert('Please wait a few seconds before posting another comment.');
         return;
       }
       const commentInput = document.getElementById('comment-input');
@@ -1148,6 +1241,7 @@
           timestamp: new Date().toISOString(),
           parentId: null
         });
+        lastCommentTimestamp = now;
         commentInput.value = '';
         console.log(`Comment added to reel ${reelId}`);
         loadComments(reelId);
