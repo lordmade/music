@@ -83,6 +83,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      justify-content: space-between;
       cursor: pointer;
       margin-bottom: 8px;
     }
@@ -92,6 +93,12 @@
       align-items: center;
       gap: 8px;
       flex: 1;
+    }
+
+    .reel-header-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .reel-avatar {
@@ -126,7 +133,7 @@
       margin-left: 8px;
     }
 
-    .follow-btn {
+    .follow-btn, .comments-btn {
       background: var(--highlight);
       color: var(--text-primary);
       border: none;
@@ -240,9 +247,8 @@
 
     .nav-item.upload-btn {
       background: var(--highlight);
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
+      border-radius: 9999px;
+      padding: 8px 16px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       margin: 0 16px;
     }
@@ -607,6 +613,13 @@
       .bottom-nav {
         width: 90%;
       }
+      .reel-header-buttons {
+        gap: 4px;
+      }
+      .follow-btn, .comments-btn {
+        padding: 6px 12px;
+        font-size: 11px;
+      }
     }
   </style>
 </head>
@@ -623,10 +636,11 @@
         </svg>
         <span>Home</span>
       </button>
-      <button class="nav-item upload-btn" id="upload-nav-btn" aria-label="Upload">
+      <button class="nav-item upload-btn btn" id="upload-nav-btn" aria-label="Upload">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M12 4v8m0 0v8m8-8H4"/>
         </svg>
+        <span>Upload</span>
       </button>
       <button class="nav-item btn" id="friends-nav-btn" aria-label="Friends">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -835,6 +849,7 @@
                 console.log('User data for reel', reel.reelId, ':', userData);
                 const caption = reel.caption || '';
                 const isFollowing = await checkFollowingStatus(currentUser.uid, reel.userId);
+                await trackImpression(reel.reelId); // Track impression for this reel
                 const div = document.createElement('div');
                 div.className = 'reel';
                 div.dataset.reelId = reel.reelId;
@@ -854,7 +869,10 @@
                           <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
                         </div>
                       </div>
-                      <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
+                      <div class="reel-header-buttons">
+                        <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
+                        <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments</button>
+                      </div>
                     </div>
                     <div class="reel-caption">${caption}</div>
                   </div>
@@ -865,17 +883,12 @@
                       </svg>
                       <span>${Object.keys(reel.likedBy || {}).length}</span>
                     </button>
-                    <button class="reel-action btn" onclick="openBottomSheet('comment', '${reel.reelId}')">
+                    <button class="reel-action btn" onclick="trackImpression('${reel.reelId}', this)">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                        <path d="M1.5 12c0-2.8 1.8-5.2 4.3-6.1 1-.4 2.1.1 2.7 1.1.6-1 1.7-1.5 2.7-1.1 2.5.9 4.3 3.3 4.3 6.1 0 3.8-4.2 7.4-7.5 9.5-3.3-2.1-7.5-5.7-7.5-9.5z"/>
+                        <circle cx="12" cy="12" r="3"/>
                       </svg>
-                      <span>${Object.keys(reel.comments || {}).length}</span>
-                    </button>
-                    <button class="reel-action btn" onclick="shareReel('${reel.reelId}')">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.13-4.13c.52.47 1.2.77 1.96.77 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.34 6.82 9.04 6.06 9.04c-1.66 0-3 1.34-3 3s1.34 3 3 3c.76 0 1.44-.3 1.96-.77l7.13 4.14c-.05.23-.09.46-.09.7 0 1.66 1.34 3 3 3s3-1.34 3-3-1.34-3-3-3z"/>
-                      </svg>
-                      <span>${Object.keys(reel.sharedBy || {}).length}</span>
+                      <span>${Object.keys(reel.impressions || {}).length}</span>
                     </button>
                     <button class="reel-action btn ${reel.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reel.reelId}', this)">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -983,6 +996,28 @@
       }
     }
 
+    async function trackImpression(reelId, button = null) {
+      if (!currentUser) return;
+      try {
+        const reelRef = ref(db, `reels/${reelId}/impressions/${currentUser.uid}`);
+        onValue(reelRef, async (snapshot) => {
+          if (!snapshot.exists()) {
+            await update(ref(db, `reels/${reelId}/impressions`), {
+              [currentUser.uid]: true
+            });
+            console.log(`Impression tracked for reel ${reelId}`);
+            if (button) {
+              const countSpan = button.querySelector('span');
+              const currentCount = parseInt(countSpan.textContent) || 0;
+              countSpan.textContent = currentCount + 1;
+            }
+          }
+        }, { onlyOnce: true });
+      } catch (error) {
+        console.error('Error tracking impression:', error);
+      }
+    }
+
     function goToProfile(userId) {
       console.log('Redirecting to profile for user:', userId);
       window.location.href = `user.html?uid=${userId}`;
@@ -1027,24 +1062,6 @@
       } catch (error) {
         console.error('Error toggling bookmark:', error);
         showAlert('Failed to bookmark reel. Please try again.');
-      }
-    }
-
-    async function shareReel(reelId) {
-      if (!currentUser) {
-        showAlert('Please log in to share reels.');
-        return;
-      }
-      try {
-        const reelRef = ref(db, `reels/${reelId}`);
-        await update(reelRef, {
-          [`sharedBy/${currentUser.uid}`]: true
-        });
-        console.log(`Shared reel ${reelId}`);
-        showAlert('Reel shared!');
-      } catch (error) {
-        console.error('Error sharing reel:', error);
-        showAlert('Failed to share reel. Please try again.');
       }
     }
 
@@ -1197,7 +1214,7 @@
 
     function formatTimestamp(timestamp) {
       const date = new Date(timestamp);
-      const now = new Date('2025-09-16T14:28:00+02:00'); // Current date: September 16, 2025, 02:28 PM SAST
+      const now = new Date('2025-09-16T14:46:00+02:00'); // Current date: September 16, 2025, 02:46 PM SAST
       const diffMs = now - date;
       const diffSec = Math.floor(diffMs / 1000);
       const diffMin = Math.floor(diffSec / 60);
@@ -1358,7 +1375,7 @@
               timestamp: new Date().toISOString(),
               likedBy: {},
               bookmarkedBy: {},
-              sharedBy: {},
+              impressions: {},
               comments: {}
             });
             console.log('Uploaded file:', data.secure_url);
@@ -1387,6 +1404,7 @@
             video.muted = false;
             video.play().catch(err => console.error('Error playing video:', err));
             console.log(`Playing video for reel ${entry.target.dataset.reelId}`);
+            trackImpression(entry.target.dataset.reelId); // Track impression when video is visible
           } else {
             video.pause();
             video.currentTime = 0;
@@ -1505,12 +1523,16 @@
 
     window.toggleLike = toggleLike;
     window.toggleBookmark = toggleBookmark;
-    window.shareReel = shareReel;
+    window.trackImpression = trackImpression;
     window.toggleFollow = toggleFollow;
     window.showReplyInput = showReplyInput;
     window.submitReply = submitReply;
     window.goToProfile = goToProfile;
     window.closeBottomSheet = closeBottomSheet;
+    window.openBottomSheet = (type, reelId, event) => {
+      if (event) event.stopPropagation();
+      openBottomSheet(type, reelId);
+    };
   </script>
 </body>
 </html>
