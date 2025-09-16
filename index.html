@@ -31,18 +31,26 @@
       overflow-x: hidden;
       -webkit-user-select: none;
       user-select: none;
-      padding-bottom: 60px;
+      padding-bottom: 80px;
+    }
+
+    .btn {
+      border-radius: 9999px;
+      padding: 8px 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .reels-container {
-      height: calc(100vh - 60px);
+      height: calc(100vh - 80px);
       overflow-y: auto;
       scroll-snap-type: y mandatory;
       scroll-behavior: smooth;
     }
 
     .reel {
-      height: calc(100vh - 60px);
+      height: calc(100vh - 80px);
       display: flex;
       flex-direction: column;
       position: relative;
@@ -53,7 +61,7 @@
     .reel-media {
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
       background: var(--bg);
     }
 
@@ -104,7 +112,7 @@
       height: 32px;
       border-radius: 50%;
       object-fit: cover;
-      border: 1px solid var(--highlight);
+      border: 2px solid var(--text-primary);
     }
 
     .reel-username {
@@ -122,8 +130,6 @@
       background: var(--highlight);
       color: var(--text-primary);
       border: none;
-      border-radius: 6px;
-      padding: 4px 12px;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
@@ -200,19 +206,22 @@
 
     .bottom-nav {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
       background: var(--glass-bg);
       -webkit-backdrop-filter: var(--glass-blur);
       backdrop-filter: var(--glass-blur);
-      border-top: 1px solid var(--border);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
       display: flex;
-      justify-content: space-around;
       align-items: center;
-      height: 60px;
+      justify-content: space-between;
+      padding: 8px 16px;
+      width: 280px;
+      max-width: 90%;
       z-index: 50;
-      box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
 
     .nav-item {
@@ -229,6 +238,20 @@
       user-select: none;
     }
 
+    .nav-item.upload-btn {
+      background: var(--highlight);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      margin: 0 16px;
+    }
+
+    .nav-item.upload-btn svg {
+      width: 28px;
+      height: 28px;
+    }
+
     .nav-item.active svg {
       stroke: var(--highlight);
     }
@@ -242,7 +265,7 @@
 
     .bottom-sheet {
       position: fixed;
-      bottom: 60px;
+      bottom: 80px;
       left: 0;
       right: 0;
       background: var(--glass-bg);
@@ -252,7 +275,7 @@
       border-top-left-radius: 20px;
       border-top-right-radius: 20px;
       padding: 16px;
-      max-height: calc(80vh - 60px);
+      max-height: calc(80vh - 80px);
       overflow-y: auto;
       transform: translateY(100%);
       transition: transform 0.3s ease-in-out;
@@ -300,9 +323,8 @@
       display: block;
       background: var(--highlight);
       color: var(--text-primary);
-      padding: 12px;
       text-align: center;
-      border-radius: 8px;
+      border-radius: 9999px;
       cursor: pointer;
       margin-bottom: 12px;
       font-weight: 500;
@@ -328,18 +350,11 @@
       background: var(--highlight);
       color: var(--text-primary);
       border: none;
-      padding: 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      width: 100%;
       font-size: 14px;
       font-weight: 600;
+      cursor: pointer;
       -webkit-user-select: none;
       user-select: none;
-    }
-
-    .bottom-sheet-content button:hover {
-      background: #007ac2;
     }
 
     .preview-container {
@@ -480,21 +495,16 @@
     .reply-input button.cancel-reply {
       background: var(--border);
       color: var(--text-primary);
-      padding: 8px 12px;
       font-size: 12px;
     }
 
     .load-more {
-      display: block;
-      margin: 12px auto;
-      padding: 8px 16px;
       background: var(--highlight);
       color: var(--text-primary);
       border: none;
-      border-radius: 8px;
-      cursor: pointer;
       font-size: 14px;
       font-weight: 500;
+      cursor: pointer;
     }
 
     .love-animation {
@@ -526,7 +536,7 @@
       backdrop-filter: var(--glass-blur);
       color: var(--text-primary);
       padding: 12px 24px;
-      border-radius: 8px;
+      border-radius: 9999px;
       border: 1px solid var(--border);
       z-index: 60;
       display: none;
@@ -594,6 +604,9 @@
       .reel-actions {
         right: 8px;
       }
+      .bottom-nav {
+        width: 90%;
+      }
     }
   </style>
 </head>
@@ -604,19 +617,18 @@
     </div>
 
     <nav class="bottom-nav">
-      <button class="nav-item active" id="home-btn" aria-label="Home">
+      <button class="nav-item btn active" id="home-btn" aria-label="Home">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M3 12l2-2m0 0l7-7 7 7m-9 2v7a2 2 0 002 2h3a2 2 0 002-2v-7"/>
         </svg>
         <span>Home</span>
       </button>
-      <button class="nav-item" id="upload-nav-btn" aria-label="Upload">
+      <button class="nav-item upload-btn" id="upload-nav-btn" aria-label="Upload">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M12 4v8m0 0v8m8-8H4"/>
         </svg>
-        <span>Upload</span>
       </button>
-      <button class="nav-item" id="friends-nav-btn" aria-label="Friends">
+      <button class="nav-item btn" id="friends-nav-btn" aria-label="Friends">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
         </svg>
@@ -631,11 +643,11 @@
         </svg>
       </button>
       <div class="bottom-sheet-content" id="bottom-sheet-content">
-        <label for="media-upload">Select Image/Video</label>
+        <label class="btn" for="media-upload">Select Image/Video</label>
         <input type="file" id="media-upload" accept="image/*,video/*" multiple>
         <div class="preview-container" id="preview-container"></div>
         <textarea id="caption-input" placeholder="Write a caption..." rows="3"></textarea>
-        <button id="submit-upload">Post</button>
+        <button class="btn" id="submit-upload">Post</button>
       </div>
     </div>
 
@@ -647,8 +659,8 @@
       </button>
       <div class="bottom-sheet-content" id="comment-sheet-content">
         <div class="comment-list" id="comment-list"></div>
-        <textarea id="comment-input" placeholder="Add comment..." rows="2"></textarea>
-        <button id="submit-comment">Post</button>
+        <textarea id="comment-input" placeholder="Add a comment..." rows="2"></textarea>
+        <button class="btn" id="submit-comment">Post</button>
       </div>
     </div>
 
@@ -709,7 +721,7 @@
     const showLoveAnimation = (reelDiv) => {
       console.log('Showing love animation');
       const heart = document.createElement('div');
-      heart.innerHTML = '💖';
+      heart.innerHTML = '❤️';
       heart.className = 'love-animation';
       reelDiv.appendChild(heart);
       setTimeout(() => heart.remove(), 600);
@@ -829,7 +841,7 @@
                 const isVideo = reel.mediaType === 'video';
                 div.innerHTML = `
                   ${isVideo
-                    ? `<video class="reel-media" src="${reel.mediaURL}" playsinline></video><div class="progress-bar" id="progress-${reel.reelId}"></div>`
+                    ? `<video class="reel-media" src="${reel.mediaURL}" playsinline loop></video><div class="progress-bar" id="progress-${reel.reelId}"></div>`
                     : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
                   <div class="reel-overlay">
                     <div class="reel-header" onclick="goToProfile('${reel.userId}')">
@@ -842,24 +854,30 @@
                           <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
                         </div>
                       </div>
-                      <button class="follow-btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Friend' : 'Follow'}</button>
+                      <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
                     </div>
                     <div class="reel-caption">${caption}</div>
                   </div>
                   <div class="reel-actions">
-                    <button class="reel-action ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
+                    <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
                       </svg>
                       <span>${Object.keys(reel.likedBy || {}).length}</span>
                     </button>
-                    <button class="reel-action" onclick="openBottomSheet('comment', '${reel.reelId}')">
+                    <button class="reel-action btn" onclick="openBottomSheet('comment', '${reel.reelId}')">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                       </svg>
                       <span>${Object.keys(reel.comments || {}).length}</span>
                     </button>
-                    <button class="reel-action ${reel.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reel.reelId}', this)">
+                    <button class="reel-action btn" onclick="shareReel('${reel.reelId}')">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.13-4.13c.52.47 1.2.77 1.96.77 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.34 6.82 9.04 6.06 9.04c-1.66 0-3 1.34-3 3s1.34 3 3 3c.76 0 1.44-.3 1.96-.77l7.13 4.14c-.05.23-.09.46-.09.7 0 1.66 1.34 3 3 3s3-1.34 3-3-1.34-3-3-3z"/>
+                      </svg>
+                      <span>${Object.keys(reel.sharedBy || {}).length}</span>
+                    </button>
+                    <button class="reel-action btn ${reel.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reel.reelId}', this)">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
                       </svg>
@@ -1012,6 +1030,24 @@
       }
     }
 
+    async function shareReel(reelId) {
+      if (!currentUser) {
+        showAlert('Please log in to share reels.');
+        return;
+      }
+      try {
+        const reelRef = ref(db, `reels/${reelId}`);
+        await update(reelRef, {
+          [`sharedBy/${currentUser.uid}`]: true
+        });
+        console.log(`Shared reel ${reelId}`);
+        showAlert('Reel shared!');
+      } catch (error) {
+        console.error('Error sharing reel:', error);
+        showAlert('Failed to share reel. Please try again.');
+      }
+    }
+
     async function checkFollowingStatus(currentUserId, targetUserId) {
       if (!currentUserId || currentUserId === targetUserId) return false;
       const followingRef = ref(db, `users/${currentUserId}/following/${targetUserId}`);
@@ -1041,7 +1077,7 @@
           [currentUser.uid]: isFollowing ? null : true
         });
         button.classList.toggle('friend');
-        button.textContent = isFollowing ? 'Follow' : 'Friend';
+        button.textContent = isFollowing ? 'Follow' : 'Following';
         console.log(`Toggled follow for user ${targetUserId}: ${isFollowing ? 'Unfollowed' : 'Followed'}`);
         showAlert(isFollowing ? 'Unfollowed user' : 'Followed user');
       } catch (error) {
@@ -1090,9 +1126,9 @@
                 <div class="comment-text">${commentText}</div>
                 <div class="reply-link" onclick="showReplyInput('${comment.commentId}')">Reply${replyCount > 0 ? ` (${replyCount})` : ''}</div>
                 <div class="reply-input" id="reply-input-${comment.commentId}">
-                  <textarea placeholder="Reply..." rows="2"></textarea>
-                  <button onclick="submitReply('${reelId}', '${comment.commentId}')">Post</button>
-                  <button class="cancel-reply" onclick="showReplyInput('${comment.commentId}')">Cancel</button>
+                  <textarea placeholder="Add a reply..." rows="2"></textarea>
+                  <button class="btn" onclick="submitReply('${reelId}', '${comment.commentId}')">Post</button>
+                  <button class="btn cancel-reply" onclick="showReplyInput('${comment.commentId}')">Cancel</button>
                 </div>
                 <div class="replies" id="replies-${comment.commentId}"></div>
               `;
@@ -1120,9 +1156,9 @@
                       <div class="comment-text">${replyText}</div>
                       <div class="reply-link" onclick="showReplyInput('${reply.replyId}')">Reply</div>
                       <div class="reply-input" id="reply-input-${reply.replyId}">
-                        <textarea placeholder="Reply..." rows="2"></textarea>
-                        <button onclick="submitReply('${reelId}', '${reply.replyId}')">Post</button>
-                        <button class="cancel-reply" onclick="showReplyInput('${reply.replyId}')">Cancel</button>
+                        <textarea placeholder="Add a reply..." rows="2"></textarea>
+                        <button class="btn" onclick="submitReply('${reelId}', '${reply.replyId}')">Post</button>
+                        <button class="btn cancel-reply" onclick="showReplyInput('${reply.replyId}')">Cancel</button>
                       </div>
                     `;
                     repliesDiv.appendChild(replyDiv);
@@ -1133,7 +1169,7 @@
           }
           if (commentsLoaded >= COMMENTS_PER_PAGE) {
             const loadMoreBtn = document.createElement('button');
-            loadMoreBtn.className = 'load-more';
+            loadMoreBtn.className = 'load-more btn';
             loadMoreBtn.textContent = 'Load more comments';
             loadMoreBtn.onclick = () => loadMoreComments(reelId);
             commentList.appendChild(loadMoreBtn);
@@ -1161,17 +1197,17 @@
 
     function formatTimestamp(timestamp) {
       const date = new Date(timestamp);
-      const now = new Date('2025-09-16T14:08:00+02:00'); // Current date: September 16, 2025, 02:08 PM SAST
+      const now = new Date('2025-09-16T14:28:00+02:00'); // Current date: September 16, 2025, 02:28 PM SAST
       const diffMs = now - date;
       const diffSec = Math.floor(diffMs / 1000);
       const diffMin = Math.floor(diffSec / 60);
       const diffHr = Math.floor(diffMin / 60);
       const diffDay = Math.floor(diffHr / 24);
-      if (diffSec < 60) return `${diffSec} seconds ago`;
-      if (diffMin < 60) return `${diffMin} minute${diffMin > 1 ? 's' : ''} ago`;
-      if (diffHr < 24) return `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`;
-      if (diffDay < 7) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
-      return date.toLocaleDateString();
+      if (diffSec < 60) return `${diffSec}s`;
+      if (diffMin < 60) return `${diffMin}m`;
+      if (diffHr < 24) return `${diffHr}h`;
+      if (diffDay < 7) return `${diffDay}d`;
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
 
     function showReplyInput(commentId) {
@@ -1322,6 +1358,7 @@
               timestamp: new Date().toISOString(),
               likedBy: {},
               bookmarkedBy: {},
+              sharedBy: {},
               comments: {}
             });
             console.log('Uploaded file:', data.secure_url);
@@ -1468,6 +1505,7 @@
 
     window.toggleLike = toggleLike;
     window.toggleBookmark = toggleBookmark;
+    window.shareReel = shareReel;
     window.toggleFollow = toggleFollow;
     window.showReplyInput = showReplyInput;
     window.submitReply = submitReply;
