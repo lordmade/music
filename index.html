@@ -114,6 +114,7 @@
       cursor: pointer;
       -webkit-user-select: none;
       user-select: none;
+      margin-left: auto;
     }
 
     .follow-btn.friend {
@@ -486,6 +487,35 @@
       animation: slideIn 0.3s ease-out;
     }
 
+    /* Love animation */
+    .love-animation {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 100px;
+      color: var(--badge-bg);
+      pointer-events: none;
+      z-index: 10;
+      animation: loveFloat 0.6s ease-out forwards;
+      opacity: 0;
+    }
+
+    @keyframes loveFloat {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0) rotate(0deg);
+      }
+      50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2) rotate(10deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1) rotate(0deg) translateY(-100px);
+      }
+    }
+
     body, .reel, .reel-actions, .reel-action, .bottom-sheet, .nav-item {
       -webkit-user-select: none;
       user-select: none;
@@ -554,7 +584,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, push, update, set } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -572,7 +602,8 @@
 
     let app, auth, db, currentUser;
     let activeCommentReelId = null;
-    const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456');
+    let currentActiveVideo = null;
+    let renderedComments = new Set();
 
     const showSpinner = () => {
       console.log('Showing spinner');
@@ -592,6 +623,16 @@
       alert.textContent = message;
       alert.classList.add('active');
       setTimeout(() => alert.classList.remove('active'), 3000);
+    };
+
+    const showLoveAnimation = () => {
+      const love = document.createElement('div');
+      love.innerHTML = '💖';
+      love.className = 'love-animation';
+      document.body.appendChild(love);
+      setTimeout(() => {
+        document.body.removeChild(love);
+      }, 600);
     };
 
     const openBottomSheet = (type, reelId = null) => {
@@ -619,39 +660,8 @@
       document.getElementById('comment-input').value = '';
       document.getElementById('comment-list').innerHTML = '';
       activeCommentReelId = null;
+      renderedComments.clear();
     };
-
-    async function encryptMessage(message) {
-      try {
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const encrypted = await crypto.subtle.encrypt(
-          { name: 'AES-GCM', iv },
-          await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['encrypt']),
-          new TextEncoder().encode(message)
-        );
-        const encryptedArray = new Uint8Array(encrypted);
-        return { iv: Array.from(iv), data: Array.from(encryptedArray) };
-      } catch (error) {
-        console.error('Encryption Error:', error);
-        showAlert('Encryption failed, using plain text.');
-        return { iv: [], data: [], text: message };
-      }
-    }
-
-    async function decryptMessage(encryptedData, iv) {
-      try {
-        if (encryptedData.text) return encryptedData.text;
-        const decrypted = await crypto.subtle.decrypt(
-          { name: 'AES-GCM', iv: new Uint8Array(iv) },
-          await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['decrypt']),
-          new Uint8Array(encryptedData)
-        );
-        return new TextDecoder().decode(decrypted);
-      } catch (error) {
-        console.error('Decryption Error:', error);
-        return '[Encrypted Message]';
-      }
-    }
 
     function initializeFirebase() {
       console.log('Initializing Firebase');
@@ -707,6 +717,7 @@
           if (reelsContainer.children.length !== reelsArray.length) {
             reelsContainer.innerHTML = '';
             renderedReels.clear();
+            pauseAllVideos();
           }
           
           for (const reel of reelsArray) {
@@ -731,8 +742,10 @@
                       ${userData?.photoURL
                         ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
                         : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
-                      <div class="reel-username">${userData?.displayName || 'User'}</div>
-                      <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
+                      <div>
+                        <div class="reel-username">${userData?.displayName || 'User'}</div>
+                        <div class="reel-timestamp">${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
+                      </div>
                     </div>
                     <button class="follow-btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Friend' : 'Follow'}</button>
                     <div class="reel-caption">${caption}</div>
@@ -762,14 +775,8 @@
                 if (isVideo) {
                   const video = div.querySelector('.reel-media');
                   const progressBar = div.querySelector(`#progress-${reel.reelId}`);
-                  video.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (video.paused) {
-                      video.play().catch(err => console.error('Error playing video:', err));
-                    } else {
-                      video.pause();
-                    }
-                    console.log(`Video ${video.paused ? 'paused' : 'playing'}`);
+                  video.addEventListener('loadedmetadata', () => {
+                    video.play().catch(err => console.error('Error playing video:', err));
                   });
                   video.addEventListener('timeupdate', () => {
                     const progress = (video.currentTime / video.duration) * 100;
@@ -790,6 +797,27 @@
                     showAlert('Failed to load video. Please check your network.');
                   });
                 }
+                // Double tap for like
+                let tapCount = 0;
+                let tapTimer;
+                const handleTap = (e) => {
+                  e.stopPropagation();
+                  tapCount++;
+                  if (tapCount === 1) {
+                    tapTimer = setTimeout(() => {
+                      tapCount = 0;
+                    }, 300);
+                  } else {
+                    clearTimeout(tapTimer);
+                    tapCount = 0;
+                    if (!div.querySelector('.reel-action.liked')) {
+                      toggleLike(reel.reelId, div.querySelector('.reel-action'));
+                    }
+                    showLoveAnimation();
+                  }
+                };
+                div.addEventListener('click', handleTap);
+                div.addEventListener('touchend', handleTap, { passive: true });
                 let pressTimer;
                 div.addEventListener('touchstart', (e) => {
                   e.stopPropagation();
@@ -819,6 +847,15 @@
         showAlert('Failed to load reels. Please check your connection.');
         hideSpinner();
       }
+    }
+
+    function pauseAllVideos() {
+      const videos = document.querySelectorAll('video');
+      videos.forEach(video => {
+        video.pause();
+        const progressBar = document.getElementById(`progress-${video.closest('.reel').dataset.reelId}`);
+        if (progressBar) progressBar.style.width = '0%';
+      });
     }
 
     function goToProfile(userId) {
@@ -909,27 +946,24 @@
     async function loadComments(reelId) {
       console.log('Loading comments for reel', reelId);
       const commentList = document.getElementById('comment-list');
-      commentList.innerHTML = '';
       const commentsRef = ref(db, `reels/${reelId}/comments`);
       try {
         onValue(commentsRef, async (snapshot) => {
-          commentList.innerHTML = '';
           const comments = snapshot.val();
           if (!comments) {
             commentList.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No comments yet.</p>';
             return;
           }
-          const commentArray = Object.entries(comments).map(([commentId, commentData]) => ({
-            commentId,
-            ...commentData
-          }));
+          const commentArray = Object.entries(comments)
+            .filter(([commentId]) => !renderedComments.has(commentId))
+            .map(([commentId, commentData]) => ({ commentId, ...commentData }));
+          if (commentArray.length === 0) return;
           for (const comment of commentArray) {
+            renderedComments.add(comment.commentId);
             const userRef = ref(db, `users/${comment.userId}`);
             onValue(userRef, async (userSnapshot) => {
               const userData = userSnapshot.val();
-              const commentText = comment.commentEncrypted
-                ? await decryptMessage(comment.commentEncrypted.data, comment.commentEncrypted.iv)
-                : comment.commentEncrypted?.text || '';
+              const commentText = comment.comment || '';
               const commentDiv = document.createElement('div');
               commentDiv.className = `comment-item ${comment.parentId ? 'reply' : ''}`;
               commentDiv.innerHTML = `
@@ -951,17 +985,15 @@
               commentList.appendChild(commentDiv);
               if (comment.replies) {
                 const repliesDiv = commentDiv.querySelector(`#replies-${comment.commentId}`);
-                const replyArray = Object.entries(comment.replies).map(([replyId, replyData]) => ({
-                  replyId,
-                  ...replyData
-                }));
+                const replyArray = Object.entries(comment.replies)
+                  .filter(([replyId]) => !renderedComments.has(replyId))
+                  .map(([replyId, replyData]) => ({ replyId, ...replyData }));
                 for (const reply of replyArray) {
+                  renderedComments.add(reply.replyId);
                   const replyUserRef = ref(db, `users/${reply.userId}`);
                   onValue(replyUserRef, async (replyUserSnapshot) => {
                     const replyUserData = replyUserSnapshot.val();
-                    const replyText = reply.commentEncrypted
-                      ? await decryptMessage(reply.commentEncrypted.data, reply.commentEncrypted.iv)
-                      : reply.commentEncrypted?.text || '';
+                    const replyText = reply.comment || '';
                     const replyDiv = document.createElement('div');
                     replyDiv.className = 'comment-item reply';
                     replyDiv.innerHTML = `
@@ -1000,10 +1032,10 @@
       const diffMin = Math.floor(diffSec / 60);
       const diffHr = Math.floor(diffMin / 60);
       const diffDay = Math.floor(diffHr / 24);
-      if (diffSec < 60) return `${diffSec}s`;
-      if (diffMin < 60) return `${diffMin}m`;
-      if (diffHr < 24) return `${diffHr}h`;
-      if (diffDay < 7) return `${diffDay}d`;
+      if (diffSec < 60) return `${diffSec}s ago`;
+      if (diffMin < 60) return `${diffMin}m ago`;
+      if (diffHr < 24) return `${diffHr}h ago`;
+      if (diffDay < 7) return `${diffDay}d ago`;
       return date.toLocaleDateString();
     }
 
@@ -1025,10 +1057,9 @@
         return;
       }
       try {
-        const encryptedReply = await encryptMessage(replyText);
         await push(ref(db, `reels/${reelId}/comments/${parentId}/replies`), {
           userId: currentUser.uid,
-          commentEncrypted: encryptedReply || { iv: [], data: [], text: replyText },
+          comment: replyText,
           timestamp: new Date().toISOString(),
           parentId
         });
@@ -1054,11 +1085,10 @@
         return;
       }
       try {
-        const encryptedComment = await encryptMessage(commentText);
         const commentsRef = ref(db, `reels/${reelId}/comments`);
         await push(commentsRef, {
           userId: currentUser.uid,
-          commentEncrypted: encryptedComment || { iv: [], data: [], text: commentText },
+          comment: commentText,
           timestamp: new Date().toISOString(),
           parentId: null
         });
@@ -1162,16 +1192,20 @@
 
     let observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        const video = entry.target.querySelector('.reel-media');
+        const reelDiv = entry.target;
+        const video = reelDiv.querySelector('.reel-media');
         if (video && video.tagName === 'VIDEO') {
           if (entry.isIntersecting) {
+            currentActiveVideo = video;
             video.muted = false;
             video.play().catch(err => console.error('Error resuming video:', err));
-            console.log(`Unmuted and playing video for reel ${entry.target.dataset.reelId}`);
+            console.log(`Unmuted and playing video for reel ${reelDiv.dataset.reelId}`);
           } else {
             video.muted = true;
             video.pause();
-            console.log(`Muted and paused video for reel ${entry.target.dataset.reelId}`);
+            const progressBar = document.getElementById(`progress-${reelDiv.dataset.reelId}`);
+            if (progressBar) progressBar.style.width = '0%';
+            console.log(`Muted and paused video for reel ${reelDiv.dataset.reelId}`);
           }
         }
       });
