@@ -176,43 +176,62 @@
       object-fit: cover;
     }
 
-    .edit-overlay {
+    .bottom-sheet {
       position: fixed;
-      top: 0;
+      bottom: 0;
       left: 0;
       right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
-    }
-
-    .edit-overlay.active {
-      display: flex;
-    }
-
-    .edit-modal {
       background: var(--glass-bg);
       -webkit-backdrop-filter: var(--glass-blur);
       backdrop-filter: var(--glass-blur);
-      border-radius: 1rem;
-      padding: 2rem;
-      max-width: 400px;
-      width: 90%;
       border: 1px solid var(--border);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      padding: 16px;
+      max-height: 100vh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.3s ease-in-out;
+      z-index: 102;
+      -webkit-user-select: none;
+      user-select: none;
+      visibility: hidden;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
     }
 
-    .edit-modal h2 {
-      margin-bottom: 1rem;
-      font-size: 1.5rem;
-      font-weight: 600;
+    .bottom-sheet.active {
+      transform: translateY(0);
+      visibility: visible;
     }
 
-    .edit-modal input,
-    .edit-modal textarea {
+    .bottom-sheet-content {
+      color: var(--text-primary);
+      padding-top: 40px;
+    }
+
+    .close-sheet {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.1);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-primary);
+      z-index: 101;
+    }
+
+    .close-sheet:hover {
+      background: rgba(0,0,0,0.2);
+    }
+
+    .bottom-sheet input,
+    .bottom-sheet textarea {
       width: 100%;
       padding: 0.75rem;
       border: 1px solid var(--border);
@@ -221,14 +240,16 @@
       background: white;
       color: var(--text-primary);
       font-family: inherit;
+      -webkit-user-select: auto;
+      user-select: auto;
     }
 
-    .edit-modal textarea {
+    .bottom-sheet textarea {
       resize: vertical;
       min-height: 100px;
     }
 
-    .edit-modal .btn {
+    .bottom-sheet .btn {
       margin-right: 0.5rem;
     }
 
@@ -318,6 +339,35 @@
       to { transform: rotate(360deg); }
     }
 
+    .alert {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      color: var(--text-primary);
+      padding: 12px 24px;
+      border-radius: 9999px;
+      border: 1px solid var(--border);
+      z-index: 60;
+      display: none;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .alert.active {
+      display: block;
+      animation: slideInAlert 0.3s ease-out;
+    }
+
+    @keyframes slideInAlert {
+      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
     @media (min-width: 769px) {
       .bottom-nav {
         display: none;
@@ -378,6 +428,12 @@
         margin-left: 112px;
         width: calc(100% - 112px);
       }
+
+      .bottom-sheet {
+        margin-left: 112px;
+        width: calc(100% - 112px);
+        border-top-left-radius: 0;
+      }
     }
   </style>
 </head>
@@ -406,7 +462,7 @@
 
     <header class="profile-header">
       <img id="profile-avatar" class="profile-avatar" src="" alt="Profile Avatar" style="display: none;">
-      <div class="profile-avatar" id="default-avatar" style="display: block;">
+      <div class="profile-avatar" id="default-avatar" style="display: block; background: var(--text-secondary); font-size: 2rem; font-weight: 600; display: flex; align-items: center; justify-content: center;">
         <span id="avatar-initial">U</span>
       </div>
     </header>
@@ -460,8 +516,13 @@
       </button>
     </nav>
 
-    <div id="edit-overlay" class="edit-overlay">
-      <div class="edit-modal">
+    <div class="bottom-sheet" id="edit-sheet">
+      <button class="close-sheet" onclick="closeEditSheet(event)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+      <div class="bottom-sheet-content">
         <h2>Edit Profile</h2>
         <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
         <label for="avatar-upload" class="btn">Change Avatar</label>
@@ -590,21 +651,18 @@
 
     async function loadStats() {
       if (!userId) return;
-      // Reels count
       const reelsRef = query(ref(db, 'reels'), orderByChild('userId'), equalTo(userId));
       onValue(reelsRef, (snapshot) => {
         const count = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
         document.getElementById('reels-count').textContent = count;
       });
 
-      // Followers count
       const followersRef = ref(db, `users/${userId}/followers`);
       onValue(followersRef, (snapshot) => {
         const count = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
         document.getElementById('followers-count').textContent = count;
       });
 
-      // Following count
       const followingRef = ref(db, `users/${userId}/following`);
       onValue(followingRef, (snapshot) => {
         const count = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
@@ -639,23 +697,31 @@
       });
     }
 
-    document.getElementById('edit-profile-btn').addEventListener('click', () => {
-      const overlay = document.getElementById('edit-overlay');
+    function openEditSheet() {
+      const sheet = document.getElementById('edit-sheet');
       const nameInput = document.getElementById('edit-name');
       const bioInput = document.getElementById('edit-bio');
       
-      // Pre-fill current values
       const currentName = document.getElementById('profile-name').textContent;
       const currentBio = document.getElementById('profile-bio').textContent;
       nameInput.value = currentName;
       bioInput.value = currentBio;
       
-      overlay.classList.add('active');
-    });
+      sheet.classList.add('active');
+    }
 
-    document.getElementById('cancel-edit').addEventListener('click', () => {
-      document.getElementById('edit-overlay').classList.remove('active');
-    });
+    function closeEditSheet(event) {
+      if (event) event.stopPropagation();
+      console.log('Closing edit sheet');
+      const sheet = document.getElementById('edit-sheet');
+      sheet.classList.remove('active');
+      document.getElementById('edit-name').value = '';
+      document.getElementById('edit-bio').value = '';
+    }
+
+    document.getElementById('edit-profile-btn').addEventListener('click', openEditSheet);
+
+    document.getElementById('cancel-edit').addEventListener('click', closeEditSheet);
 
     document.getElementById('avatar-upload').addEventListener('change', async (e) => {
       const file = e.target.files[0];
@@ -708,7 +774,7 @@
           bio: bio || null 
         });
         showAlert('Profile updated successfully.');
-        document.getElementById('edit-overlay').classList.remove('active');
+        closeEditSheet();
         loadProfile();
       } catch (error) {
         console.error('Error updating profile:', error);
@@ -722,7 +788,6 @@
       showAlert('Settings coming soon!');
     });
 
-    // Navigation clicks
     document.getElementById('friends-nav').addEventListener('click', () => {
       window.location.href = 'friends.html';
     });
@@ -731,10 +796,17 @@
       window.location.href = 'friends.html';
     });
 
+    document.getElementById('edit-sheet').addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
     document.addEventListener('click', (e) => {
-      const overlay = document.getElementById('edit-overlay');
-      if (overlay.classList.contains('active') && !overlay.contains(e.target)) {
-        overlay.classList.remove('active');
+      const sheet = document.getElementById('edit-sheet');
+      const navItems = document.querySelectorAll('.nav-item');
+      const isNavClick = Array.from(navItems).some(item => item.contains(e.target));
+      if (sheet.classList.contains('active') && !sheet.contains(e.target) && !isNavClick) {
+        console.log('Click outside, closing edit sheet');
+        closeEditSheet(e);
       }
     });
 
@@ -742,6 +814,8 @@
       console.log('DOM loaded, initializing Firebase');
       initializeFirebase();
     });
+
+    window.closeEditSheet = closeEditSheet;
   </script>
 </body>
 </html>
