@@ -886,6 +886,11 @@
       commentsLoaded = 0;
     };
 
+    function goToProfile(userId) {
+      console.log('Navigating to profile for user:', userId);
+      window.location.href = `profile.html?uid=${userId}`;
+    }
+
     function initializeFirebase() {
       console.log('Initializing Firebase');
       try {
