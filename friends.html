@@ -652,6 +652,7 @@
 
     let app, auth, db, currentUser;
     const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456');
+    const renderedFriends = new Set(); // Track rendered friend IDs
 
     const showSpinner = () => {
       console.log('Showing spinner');
@@ -708,6 +709,7 @@
         await remove(ref(db, `users/${currentUser.uid}/friends/${friendId}`));
         console.log(`Removed friend ${friendId}`);
         showAlert('Friend removed successfully.');
+        renderedFriends.delete(friendId); // Remove from rendered set
         loadFriends(document.getElementById('friend-search').value);
       } catch (error) {
         console.error('Error removing friend:', error);
@@ -754,7 +756,9 @@
       try {
         onValue(friendsRef, async (snapshot) => {
           const friendsList = document.getElementById('friends-list');
+          // Clear existing friend cards and reset rendered set
           friendsList.innerHTML = '';
+          renderedFriends.clear();
           const friends = snapshot.val();
           if (!friends) {
             friendsList.innerHTML = '<p class="no-friends">No friends added yet. Add some friends to start chatting!</p>';
@@ -772,6 +776,7 @@
           }
           let totalUnread = 0;
           for (const friend of friendsArray) {
+            if (renderedFriends.has(friend.friendId)) continue; // Skip if already rendered
             const userRef = ref(db, `users/${friend.friendId}`);
             totalUnread += friend.unreadCount || 0;
             onValue(userRef, async (userSnapshot) => {
@@ -818,6 +823,7 @@
                 window.location.href = `conversation.html?friendId=${friend.friendId}`;
               });
               friendsList.appendChild(div);
+              renderedFriends.add(friend.friendId); // Mark as rendered
             }, { onlyOnce: true });
           }
           const friendsNav = document.getElementById('friends-nav');
@@ -929,6 +935,7 @@
         });
         console.log(`Added friend ${userId}`);
         showAlert('Friend added successfully.');
+        renderedFriends.add(userId); // Add to rendered set to prevent immediate duplication
         loadFriends(document.getElementById('friend-search').value);
         closeBottomSheet();
       } catch (error) {
