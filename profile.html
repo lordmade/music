@@ -11,15 +11,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #FFFFFF;
-      --card-bg: rgba(255, 255, 255, 0.6);
-      --text-primary: #000000;
-      --text-secondary: #4B5EAA;
-      --border: rgba(0, 0, 0, 0.15);
+      --bg: #000000;
+      --card-bg: rgba(0, 0, 0, 0.2);
+      --text-primary: #FFFFFF;
+      --text-secondary: #8E8E8E;
+      --border: rgba(255, 255, 255, 0.1);
       --highlight: #0095F6;
       --badge-bg: #FA3E5F;
-      --glass-bg: rgba(255, 255, 255, 0.6);
-      --glass-blur: blur(12px);
+      --glass-bg: rgba(0, 0, 0, 0.2);
+      --glass-blur: blur(10px);
     }
 
     body {
@@ -56,7 +56,7 @@
       width: 120px;
       height: 120px;
       border-radius: 50%;
-      border: 4px solid white;
+      border: 4px solid var(--text-primary);
       object-fit: cover;
       box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
@@ -113,7 +113,7 @@
 
     .profile-actions .btn {
       background: var(--highlight);
-      color: white;
+      color: var(--text-primary);
       border: none;
       font-weight: 600;
       cursor: pointer;
@@ -132,48 +132,253 @@
 
     .profile-actions .btn.secondary:hover {
       background: var(--highlight);
-      color: white;
-    }
-
-    .content-section {
-      padding: 1rem;
-    }
-
-    .section-title {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
       color: var(--text-primary);
     }
 
-    .reels-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 0.5rem;
-      margin-bottom: 2rem;
+    .reels-container {
+      height: calc(100vh - 40vh - 2rem);
+      overflow-y: auto;
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
     }
 
-    .reel-thumbnail {
-      aspect-ratio: 9/16;
+    .reel {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      scroll-snap-align: start;
       background: var(--card-bg);
-      border-radius: 0.5rem;
-      overflow: hidden;
-      cursor: pointer;
-      transition: transform 0.2s;
-      -webkit-backdrop-filter: var(--glass-blur);
-      backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--border);
     }
 
-    .reel-thumbnail:hover {
-      transform: scale(1.05);
-    }
-
-    .reel-thumbnail img,
-    .reel-thumbnail video {
+    .reel-media {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      background: var(--bg);
+    }
+
+    .play-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 48px;
+      height: 48px;
+      color: var(--text-primary);
+      opacity: 0.8;
+      transition: opacity 0.3s ease;
+      z-index: 20;
+    }
+
+    .play-icon.hidden {
+      opacity: 0;
+    }
+
+    .reel-top-actions {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 16px;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      z-index: 45;
+    }
+
+    .reel-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: space-between;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+
+    .reel-header-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .reel-header-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .reel-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .reel-profile-pic {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--text-primary);
+    }
+
+    .reel-username {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .reel-timestamp {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-left: 8px;
+    }
+
+    .comments-btn {
+      background: var(--highlight);
+      color: var(--text-primary);
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .reel-caption {
+      font-size: 14px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      max-width: 90%;
+      margin-top: 8px;
+    }
+
+    .reel-actions {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .reel-action {
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .reel-action.liked svg {
+      fill: var(--badge-bg);
+      stroke: var(--badge-bg);
+    }
+
+    .reel-action.bookmarked svg {
+      fill: var(--text-primary);
+      stroke: var(--text-primary);
+    }
+
+    .reel-action svg {
+      width: 28px;
+      height: 28px;
+      stroke: var(--text-primary);
+      stroke-width: 1.5;
+    }
+
+    .progress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 3px;
+      background: var(--highlight);
+      transition: width linear;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      width: 280px;
+      max-width: 90%;
+      z-index: 101;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+
+    .sidebar {
+      display: none;
+    }
+
+    .nav-item {
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .nav-item.upload-btn {
+      background: var(--highlight);
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      margin: 0 16px;
+    }
+
+    .nav-item.upload-btn svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .nav-item.active svg {
+      stroke: var(--highlight);
+    }
+
+    .nav-item svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--text-primary);
+      stroke-width: 2;
     }
 
     .bottom-sheet {
@@ -196,7 +401,7 @@
       -webkit-user-select: none;
       user-select: none;
       visibility: hidden;
-      box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
     }
 
     .bottom-sheet.active {
@@ -213,7 +418,7 @@
       position: absolute;
       top: 12px;
       right: 12px;
-      background: rgba(0,0,0,0.1);
+      background: rgba(255,255,255,0.1);
       border: none;
       border-radius: 50%;
       width: 32px;
@@ -227,86 +432,107 @@
     }
 
     .close-sheet:hover {
-      background: rgba(0,0,0,0.2);
+      background: rgba(255,255,255,0.2);
     }
 
-    .bottom-sheet input,
-    .bottom-sheet textarea {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      margin-bottom: 1rem;
-      background: white;
-      color: var(--text-primary);
-      font-family: inherit;
-      -webkit-user-select: auto;
-      user-select: auto;
-    }
-
-    .bottom-sheet textarea {
-      resize: vertical;
-      min-height: 100px;
-    }
-
-    .bottom-sheet .btn {
-      margin-right: 0.5rem;
-    }
-
-    .sidebar {
+    .bottom-sheet input[type="file"] {
       display: none;
     }
 
-    .bottom-nav {
+    .bottom-sheet label {
+      display: block;
+      background: var(--highlight);
+      color: var(--text-primary);
+      text-align: center;
+      border-radius: 9999px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    .bottom-sheet input[type="text"],
+    .bottom-sheet textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      resize: none;
+      -webkit-user-select: auto;
+      user-select: auto;
+      font-size: 14px;
+    }
+
+    .bottom-sheet textarea {
+      min-height: 100px;
+    }
+
+    .bottom-sheet button {
+      background: var(--highlight);
+      color: var(--text-primary);
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .bottom-sheet button.secondary {
+      background: var(--border);
+      color: var(--text-secondary);
+    }
+
+    .love-animation {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      color: var(--badge-bg);
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0;
+      animation: loveFloat 0.6s ease-out forwards;
+    }
+
+    @keyframes loveFloat {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(0deg); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(180deg); }
+      100% { opacity: 0; transform: translate(-50%, -50%) translateY(-100px) scale(1) rotate(360deg); }
+    }
+
+    .alert {
       position: fixed;
-      bottom: 20px;
+      top: 20px;
       left: 50%;
       transform: translateX(-50%);
       background: var(--glass-bg);
       -webkit-backdrop-filter: var(--glass-blur);
       backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--border);
-      border-radius: 9999px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 16px;
-      width: 280px;
-      max-width: 90%;
-      z-index: 101;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    .nav-item {
-      background: none;
-      border: none;
       color: var(--text-primary);
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      -webkit-user-select: none;
-      user-select: none;
+      padding: 12px 24px;
       border-radius: 9999px;
-      padding: 8px;
-      transition: background 0.2s ease;
+      border: 1px solid var(--border);
+      z-index: 60;
+      display: none;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
-    .nav-item:hover {
-      background: rgba(0,0,0,0.05);
+    .alert.active {
+      display: block;
+      animation: slideInAlert 0.3s ease-out;
     }
 
-    .nav-item.active svg {
-      stroke: var(--highlight);
-    }
-
-    .nav-item svg {
-      width: 24px;
-      height: 24px;
-      stroke: var(--text-primary);
-      stroke-width: 2;
+    @keyframes slideInAlert {
+      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
 
     .spinner-overlay {
@@ -339,33 +565,38 @@
       to { transform: rotate(360deg); }
     }
 
-    .alert {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--glass-bg);
-      -webkit-backdrop-filter: var(--glass-blur);
-      backdrop-filter: var(--glass-blur);
-      color: var(--text-primary);
-      padding: 12px 24px;
-      border-radius: 9999px;
-      border: 1px solid var(--border);
-      z-index: 60;
-      display: none;
-      max-width: 90%;
-      text-align: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    .reel {
+      animation: slideIn 0.3s ease-out;
     }
 
-    .alert.active {
-      display: block;
-      animation: slideInAlert 0.3s ease-out;
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    @keyframes slideInAlert {
-      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    body, .reel, .reel-actions, .reel-action, .bottom-sheet, .nav-item {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    @media (max-width: 768px) {
+      .reel-top-actions {
+        padding: 12px;
+      }
+      .reel-actions {
+        right: 8px;
+      }
+      .bottom-nav {
+        width: 90%;
+      }
+      .reel-header-buttons {
+        gap: 4px;
+      }
+      .comments-btn {
+        padding: 6px 12px;
+        font-size: 11px;
+      }
     }
 
     @media (min-width: 769px) {
@@ -389,7 +620,7 @@
         align-items: center;
         padding: 16px 0;
         z-index: 101;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.3);
       }
 
       .sidebar .nav-item {
@@ -401,7 +632,19 @@
       }
 
       .sidebar .nav-item:hover {
-        background: rgba(0,0,0,0.05);
+        background: rgba(255,255,255,0.1);
+      }
+
+      .sidebar .nav-item.upload-btn {
+        background: var(--highlight);
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        margin: 12px 0;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .sidebar .nav-item svg {
@@ -424,7 +667,7 @@
         width: calc(100% - 112px);
       }
 
-      .content-section {
+      .reels-container {
         margin-left: 112px;
         width: calc(100% - 112px);
       }
@@ -440,19 +683,24 @@
 <body>
   <main class="flex flex-col h-screen" id="main-content">
     <nav class="sidebar">
-      <button class="nav-item btn" onclick="window.location.href='index.html'">
+      <button class="nav-item btn" id="home-btn" aria-label="Reels">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
         </svg>
         <span>Reels</span>
       </button>
-      <button class="nav-item btn" id="friends-nav">
+      <button class="nav-item upload-btn" id="upload-nav-btn" aria-label="Upload">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 4v8m0 0v8m8-8H4"/>
+        </svg>
+      </button>
+      <button class="nav-item btn" id="friends-nav-btn" aria-label="Friends">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
         </svg>
         <span>Friends</span>
       </button>
-      <button class="nav-item btn active" id="profile-nav">
+      <button class="nav-item btn active" id="profile-nav-btn" aria-label="Profile">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
         </svg>
@@ -490,25 +738,29 @@
       </div>
     </div>
 
-    <div class="content-section">
-      <h2 class="section-title">Your Reels</h2>
-      <div id="reels-grid" class="reels-grid"></div>
+    <div class="reels-container" id="reels-container">
+      <p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">Loading reels...</p>
     </div>
 
     <nav class="bottom-nav">
-      <button class="nav-item" onclick="window.location.href='index.html'">
+      <button class="nav-item btn" id="home-btn-mobile" aria-label="Reels">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
         </svg>
         <span>Reels</span>
       </button>
-      <button class="nav-item" id="friends-nav-mobile">
+      <button class="nav-item upload-btn" id="upload-nav-btn-mobile" aria-label="Upload">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 4v8m0 0v8m8-8H4"/>
+        </svg>
+      </button>
+      <button class="nav-item btn" id="friends-nav-btn-mobile" aria-label="Friends">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
         </svg>
         <span>Friends</span>
       </button>
-      <button class="nav-item active" id="profile-nav-mobile">
+      <button class="nav-item btn active" id="profile-nav-btn-mobile" aria-label="Profile">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
         </svg>
@@ -527,9 +779,22 @@
         <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
         <label for="avatar-upload" class="btn">Change Avatar</label>
         <input type="text" id="edit-name" placeholder="Display Name">
-        <textarea id="edit-bio" placeholder="Bio (optional)"></textarea>
+        <textarea id="edit-bio" placeholder="Bio (optional)" rows="3"></textarea>
         <button id="save-profile" class="btn">Save Changes</button>
         <button id="cancel-edit" class="btn secondary">Cancel</button>
+      </div>
+    </div>
+
+    <div class="bottom-sheet" id="comment-sheet">
+      <button class="close-sheet" onclick="closeBottomSheet(event)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+      <div class="bottom-sheet-content" id="comment-sheet-content">
+        <div class="comment-list" id="comment-list"></div>
+        <textarea id="comment-input" placeholder="Add a comment..." rows="2"></textarea>
+        <button class="btn" id="submit-comment">Post</button>
       </div>
     </div>
 
@@ -543,7 +808,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, update, query, orderByChild } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, update, query, orderByChild, equalTo, push, remove } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -561,6 +826,11 @@
 
     let app, auth, db, currentUser;
     let userId = null;
+    let activeCommentReelId = null;
+    let commentListeners = new Map();
+    let currentPlayingVideo = null;
+    let lastCommentTimestamp = 0;
+    const COMMENTS_PER_PAGE = 10;
 
     const showSpinner = () => {
       console.log('Showing spinner');
@@ -582,6 +852,15 @@
       setTimeout(() => alert.classList.remove('active'), 3000);
     };
 
+    const showLoveAnimation = (reelDiv) => {
+      console.log('Showing love animation');
+      const heart = document.createElement('div');
+      heart.innerHTML = '❤️';
+      heart.className = 'love-animation';
+      reelDiv.appendChild(heart);
+      setTimeout(() => heart.remove(), 600);
+    };
+
     function initializeFirebase() {
       console.log('Initializing Firebase');
       try {
@@ -594,6 +873,9 @@
             currentUser = user;
             const urlParams = new URLSearchParams(window.location.search);
             userId = urlParams.get('uid') || user.uid;
+            update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() })
+              .then(() => console.log('User lastSeen updated'))
+              .catch(err => console.error('Error updating lastSeen:', err));
             loadProfile();
             loadReels();
             loadStats();
@@ -672,29 +954,513 @@
 
     async function loadReels() {
       if (!userId) return;
+      console.log('Loading user reels for user:', userId);
+      showSpinner();
       const reelsRef = query(ref(db, 'reels'), orderByChild('userId'), equalTo(userId));
-      const reelsGrid = document.getElementById('reels-grid');
-      onValue(reelsRef, (snapshot) => {
-        reelsGrid.innerHTML = '';
-        if (!snapshot.exists()) {
-          reelsGrid.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No reels yet.</p>';
-          return;
-        }
-        const reels = snapshot.val();
-        Object.entries(reels).forEach(([reelId, reelData]) => {
-          const thumbnail = document.createElement('div');
-          thumbnail.className = 'reel-thumbnail';
-          thumbnail.onclick = () => window.location.href = `reel.html?id=${reelId}`;
-          const isVideo = reelData.mediaType === 'video';
-          thumbnail.innerHTML = `
-            ${isVideo 
-              ? `<video src="${reelData.mediaURL}" muted></video>`
-              : `<img src="${reelData.mediaURL}" alt="Reel thumbnail">`
+      const renderedReels = new Set();
+      try {
+        onValue(reelsRef, async (snapshot) => {
+          console.log('Reels snapshot received:', snapshot.exists());
+          const reelsContainer = document.getElementById('reels-container');
+          if (!snapshot.exists()) {
+            console.log('No reels data found for user');
+            reelsContainer.innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">No reels yet.</p>';
+            pauseAllVideos();
+            hideSpinner();
+            return;
+          }
+          const reels = snapshot.val();
+          console.log('Data fetched:', Object.keys(reels).length, 'reels');
+          const reelsArray = Object.entries(reels)
+            .map(([reelId, reelData]) => ({ reelId, ...reelData }))
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+          if (reelsContainer.children.length !== reelsArray.length) {
+            reelsContainer.innerHTML = '';
+            renderedReels.clear();
+            pauseAllVideos();
+          }
+
+          for (const reel of reelsArray) {
+            if (renderedReels.has(reel.reelId)) continue;
+            const userRef = ref(db, `users/${reel.userId}`);
+            try {
+              onValue(userRef, async (userSnapshot) => {
+                const userData = userSnapshot.val();
+                console.log('User data for reel', reel.reelId, ':', userData);
+                const caption = reel.caption || '';
+                await trackImpression(reel.reelId);
+                const div = document.createElement('div');
+                div.className = 'reel';
+                div.dataset.reelId = reel.reelId;
+                const isVideo = reel.mediaType === 'video';
+                div.innerHTML = `
+                  ${isVideo
+                    ? `<video class="reel-media" src="${reel.mediaURL}" playsinline loop></video>
+                       <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                         <path d="M5 3l14 9-14 9V3z"/>
+                       </svg>
+                       <div class="progress-bar" id="progress-${reel.reelId}"></div>`
+                    : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
+                  <div class="reel-top-actions">
+                    <div class="reel-header">
+                      <div class="reel-header-info">
+                        ${userData?.photoURL
+                          ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
+                          : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+                        <div>
+                          <div class="reel-username">${userData?.displayName || 'User'}</div>
+                          <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
+                        </div>
+                      </div>
+                      <div class="reel-header-buttons">
+                        <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>
+                      </div>
+                    </div>
+                    <div class="reel-caption">${caption}</div>
+                  </div>
+                  <div class="reel-actions">
+                    <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                      </svg>
+                      <span>${Object.keys(reel.likedBy || {}).length}</span>
+                    </button>
+                    <button class="reel-action btn" onclick="trackImpression('${reel.reelId}', this)">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
+                      </svg>
+                      <span>${Object.keys(reel.impressions || {}).length}</span>
+                    </button>
+                    <button class="reel-action btn ${reel.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reel.reelId}', this)">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
+                      </svg>
+                    </button>
+                  </div>
+                `;
+                reelsContainer.appendChild(div);
+                renderedReels.add(reel.reelId);
+                if (isVideo) {
+                  const video = div.querySelector('.reel-media');
+                  const progressBar = div.querySelector(`#progress-${reel.reelId}`);
+                  const playIcon = div.querySelector('.play-icon');
+                  video.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (video.paused) {
+                      pauseAllVideos(reel.reelId);
+                      currentPlayingVideo = video;
+                      video.play().catch(err => console.error('Error playing video:', err));
+                      if (playIcon) playIcon.classList.add('hidden');
+                    } else {
+                      video.pause();
+                      currentPlayingVideo = null;
+                      if (playIcon) playIcon.classList.remove('hidden');
+                    }
+                    console.log(`Video ${video.paused ? 'paused' : 'playing'} for reel ${reel.reelId}`);
+                  });
+                  video.addEventListener('play', () => {
+                    if (playIcon) playIcon.classList.add('hidden');
+                  });
+                  video.addEventListener('pause', () => {
+                    if (playIcon) playIcon.classList.remove('hidden');
+                  });
+                  video.addEventListener('timeupdate', () => {
+                    if (!video.paused) {
+                      const progress = (video.currentTime / video.duration) * 100;
+                      progressBar.style.width = `${progress}%`;
+                    }
+                  });
+                  video.addEventListener('waiting', () => showSpinner());
+                  video.addEventListener('stalled', () => showSpinner());
+                  video.addEventListener('playing', () => hideSpinner());
+                  video.addEventListener('canplay', () => hideSpinner());
+                  video.addEventListener('ended', () => {
+                    progressBar.style.width = '0%';
+                    video.currentTime = 0;
+                    video.play().catch(err => console.error('Error replaying video:', err));
+                    if (playIcon) playIcon.classList.add('hidden');
+                  });
+                  video.addEventListener('error', () => {
+                    console.log('Video error for URL:', reel.mediaURL);
+                    showSpinner();
+                    showAlert('Failed to load video. Please check your network.');
+                    if (playIcon) playIcon.classList.remove('hidden');
+                  });
+                  let tapCount = 0;
+                  let tapTimer;
+                  div.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    tapCount++;
+                    if (tapCount === 1) {
+                      tapTimer = setTimeout(() => {
+                        tapCount = 0;
+                      }, 300);
+                    } else if (tapCount === 2) {
+                      clearTimeout(tapTimer);
+                      tapCount = 0;
+                      showLoveAnimation(div);
+                      toggleLike(reel.reelId, div.querySelector('.reel-action.btn'));
+                    }
+                  });
+                }
+                let pressTimer;
+                div.addEventListener('touchstart', (e) => {
+                  e.stopPropagation();
+                  pressTimer = setTimeout(() => {
+                    openBottomSheet('comment', reel.reelId);
+                  }, 500);
+                }, { passive: true });
+                div.addEventListener('touchmove', (e) => {
+                  clearTimeout(pressTimer);
+                }, { passive: true });
+                div.addEventListener('touchend', (e) => {
+                  clearTimeout(pressTimer);
+                }, { passive: true });
+              }, { onlyOnce: true });
+            } catch (error) {
+              console.error('Error fetching user data for reel', reel.reelId, ':', error);
             }
-          `;
-          reelsGrid.appendChild(thumbnail);
+          }
+          hideSpinner();
+          observeReels();
+        }, (error) => {
+          console.error('Error in reels onValue:', error);
+          showAlert('Failed to fetch reels. Please try again.');
+          pauseAllVideos();
+          hideSpinner();
         });
+      } catch (error) {
+        console.error('Error loading reels:', error);
+        showAlert('Failed to load reels. Please check your connection.');
+        pauseAllVideos();
+        hideSpinner();
+      }
+    }
+
+    async function trackImpression(reelId, button = null) {
+      if (!currentUser) return;
+      try {
+        const reelRef = ref(db, `reels/${reelId}/impressions/${currentUser.uid}`);
+        onValue(reelRef, async (snapshot) => {
+          if (!snapshot.exists()) {
+            await update(ref(db, `reels/${reelId}/impressions`), {
+              [currentUser.uid]: true
+            });
+            console.log(`Impression tracked for reel ${reelId}`);
+            if (button) {
+              const countSpan = button.querySelector('span');
+              const currentCount = parseInt(countSpan.textContent) || 0;
+              countSpan.textContent = currentCount + 1;
+            }
+          }
+        }, { onlyOnce: true });
+      } catch (error) {
+        console.error('Error tracking impression:', error);
+      }
+    }
+
+    async function toggleLike(reelId, button) {
+      if (!currentUser) {
+        showAlert('Please log in to like reels.');
+        return;
+      }
+      try {
+        const isLiked = button.classList.contains('liked');
+        const countSpan = button.querySelector('span');
+        const currentCount = parseInt(countSpan.textContent) || 0;
+
+        await update(ref(db, `reels/${reelId}/likedBy`), {
+          [currentUser.uid]: isLiked ? null : true
+        });
+
+        button.classList.toggle('liked');
+        countSpan.textContent = isLiked ? currentCount - 1 : currentCount + 1;
+        console.log(`Toggled like for reel ${reelId}: ${isLiked ? 'Unliked' : 'Liked'}`);
+      } catch (error) {
+        console.error('Error toggling like:', error);
+        showAlert('Failed to like reel. Please try again.');
+      }
+    }
+
+    async function toggleBookmark(reelId, button) {
+      if (!currentUser) {
+        showAlert('Please log in to bookmark reels.');
+        return;
+      }
+      try {
+        const isBookmarked = button.classList.contains('bookmarked');
+        await update(ref(db, `reels/${reelId}/bookmarkedBy`), {
+          [currentUser.uid]: isBookmarked ? null : true
+        });
+        button.classList.toggle('bookmarked');
+        console.log(`Toggled bookmark for reel ${reelId}: ${isBookmarked ? 'Removed' : 'Added'}`);
+        showAlert(isBookmarked ? 'Removed from bookmarks' : 'Saved to bookmarks');
+      } catch (error) {
+        console.error('Error toggling bookmark:', error);
+        showAlert('Failed to bookmark reel. Please try again.');
+      }
+    }
+
+    async function loadComments(reelId) {
+      console.log('Loading comments for reel', reelId);
+      const commentList = document.getElementById('comment-list');
+      commentList.innerHTML = '';
+      const commentsRef = query(ref(db, `reels/${reelId}/comments`), limitToLast(COMMENTS_PER_PAGE));
+      try {
+        if (commentListeners.has(reelId)) {
+          commentListeners.get(reelId)();
+          commentListeners.delete(reelId);
+        }
+        const unsubscribe = onValue(commentsRef, async (snapshot) => {
+          commentList.innerHTML = '';
+          const comments = snapshot.val();
+          if (!comments) {
+            commentList.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No comments yet.</p>';
+            return;
+          }
+          const commentArray = Object.entries(comments)
+            .map(([commentId, commentData]) => ({ commentId, ...commentData }))
+            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          commentsLoaded = commentArray.length;
+          for (const comment of commentArray) {
+            const userRef = ref(db, `users/${comment.userId}`);
+            onValue(userRef, async (userSnapshot) => {
+              const userData = userSnapshot.val();
+              const commentText = comment.comment;
+              const replyCount = Object.keys(comment.replies || {}).length;
+              const isOwnComment = currentUser && comment.userId === currentUser.uid;
+              const commentDiv = document.createElement('div');
+              commentDiv.className = `comment-item ${comment.parentId ? 'reply' : ''}`;
+              commentDiv.innerHTML = `
+                <div class="comment-header">
+                  ${userData?.photoURL
+                    ? `<img src="${userData.photoURL}" class="comment-profile-pic" alt="${userData.displayName}'s profile picture">`
+                    : `<div class="comment-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+                  <div class="comment-username">${userData?.displayName || 'User'}</div>
+                  <div class="comment-timestamp">${formatTimestamp(comment.timestamp)}</div>
+                  ${isOwnComment ? `
+                    <button class="delete-comment" onclick="deleteComment('${reelId}', '${comment.commentId}')">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
+                      </svg>
+                    </button>
+                  ` : ''}
+                </div>
+                <div class="comment-text">${commentText}</div>
+                <div class="reply-link" onclick="showReplyInput('${comment.commentId}')">Reply${replyCount > 0 ? ` (${replyCount})` : ''}</div>
+                <div class="reply-input" id="reply-input-${comment.commentId}">
+                  <textarea placeholder="Add a reply..." rows="2"></textarea>
+                  <button class="btn" onclick="submitReply('${reelId}', '${comment.commentId}')">Post</button>
+                  <button class="btn cancel-reply" onclick="showReplyInput('${comment.commentId}')">Cancel</button>
+                </div>
+                <div class="replies" id="replies-${comment.commentId}"></div>
+              `;
+              commentList.appendChild(commentDiv);
+              if (comment.replies) {
+                const repliesDiv = commentDiv.querySelector(`#replies-${comment.commentId}`);
+                const replyArray = Object.entries(comment.replies)
+                  .map(([replyId, replyData]) => ({ replyId, ...replyData }))
+                  .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                for (const reply of replyArray) {
+                  const replyUserRef = ref(db, `users/${reply.userId}`);
+                  onValue(replyUserRef, async (replyUserSnapshot) => {
+                    const replyUserData = replyUserSnapshot.val();
+                    const replyText = reply.comment;
+                    const isOwnReply = currentUser && reply.userId === currentUser.uid;
+                    const replyDiv = document.createElement('div');
+                    replyDiv.className = 'comment-item reply';
+                    replyDiv.innerHTML = `
+                      <div class="comment-header">
+                        ${replyUserData?.photoURL
+                          ? `<img src="${replyUserData.photoURL}" class="comment-profile-pic" alt="${replyUserData.displayName}'s profile picture">`
+                          : `<div class="comment-avatar">${replyUserData?.displayName ? replyUserData.displayName[0].toUpperCase() : 'U'}</div>`}
+                        <div class="comment-username">${replyUserData?.displayName || 'User'}</div>
+                        <div class="comment-timestamp">${formatTimestamp(reply.timestamp)}</div>
+                        ${isOwnReply ? `
+                          <button class="delete-comment" onclick="deleteComment('${reelId}', '${reply.replyId}', '${comment.commentId}')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
+                            </svg>
+                          </button>
+                        ` : ''}
+                      </div>
+                      <div class="comment-text">${replyText}</div>
+                      <div class="reply-link" onclick="showReplyInput('${reply.replyId}')">Reply</div>
+                      <div class="reply-input" id="reply-input-${reply.replyId}">
+                        <textarea placeholder="Add a reply..." rows="2"></textarea>
+                        <button class="btn" onclick="submitReply('${reelId}', '${reply.replyId}')">Post</button>
+                        <button class="btn cancel-reply" onclick="showReplyInput('${reply.replyId}')">Cancel</button>
+                      </div>
+                    `;
+                    repliesDiv.appendChild(replyDiv);
+                  }, { onlyOnce: true });
+                }
+              }
+            }, { onlyOnce: true });
+          }
+          if (commentsLoaded >= COMMENTS_PER_PAGE) {
+            const loadMoreBtn = document.createElement('button');
+            loadMoreBtn.className = 'load-more btn';
+            loadMoreBtn.textContent = 'Load more comments';
+            loadMoreBtn.onclick = () => loadMoreComments(reelId);
+            commentList.appendChild(loadMoreBtn);
+          }
+        }, { onlyOnce: false });
+        commentListeners.set(reelId, unsubscribe);
+      } catch (error) {
+        console.error('Error loading comments:', error);
+        showAlert('Failed to load comments. Please try again.');
+      }
+    }
+
+    async function loadMoreComments(reelId) {
+      console.log('Loading more comments for reel', reelId);
+      const commentsRef = query(ref(db, `reels/${reelId}/comments`), limitToLast(commentsLoaded + COMMENTS_PER_PAGE));
+      try {
+        onValue(commentsRef, (snapshot) => {
+          loadComments(reelId);
+        }, { onlyOnce: true });
+      } catch (error) {
+        console.error('Error loading more comments:', error);
+        showAlert('Failed to load more comments. Please try again.');
+      }
+    }
+
+    function formatTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHr = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHr / 24);
+      const diffWeek = Math.floor(diffDay / 7);
+      const diffMonth = Math.floor(diffDay / 30);
+      const diffYear = Math.floor(diffDay / 365);
+
+      if (diffSec < 60) return `${diffSec} second${diffSec === 1 ? '' : 's'} ago`;
+      if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+      if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
+      if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
+      if (diffWeek < 4) return `${diffWeek} week${diffWeek === 1 ? '' : 's'} ago`;
+      if (diffMonth < 12) return `${diffMonth} month${diffMonth === 1 ? '' : 's'} ago`;
+      return `${diffYear} year${diffYear === 1 ? '' : 's'} ago`;
+    }
+
+    async function deleteComment(reelId, commentId, parentId = null) {
+      if (!currentUser) {
+        showAlert('Please log in to delete comments.');
+        return;
+      }
+      try {
+        const path = parentId
+          ? `reels/${reelId}/comments/${parentId}/replies/${commentId}`
+          : `reels/${reelId}/comments/${commentId}`;
+        await remove(ref(db, path));
+        console.log(`Deleted ${parentId ? 'reply' : 'comment'} ${commentId} from reel ${reelId}`);
+        showAlert('Comment deleted successfully.');
+        loadComments(reelId);
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+        showAlert('Failed to delete comment. Please try again.');
+      }
+    }
+
+    function showReplyInput(commentId) {
+      console.log('Toggling reply input for comment:', commentId);
+      const replyInput = document.getElementById(`reply-input-${commentId}`);
+      replyInput.classList.toggle('active');
+      if (!replyInput.classList.contains('active')) {
+        replyInput.querySelector('textarea').value = '';
+      }
+    }
+
+    async function submitReply(reelId, parentId) {
+      if (!currentUser) {
+        showAlert('Please log in to comment.');
+        return;
+      }
+      const now = Date.now();
+      if (now - lastCommentTimestamp < 3000) {
+        showAlert('Please wait a few seconds before posting another reply.');
+        return;
+      }
+      const replyInput = document.getElementById(`reply-input-${parentId}`).querySelector('textarea');
+      const replyText = replyInput.value.trim();
+      if (!replyText) {
+        showAlert('Please enter a reply.');
+        return;
+      }
+      try {
+        await push(ref(db, `reels/${reelId}/comments/${parentId}/replies`), {
+          userId: currentUser.uid,
+          comment: replyText,
+          timestamp: new Date().toISOString(),
+          parentId
+        });
+        lastCommentTimestamp = now;
+        replyInput.value = '';
+        document.getElementById(`reply-input-${parentId}`).classList.remove('active');
+        console.log(`Reply added to comment ${parentId} on reel ${reelId}`);
+        loadComments(reelId);
+      } catch (error) {
+        console.error('Error submitting reply:', error);
+        showAlert('Failed to add reply. Please try again.');
+      }
+    }
+
+    async function submitComment(reelId) {
+      if (!currentUser) {
+        showAlert('Please log in to comment.');
+        return;
+      }
+      const now = Date.now();
+      if (now - lastCommentTimestamp < 3000) {
+        showAlert('Please wait a few seconds before posting another comment.');
+        return;
+      }
+      const commentInput = document.getElementById('comment-input');
+      const commentText = commentInput.value.trim();
+      if (!commentText) {
+        showAlert('Please enter a comment.');
+        return;
+      }
+      try {
+        const commentsRef = ref(db, `reels/${reelId}/comments`);
+        await push(commentsRef, {
+          userId: currentUser.uid,
+          comment: commentText,
+          timestamp: new Date().toISOString(),
+          parentId: null
+        });
+        lastCommentTimestamp = now;
+        commentInput.value = '';
+        console.log(`Comment added to reel ${reelId}`);
+        loadComments(reelId);
+      } catch (error) {
+        console.error('Error submitting comment:', error);
+        showAlert('Failed to add comment. Please try again.');
+      }
+    }
+
+    function pauseAllVideos(exceptReelId = null) {
+      console.log('Pausing all videos except reel:', exceptReelId);
+      const videos = document.querySelectorAll('.reel-media');
+      videos.forEach(video => {
+        if (video.tagName === 'VIDEO' && video.closest('.reel').dataset.reelId !== exceptReelId) {
+          video.pause();
+          video.currentTime = 0;
+          const progressBar = document.getElementById(`progress-${video.closest('.reel').dataset.reelId}`);
+          if (progressBar) progressBar.style.width = '0%';
+          const playIcon = video.closest('.reel').querySelector('.play-icon');
+          if (playIcon) playIcon.classList.remove('hidden');
+          console.log(`Paused and reset video for reel ${video.closest('.reel').dataset.reelId}`);
+        }
       });
+      if (currentPlayingVideo && currentPlayingVideo.closest('.reel').dataset.reelId !== exceptReelId) {
+        currentPlayingVideo = null;
+      }
     }
 
     function openEditSheet() {
@@ -719,11 +1485,102 @@
       document.getElementById('edit-bio').value = '';
     }
 
-    document.getElementById('edit-profile-btn').addEventListener('click', openEditSheet);
+    function openBottomSheet(type, reelId = null, event = null) {
+      if (event) event.stopPropagation();
+      console.log(`Opening ${type} bottom sheet for reelId: ${reelId}`);
+      if (type === 'comment') {
+        document.getElementById('comment-sheet').classList.add('active');
+        activeCommentReelId = reelId;
+        loadComments(reelId);
+      }
+    }
+
+    function closeBottomSheet(event) {
+      if (event) event.stopPropagation();
+      console.log('Closing comment sheet');
+      document.getElementById('comment-sheet').classList.remove('active');
+      document.getElementById('comment-input').value = '';
+      document.getElementById('comment-list').innerHTML = '';
+      activeCommentReelId = null;
+      commentListeners.forEach((unsubscribe) => unsubscribe());
+      commentListeners.clear();
+      commentsLoaded = 0;
+    }
+
+    let observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const reel = entry.target;
+        const video = reel.querySelector('.reel-media');
+        if (video && video.tagName === 'VIDEO') {
+          const playIcon = reel.querySelector('.play-icon');
+          const progressBar = document.getElementById(`progress-${reel.dataset.reelId}`);
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+            pauseAllVideos(reel.dataset.reelId);
+            currentPlayingVideo = video;
+            video.muted = false;
+            video.play().catch(err => console.error('Error playing video:', err));
+            if (playIcon) playIcon.classList.add('hidden');
+            console.log(`Playing video for reel ${reel.dataset.reelId}`);
+            trackImpression(reel.dataset.reelId);
+          } else {
+            video.pause();
+            video.currentTime = 0;
+            video.muted = true;
+            if (progressBar) progressBar.style.width = '0%';
+            if (playIcon) playIcon.classList.remove('hidden');
+            if (currentPlayingVideo === video) currentPlayingVideo = null;
+            console.log(`Paused video for reel ${reel.dataset.reelId} due to swipe`);
+          }
+        }
+      });
+    }, { threshold: 0.6 });
+
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    const handleScroll = debounce(() => {
+      console.log('Scroll detected, checking video states');
+      const reels = document.querySelectorAll('.reel');
+      reels.forEach(reel => {
+        const video = reel.querySelector('.reel-media');
+        if (video && video.tagName === 'VIDEO' && video !== currentPlayingVideo) {
+          video.pause();
+          video.currentTime = 0;
+          const progressBar = document.getElementById(`progress-${reel.dataset.reelId}`);
+          if (progressBar) progressBar.style.width = '0%';
+          const playIcon = reel.querySelector('.play-icon');
+          if (playIcon) playIcon.classList.remove('hidden');
+          console.log(`Paused video for reel ${reel.dataset.reelId} during scroll`);
+        }
+      });
+    }, 100);
+
+    function observeReels() {
+      console.log('Observing reels for visibility');
+      const reels = document.querySelectorAll('.reel');
+      reels.forEach(reel => observer.observe(reel));
+    }
+
+    document.getElementById('reels-container').addEventListener('scroll', handleScroll);
+
+    document.getElementById('edit-profile-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEditSheet();
+    });
 
     document.getElementById('cancel-edit').addEventListener('click', closeEditSheet);
 
     document.getElementById('avatar-upload').addEventListener('change', async (e) => {
+      e.stopPropagation();
       const file = e.target.files[0];
       if (!file) return;
       
@@ -758,7 +1615,8 @@
       }
     });
 
-    document.getElementById('save-profile').addEventListener('click', async () => {
+    document.getElementById('save-profile').addEventListener('click', async (e) => {
+      e.stopPropagation();
       const name = document.getElementById('edit-name').value.trim();
       const bio = document.getElementById('edit-bio').value.trim();
       
@@ -784,15 +1642,42 @@
       }
     });
 
-    document.getElementById('settings-btn').addEventListener('click', () => {
+    document.getElementById('settings-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
       showAlert('Settings coming soon!');
     });
 
-    document.getElementById('friends-nav').addEventListener('click', () => {
+    document.getElementById('home-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.location.href = 'index.html';
+    });
+
+    document.getElementById('home-btn-mobile').addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.location.href = 'index.html';
+    });
+
+    document.getElementById('upload-nav-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      showAlert('Upload functionality is available on the Reels page.');
+      window.location.href = 'index.html';
+    });
+
+    document.getElementById('upload-nav-btn-mobile').addEventListener('click', (e) => {
+      e.stopPropagation();
+      showAlert('Upload functionality is available on the Reels page.');
+      window.location.href = 'index.html';
+    });
+
+    document.getElementById('friends-nav-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      console.log('Redirecting to friends.html');
       window.location.href = 'friends.html';
     });
 
-    document.getElementById('friends-nav-mobile').addEventListener('click', () => {
+    document.getElementById('friends-nav-btn-mobile').addEventListener('click', (e) => {
+      e.stopPropagation();
+      console.log('Redirecting to friends.html');
       window.location.href = 'friends.html';
     });
 
@@ -800,21 +1685,47 @@
       e.stopPropagation();
     });
 
-    document.addEventListener('click', (e) => {
-      const sheet = document.getElementById('edit-sheet');
-      const navItems = document.querySelectorAll('.nav-item');
-      const isNavClick = Array.from(navItems).some(item => item.contains(e.target));
-      if (sheet.classList.contains('active') && !sheet.contains(e.target) && !isNavClick) {
-        console.log('Click outside, closing edit sheet');
-        closeEditSheet(e);
+    document.getElementById('comment-sheet-content').addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    document.getElementById('submit-comment').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (activeCommentReelId) {
+        submitComment(activeCommentReelId);
       }
     });
 
+    document.addEventListener('click', (e) => {
+      const editSheet = document.getElementById('edit-sheet');
+      const commentSheet = document.getElementById('comment-sheet');
+      const navItems = document.querySelectorAll('.nav-item');
+      const isNavClick = Array.from(navItems).some(item => item.contains(e.target));
+      if ((editSheet.classList.contains('active') || commentSheet.classList.contains('active')) &&
+          !editSheet.contains(e.target) && !commentSheet.contains(e.target) && !isNavClick) {
+        console.log('Click outside, closing all bottom sheets');
+        closeEditSheet();
+        closeBottomSheet();
+      }
+    });
+
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('DOM loaded, initializing Firebase');
+      console.log('DOM loaded, initializing Firebase and observers');
       initializeFirebase();
     });
 
+    window.toggleLike = toggleLike;
+    window.toggleBookmark = toggleBookmark;
+    window.trackImpression = trackImpression;
+    window.showReplyInput = showReplyInput;
+    window.submitReply = submitReply;
+    window.deleteComment = deleteComment;
+    window.openBottomSheet = openBottomSheet;
+    window.closeBottomSheet = closeBottomSheet;
     window.closeEditSheet = closeEditSheet;
   </script>
 </body>
