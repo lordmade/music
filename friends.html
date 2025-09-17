@@ -11,23 +11,34 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #F7F7F8;
-      --card-bg: #1C2526;
-      --text-primary: #FFFFFF;
+      --bg: #FFFFFF;
+      --card-bg: rgba(255, 255, 255, 0.6);
+      --text-primary: #000000;
       --text-secondary: #4B5EAA;
-      --border: #4A5568;
-      --highlight: #38B2AC;
-      --badge-bg: #EF4444;
+      --border: rgba(0, 0, 0, 0.15);
+      --highlight: #0095F6;
+      --badge-bg: #FA3E5F;
+      --glass-bg: rgba(255, 255, 255, 0.6);
+      --glass-blur: blur(12px);
     }
 
     body {
       font-family: 'Inter', system-ui, sans-serif;
       background: var(--bg);
-      color: var(--text-secondary);
+      color: var(--text-primary);
       min-height: 100vh;
       margin: 0;
-      padding-bottom: 5rem;
-      transition: background 0.3s ease;
+      overflow-x: hidden;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .btn {
+      border-radius: 9999px;
+      padding: 8px 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .search-container {
@@ -43,7 +54,9 @@
 
     .search-bar {
       flex: 1;
-      background: var(--card-bg);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
       color: var(--text-primary);
       border: 1px solid var(--border);
       border-radius: 9999px;
@@ -54,7 +67,7 @@
     }
 
     .search-bar::placeholder {
-      color: rgba(255, 255, 255, 0.5);
+      color: var(--text-secondary);
     }
 
     .add-friend-button {
@@ -68,10 +81,12 @@
       justify-content: center;
       cursor: pointer;
       transition: background 0.2s;
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
     }
 
     .add-friend-button:hover {
-      background: #2a928d;
+      background: #0077c2;
     }
 
     .add-friend-button svg {
@@ -84,7 +99,7 @@
       margin-top: 5rem;
       padding: 1rem;
       overflow-y: auto;
-      max-height: calc(100vh - 10rem);
+      max-height: calc(100vh - 5rem);
     }
 
     .friend-card {
@@ -97,12 +112,15 @@
       display: flex;
       align-items: center;
       cursor: pointer;
-      transition: background 0.3s ease, transform 0.3s ease;
+      transition: transform 0.2s ease, background 0.3s ease;
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     .friend-card:hover {
-      background: var(--highlight);
-      transform: translateX(5px);
+      transform: translateY(-2px);
+      background: rgba(0,0,0,0.05);
     }
 
     .friend-card.vibrate {
@@ -121,7 +139,6 @@
       font-size: 1.5rem;
       font-weight: 600;
       color: var(--text-primary);
-      object-fit: cover;
     }
 
     .friend-card .profile-pic {
@@ -130,6 +147,7 @@
       border-radius: 50%;
       margin-right: 1rem;
       object-fit: cover;
+      border: 2px solid var(--text-primary);
     }
 
     .friend-card .info {
@@ -148,7 +166,7 @@
     .friend-card .info p {
       margin: 0.25rem 0 0;
       font-size: 0.875rem;
-      color: rgba(255, 255, 255, 0.7);
+      color: var(--text-secondary);
       display: -webkit-box;
       -webkit-line-clamp: 1;
       -webkit-box-orient: vertical;
@@ -164,16 +182,20 @@
     .friend-card .meta {
       text-align: right;
       position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
     }
 
     .friend-card .timestamp {
       font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.5);
+      color: var(--text-secondary);
     }
 
     .friend-card .last-seen {
       font-size: 0.75rem;
-      color: rgba(255, 255, 255, 0.5);
+      color: var(--text-secondary);
     }
 
     .friend-card .unread-badge {
@@ -182,53 +204,88 @@
       border-radius: 9999px;
       padding: 0.25rem 0.5rem;
       font-size: 0.75rem;
-      position: absolute;
-      top: -0.5rem;
-      right: -0.5rem;
       min-width: 1.5rem;
       text-align: center;
+    }
+
+    .friend-card .delete-friend {
+      background: none;
+      border: none;
+      color: var(--badge-bg);
+      cursor: pointer;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .friend-card .delete-friend svg {
+      width: 16px;
+      height: 16px;
     }
 
     .no-friends {
       text-align: center;
       margin-top: 2rem;
       font-size: 1rem;
-      color: #1E1E1E;
+      color: var(--text-secondary);
+    }
+
+    .sidebar {
+      display: none;
     }
 
     .bottom-nav {
       position: fixed;
-      bottom: 1rem;
-      left: 1rem;
-      right: 1rem;
-      background: var(--card-bg);
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
       border: 1px solid var(--border);
-      border-radius: 1.5rem;
-      padding: 0.5rem;
+      border-radius: 9999px;
       display: flex;
-      justify-content: space-around;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      z-index: 10;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      width: 280px;
+      max-width: 90%;
+      z-index: 101;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
     .nav-item {
-      background: transparent;
+      background: none;
       border: none;
-      padding: 0.5rem;
+      color: var(--text-primary);
       cursor: pointer;
-      border-radius: 0.5rem;
-      transition: background 0.2s;
-      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      -webkit-user-select: none;
+      user-select: none;
+      border-radius: 9999px;
+      padding: 8px;
+      transition: background 0.2s ease;
     }
 
-    .nav-item.active, .nav-item:hover {
-      background: var(--highlight);
+    .nav-item:hover {
+      background: rgba(0,0,0,0.05);
+    }
+
+    .nav-item.active svg {
+      stroke: var(--highlight);
     }
 
     .nav-item svg {
-      width: 1.5rem;
-      height: 1.5rem;
+      width: 24px;
+      height: 24px;
       stroke: var(--text-primary);
+      stroke-width: 2;
     }
 
     .nav-item .unread-badge {
@@ -249,40 +306,60 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: var(--card-bg);
-      border-top: 1px solid var(--border);
-      border-radius: 1rem 1rem 0 0;
-      padding: 1rem;
-      max-height: 80vh;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      padding: 16px;
+      max-height: 100vh;
       overflow-y: auto;
       transform: translateY(100%);
-      transition: transform 0.3s ease;
-      z-index: 20;
+      transition: transform 0.3s ease-in-out;
+      z-index: 102;
+      -webkit-user-select: none;
+      user-select: none;
+      visibility: hidden;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
     }
 
-    .bottom-sheet.open {
+    .bottom-sheet.active {
       transform: translateY(0);
+      visibility: visible;
     }
 
-    .bottom-sheet .close-button {
-      background: transparent;
-      border: none;
-      padding: 0.5rem;
-      cursor: pointer;
+    .bottom-sheet-content {
+      color: var(--text-primary);
+      padding-top: 40px;
+    }
+
+    .close-sheet {
       position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
+      top: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.1);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-primary);
+      z-index: 101;
     }
 
-    .bottom-sheet .close-button svg {
-      width: 1.25rem;
-      height: 1.25rem;
-      stroke: var(--text-primary);
+    .close-sheet:hover {
+      background: rgba(0,0,0,0.2);
     }
 
     .bottom-sheet input {
-      background: var(--bg);
-      color: var(--text-secondary);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      color: var(--text-primary);
       border: 1px solid var(--border);
       border-radius: 9999px;
       padding: 0.75rem 1rem;
@@ -290,6 +367,8 @@
       outline: none;
       width: 100%;
       margin-bottom: 1rem;
+      -webkit-user-select: auto;
+      user-select: auto;
     }
 
     .user-card {
@@ -302,6 +381,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+    }
+
+    .user-card:hover {
+      transform: translateY(-2px);
     }
 
     .user-card .avatar {
@@ -324,6 +411,7 @@
       border-radius: 50%;
       margin-right: 1rem;
       object-fit: cover;
+      border: 2px solid var(--text-primary);
     }
 
     .user-card button {
@@ -331,13 +419,10 @@
       color: var(--text-primary);
       border: none;
       padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
+      border-radius: 9999px;
       cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .user-card button:hover {
-      background: #2a928d;
+      font-size: 0.875rem;
+      font-weight: 600;
     }
 
     .spinner-overlay {
@@ -346,11 +431,11 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0,0,0,0.5);
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 30;
+      z-index: 45;
     }
 
     .spinner-overlay.active {
@@ -358,18 +443,16 @@
     }
 
     .spinner {
-      width: 100px;
-      height: 4px;
-      background: var(--highlight);
-      border-radius: 2px;
-      animation: loading 1.5s ease-in-out infinite;
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--highlight);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
     }
 
-    @keyframes loading {
-      0% { transform: scaleX(0); transform-origin: left; }
-      50% { transform: scaleX(1); transform-origin: left; }
-      51% { transform-origin: right; }
-      100% { transform: scaleX(0); transform-origin: right; }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     @keyframes slideIn {
@@ -389,10 +472,123 @@
     .friend-card, .user-card {
       animation: slideIn 0.3s ease-out;
     }
+
+    .alert {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      color: var(--text-primary);
+      padding: 12px 24px;
+      border-radius: 9999px;
+      border: 1px solid var(--border);
+      z-index: 60;
+      display: none;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .alert.active {
+      display: block;
+      animation: slideInAlert 0.3s ease-out;
+    }
+
+    @keyframes slideInAlert {
+      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    @media (min-width: 769px) {
+      .bottom-nav {
+        display: none;
+      }
+
+      .sidebar {
+        display: flex;
+        position: fixed;
+        top: 50%;
+        left: 16px;
+        transform: translateY(-50%);
+        width: 80px;
+        background: var(--glass-bg);
+        -webkit-backdrop-filter: var(--glass-blur);
+        backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--border);
+        border-radius: 9999px;
+        flex-direction: column;
+        align-items: center;
+        padding: 16px 0;
+        z-index: 101;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      }
+
+      .sidebar .nav-item {
+        margin: 12px 0;
+        width: 64px;
+        padding: 8px;
+        border-radius: 9999px;
+        transition: background 0.2s ease;
+      }
+
+      .sidebar .nav-item:hover {
+        background: rgba(0,0,0,0.05);
+      }
+
+      .sidebar .nav-item svg {
+        width: 28px;
+        height: 28px;
+      }
+
+      .sidebar .nav-item span {
+        font-size: 12px;
+        margin-top: 8px;
+      }
+
+      .friends-list {
+        margin-left: 112px;
+        width: calc(100% - 112px);
+      }
+
+      .search-container {
+        margin-left: 112px;
+        width: calc(100% - 144px);
+      }
+
+      .bottom-sheet {
+        margin-left: 112px;
+        width: calc(100% - 112px);
+        border-top-left-radius: 0;
+      }
+    }
   </style>
 </head>
 <body>
   <main class="flex flex-col h-screen" id="main-content">
+    <nav class="sidebar">
+      <button class="nav-item btn" onclick="window.location.href='index.html'">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+        </svg>
+        <span>Reels</span>
+      </button>
+      <button class="nav-item btn active" id="friends-nav">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </svg>
+        <span>Friends</span>
+      </button>
+      <button class="nav-item btn" onclick="window.location.href='profile.html'">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </svg>
+        <span>Profile</span>
+      </button>
+    </nav>
+
     <div class="search-container">
       <input type="text" id="friend-search" class="search-bar" placeholder="Search friends...">
       <button id="add-friend-button" class="add-friend-button">
@@ -402,40 +598,46 @@
       </button>
     </div>
     <div id="friends-list" class="friends-list"></div>
-    <div id="bottom-sheet" class="bottom-sheet">
-      <button id="close-bottom-sheet" class="close-button">
+    <nav class="bottom-nav">
+      <button class="nav-item" onclick="window.location.href='index.html'">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+        </svg>
+        <span>Reels</span>
+      </button>
+      <button class="nav-item active" id="friends-nav-mobile">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </svg>
+        <span>Friends</span>
+      </button>
+      <button class="nav-item" onclick="window.location.href='profile.html'">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </svg>
+        <span>Profile</span>
+      </button>
+    </nav>
+    <div class="bottom-sheet" id="bottom-sheet">
+      <button class="close-sheet" onclick="closeBottomSheet(event)">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M6 18L18 6M6 6l12 12"/>
         </svg>
       </button>
-      <input type="text" id="user-search" placeholder="Search users to add...">
-      <div id="user-list"></div>
-    </div>
-    <div class="bottom-nav">
-      <button class="nav-item" onclick="window.location.href='index.html'">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-        </svg>
-      </button>
-      <button class="nav-item active" id="friends-nav">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-        </svg>
-      </button>
-      <button class="nav-item" onclick="window.location.href='profile.html'">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-        </svg>
-      </button>
+      <div class="bottom-sheet-content">
+        <input type="text" id="user-search" placeholder="Search users to add...">
+        <div id="user-list"></div>
+      </div>
     </div>
     <div id="spinner-overlay" class="spinner-overlay">
       <div class="spinner"></div>
     </div>
+    <div id="alert-message" class="alert"></div>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, set, update, onChildChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, set, update, onChildChanged, remove } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -449,16 +651,26 @@
     };
 
     let app, auth, db, currentUser;
-    const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456'); // 32-byte key for AES-GCM
+    const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456');
 
     const showSpinner = () => {
+      console.log('Showing spinner');
       document.getElementById('spinner-overlay').classList.add('active');
       document.getElementById('main-content').setAttribute('aria-busy', 'true');
     };
 
     const hideSpinner = () => {
+      console.log('Hiding spinner');
       document.getElementById('spinner-overlay').classList.remove('active');
       document.getElementById('main-content').setAttribute('aria-busy', 'false');
+    };
+
+    const showAlert = (message) => {
+      console.log('Showing alert:', message);
+      const alert = document.getElementById('alert-message');
+      alert.textContent = message;
+      alert.classList.add('active');
+      setTimeout(() => alert.classList.remove('active'), 3000);
     };
 
     async function encryptMessage(message) {
@@ -486,20 +698,53 @@
       }
     }
 
+    async function deleteFriend(friendId) {
+      if (!currentUser) {
+        showAlert('Please log in to remove friends.');
+        return;
+      }
+      showSpinner();
+      try {
+        await remove(ref(db, `users/${currentUser.uid}/friends/${friendId}`));
+        console.log(`Removed friend ${friendId}`);
+        showAlert('Friend removed successfully.');
+        loadFriends(document.getElementById('friend-search').value);
+      } catch (error) {
+        console.error('Error removing friend:', error);
+        showAlert('Failed to remove friend. Please try again.');
+      } finally {
+        hideSpinner();
+      }
+    }
+
     function initializeFirebase() {
-      app = initializeApp(firebaseConfig);
-      auth = getAuth(app);
-      db = getDatabase(app);
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          currentUser = user;
-          update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() });
-          loadFriends();
-          listenForNewMessages();
-        } else {
-          window.location.href = 'signup.html';
-        }
-      });
+      console.log('Initializing Firebase');
+      try {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getDatabase(app);
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            console.log('User authenticated:', user.uid);
+            currentUser = user;
+            update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() })
+              .then(() => console.log('User lastSeen updated'))
+              .catch(err => console.error('Error updating lastSeen:', err));
+            loadFriends();
+            listenForNewMessages();
+          } else {
+            console.log('No user logged in, redirecting to signup.html');
+            showAlert('Please log in to view friends.');
+            window.location.href = 'signup.html';
+          }
+        }, (error) => {
+          console.error('Auth state error:', error);
+          showAlert('Authentication error. Please try again.');
+        });
+      } catch (error) {
+        console.error('Firebase initialization error:', error);
+        showAlert('Failed to initialize Firebase. Please check your connection.');
+      }
     }
 
     async function loadFriends(searchQuery = '') {
@@ -557,12 +802,18 @@
                   <p>${lastMessage.slice(0, 20)}${lastMessage.length > 20 ? '...' : ''}</p>
                 </div>
                 <div class="meta">
-                  <div class="timestamp">${friend.lastMessageTime || ''}</div>
-                  <div class="last-seen">${userData?.lastSeen ? new Date(userData.lastSeen).toLocaleTimeString() : ''}</div>
+                  <div class="timestamp">${friend.lastMessageTime ? formatTimestamp(friend.lastMessageTime) : ''}</div>
+                  <div class="last-seen">${userData?.lastSeen ? formatTimestamp(userData.lastSeen) : ''}</div>
                   ${friend.unreadCount > 0 ? `<span class="unread-badge">${friend.unreadCount}</span>` : ''}
+                  <button class="delete-friend" onclick="deleteFriend('${friend.friendId}')">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
+                    </svg>
+                  </button>
                 </div>
               `;
-              div.addEventListener('click', () => {
+              div.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-friend')) return;
                 update(ref(db, `users/${currentUser.uid}/friends/${friend.friendId}`), { unreadCount: 0 });
                 window.location.href = `conversation.html?friendId=${friend.friendId}`;
               });
@@ -570,17 +821,21 @@
             }, { onlyOnce: true });
           }
           const friendsNav = document.getElementById('friends-nav');
-          friendsNav.querySelector('.unread-badge')?.remove();
-          if (totalUnread > 0) {
-            const badge = document.createElement('span');
-            badge.className = 'unread-badge';
-            badge.textContent = totalUnread;
-            friendsNav.appendChild(badge);
-          }
+          const friendsNavMobile = document.getElementById('friends-nav-mobile');
+          [friendsNav, friendsNavMobile].forEach(nav => {
+            nav.querySelector('.unread-badge')?.remove();
+            if (totalUnread > 0) {
+              const badge = document.createElement('span');
+              badge.className = 'unread-badge';
+              badge.textContent = totalUnread;
+              nav.appendChild(badge);
+            }
+          });
           hideSpinner();
         }, { onlyOnce: false });
       } catch (error) {
         console.error('Error loading friends:', error);
+        showAlert('Failed to load friends. Please try again.');
         hideSpinner();
       }
     }
@@ -651,12 +906,16 @@
         }, { onlyOnce: true });
       } catch (error) {
         console.error('Error loading users:', error);
+        showAlert('Failed to load users. Please try again.');
         hideSpinner();
       }
     }
 
     async function addFriend(userId, name) {
-      if (!currentUser) return;
+      if (!currentUser) {
+        showAlert('Please log in to add friends.');
+        return;
+      }
       showSpinner();
       const friendRef = ref(db, `users/${currentUser.uid}/friends/${userId}`);
       try {
@@ -668,39 +927,90 @@
           lastMessageEncrypted: null,
           unreadCount: 0
         });
+        console.log(`Added friend ${userId}`);
+        showAlert('Friend added successfully.');
         loadFriends(document.getElementById('friend-search').value);
-        document.getElementById('bottom-sheet').classList.remove('open');
-        document.getElementById('user-search').value = '';
-        document.getElementById('user-list').innerHTML = '';
-        hideSpinner();
+        closeBottomSheet();
       } catch (error) {
         console.error('Error adding friend:', error);
+        showAlert('Failed to add friend. Please try again.');
+      } finally {
         hideSpinner();
       }
     }
 
+    function closeBottomSheet(event) {
+      if (event) event.stopPropagation();
+      console.log('Closing bottom sheet');
+      const bottomSheet = document.getElementById('bottom-sheet');
+      bottomSheet.classList.remove('active');
+      document.getElementById('user-search').value = '';
+      document.getElementById('user-list').innerHTML = '';
+    }
+
+    function formatTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHr = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHr / 24);
+      const diffWeek = Math.floor(diffDay / 7);
+      const diffMonth = Math.floor(diffDay / 30);
+      const diffYear = Math.floor(diffDay / 365);
+
+      if (diffSec < 60) return `${diffSec} second${diffSec === 1 ? '' : 's'} ago`;
+      if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+      if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
+      if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
+      if (diffWeek < 4) return `${diffWeek} week${diffWeek === 1 ? '' : 's'} ago`;
+      if (diffMonth < 12) return `${diffMonth} month${diffMonth === 1 ? '' : 's'} ago`;
+      return `${diffYear} year${diffYear === 1 ? '' : 's'} ago`;
+    }
+
     document.getElementById('friend-search').addEventListener('input', (e) => {
+      e.stopPropagation();
       loadFriends(e.target.value);
     });
 
-    document.getElementById('add-friend-button').addEventListener('click', () => {
-      document.getElementById('bottom-sheet').classList.add('open');
+    document.getElementById('add-friend-button').addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.getElementById('bottom-sheet').classList.add('active');
       loadUsers();
     });
 
-    document.getElementById('close-bottom-sheet').addEventListener('click', () => {
-      document.getElementById('bottom-sheet').classList.remove('open');
-      document.getElementById('user-search').value = '';
-      document.getElementById('user-list').innerHTML = '';
-    });
-
     document.getElementById('user-search').addEventListener('input', (e) => {
+      e.stopPropagation();
       loadUsers(e.target.value);
     });
 
-    document.addEventListener('DOMContentLoaded', initializeFirebase);
+    document.getElementById('bottom-sheet').addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
 
-    window.addFriend = addFriend; // Expose addFriend to global scope for onclick
+    document.addEventListener('click', (e) => {
+      const bottomSheet = document.getElementById('bottom-sheet');
+      const navItems = document.querySelectorAll('.nav-item');
+      const isNavClick = Array.from(navItems).some(item => item.contains(e.target));
+      if (bottomSheet.classList.contains('active') && !bottomSheet.contains(e.target) && !isNavClick) {
+        console.log('Click outside, closing bottom sheet');
+        closeBottomSheet(e);
+      }
+    });
+
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM loaded, initializing Firebase');
+      initializeFirebase();
+    });
+
+    window.addFriend = addFriend;
+    window.deleteFriend = deleteFriend;
+    window.closeBottomSheet = closeBottomSheet;
   </script>
 </body>
 </html>
