@@ -493,6 +493,24 @@
       margin-left: auto;
     }
 
+    .delete-comment {
+      background: none;
+      border: none;
+      color: var(--badge-bg);
+      cursor: pointer;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 8px;
+    }
+
+    .delete-comment svg {
+      width: 16px;
+      height: 16px;
+    }
+
     .comment-text {
       font-size: 14px;
       line-height: 1.4;
@@ -768,7 +786,7 @@
     </nav>
 
     <div class="bottom-sheet" id="upload-sheet">
-      <button class="close-sheet" onclick="closeBottomSheet()">
+      <button class="close-sheet" onclick="closeBottomSheet(event)">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M6 18L18 6M6 6l12 12"/>
         </svg>
@@ -783,7 +801,7 @@
     </div>
 
     <div class="bottom-sheet" id="comment-sheet">
-      <button class="close-sheet" onclick="closeBottomSheet()">
+      <button class="close-sheet" onclick="closeBottomSheet(event)">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M6 18L18 6M6 6l12 12"/>
         </svg>
@@ -805,7 +823,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, update, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, push, update, query, limitToLast, remove } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -858,7 +876,8 @@
       setTimeout(() => heart.remove(), 600);
     };
 
-    const openBottomSheet = (type, reelId = null) => {
+    const openBottomSheet = (type, reelId = null, event = null) => {
+      if (event) event.stopPropagation();
       console.log(`Opening ${type} bottom sheet for reelId: ${reelId}`);
       if (type === 'upload') {
         document.getElementById('upload-sheet').classList.add('active');
@@ -871,7 +890,8 @@
       }
     };
 
-    const closeBottomSheet = () => {
+    const closeBottomSheet = (event) => {
+      if (event) event.stopPropagation();
       console.log('Closing all bottom sheets');
       document.getElementById('upload-sheet').classList.remove('active');
       document.getElementById('comment-sheet').classList.remove('active');
@@ -968,13 +988,13 @@
           const reelsArray = Object.entries(reels)
             .map(([reelId, reelData]) => ({ reelId, ...reelData }));
           const randomizedReels = shuffleArray(reelsArray);
-          
+
           if (reelsContainer.children.length !== randomizedReels.length) {
             reelsContainer.innerHTML = '';
             renderedReels.clear();
             pauseAllVideos();
           }
-          
+
           for (const reel of randomizedReels) {
             if (renderedReels.has(reel.reelId)) continue;
             const userRef = ref(db, `users/${reel.userId}`);
@@ -1149,11 +1169,11 @@
         const isLiked = button.classList.contains('liked');
         const countSpan = button.querySelector('span');
         const currentCount = parseInt(countSpan.textContent) || 0;
-        
+
         await update(ref(db, `reels/${reelId}/likedBy`), {
           [currentUser.uid]: isLiked ? null : true
         });
-        
+
         button.classList.toggle('liked');
         countSpan.textContent = isLiked ? currentCount - 1 : currentCount + 1;
         console.log(`Toggled like for reel ${reelId}: ${isLiked ? 'Unliked' : 'Liked'}`);
@@ -1220,6 +1240,25 @@
       }
     }
 
+    async function deleteComment(reelId, commentId, parentId = null) {
+      if (!currentUser) {
+        showAlert('Please log in to delete comments.');
+        return;
+      }
+      try {
+        const path = parentId
+          ? `reels/${reelId}/comments/${parentId}/replies/${commentId}`
+          : `reels/${reelId}/comments/${commentId}`;
+        await remove(ref(db, path));
+        console.log(`Deleted ${parentId ? 'reply' : 'comment'} ${commentId} from reel ${reelId}`);
+        showAlert('Comment deleted successfully.');
+        loadComments(reelId);
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+        showAlert('Failed to delete comment. Please try again.');
+      }
+    }
+
     async function loadComments(reelId) {
       console.log('Loading comments for reel', reelId);
       const commentList = document.getElementById('comment-list');
@@ -1247,6 +1286,7 @@
               const userData = userSnapshot.val();
               const commentText = comment.comment;
               const replyCount = Object.keys(comment.replies || {}).length;
+              const isOwnComment = currentUser && comment.userId === currentUser.uid;
               const commentDiv = document.createElement('div');
               commentDiv.className = `comment-item ${comment.parentId ? 'reply' : ''}`;
               commentDiv.innerHTML = `
@@ -1256,6 +1296,13 @@
                     : `<div class="comment-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
                   <div class="comment-username">${userData?.displayName || 'User'}</div>
                   <div class="comment-timestamp">${formatTimestamp(comment.timestamp)}</div>
+                  ${isOwnComment ? `
+                    <button class="delete-comment" onclick="deleteComment('${reelId}', '${comment.commentId}')">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
+                      </svg>
+                    </button>
+                  ` : ''}
                 </div>
                 <div class="comment-text">${commentText}</div>
                 <div class="reply-link" onclick="showReplyInput('${comment.commentId}')">Reply${replyCount > 0 ? ` (${replyCount})` : ''}</div>
@@ -1277,6 +1324,7 @@
                   onValue(replyUserRef, async (replyUserSnapshot) => {
                     const replyUserData = replyUserSnapshot.val();
                     const replyText = reply.comment;
+                    const isOwnReply = currentUser && reply.userId === currentUser.uid;
                     const replyDiv = document.createElement('div');
                     replyDiv.className = 'comment-item reply';
                     replyDiv.innerHTML = `
@@ -1286,6 +1334,13 @@
                           : `<div class="comment-avatar">${replyUserData?.displayName ? replyUserData.displayName[0].toUpperCase() : 'U'}</div>`}
                         <div class="comment-username">${replyUserData?.displayName || 'User'}</div>
                         <div class="comment-timestamp">${formatTimestamp(reply.timestamp)}</div>
+                        ${isOwnReply ? `
+                          <button class="delete-comment" onclick="deleteComment('${reelId}', '${reply.replyId}', '${comment.commentId}')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
+                            </svg>
+                          </button>
+                        ` : ''}
                       </div>
                       <div class="comment-text">${replyText}</div>
                       <div class="reply-link" onclick="showReplyInput('${reply.replyId}')">Reply</div>
@@ -1663,7 +1718,7 @@
       if ((uploadSheet.classList.contains('active') || commentSheet.classList.contains('active')) &&
           !uploadSheet.contains(e.target) && !commentSheet.contains(e.target) && !isNavClick) {
         console.log('Click outside, closing all bottom sheets');
-        closeBottomSheet();
+        closeBottomSheet(e);
       }
     });
 
@@ -1682,12 +1737,10 @@
     window.toggleFollow = toggleFollow;
     window.showReplyInput = showReplyInput;
     window.submitReply = submitReply;
+    window.deleteComment = deleteComment;
     window.goToProfile = goToProfile;
     window.closeBottomSheet = closeBottomSheet;
-    window.openBottomSheet = (type, reelId, event) => {
-      if (event) event.stopPropagation();
-      openBottomSheet(type, reelId);
-    };
+    window.openBottomSheet = openBottomSheet;
   </script>
 </body>
 </html>
