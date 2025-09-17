@@ -90,7 +90,7 @@
       color: var(--text-primary);
       border-bottom: 1px solid var(--border);
       box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-      z-index: 45; /* Above bottom nav bar */
+      z-index: 45;
     }
 
     .reel-header {
@@ -171,7 +171,7 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
       max-width: 90%;
-      margin-top: 8px; /* Space below header */
+      margin-top: 8px;
     }
 
     .reel-actions {
@@ -242,8 +242,12 @@
       padding: 8px 16px;
       width: 280px;
       max-width: 90%;
-      z-index: 101; /* Above bottom sheet */
+      z-index: 101;
       box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+
+    .sidebar {
+      display: none;
     }
 
     .nav-item {
@@ -290,7 +294,7 @@
 
     .bottom-sheet {
       position: fixed;
-      bottom: 0; /* Start from bottom of screen */
+      bottom: 0;
       left: 0;
       right: 0;
       background: var(--glass-bg);
@@ -300,11 +304,11 @@
       border-top-left-radius: 20px;
       border-top-right-radius: 20px;
       padding: 16px;
-      max-height: 100vh; /* Full screen height */
+      max-height: 100vh;
       overflow-y: auto;
       transform: translateY(100%);
       transition: transform 0.3s ease-in-out;
-      z-index: 102; /* Below bottom nav */
+      z-index: 102;
       -webkit-user-select: none;
       user-select: none;
       visibility: hidden;
@@ -645,15 +649,74 @@
         font-size: 11px;
       }
     }
+
+    @media (min-width: 769px) {
+      .bottom-nav {
+        display: none;
+      }
+
+      .sidebar {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 80px;
+        background: var(--glass-bg);
+        -webkit-backdrop-filter: var(--glass-blur);
+        backdrop-filter: var(--glass-blur);
+        border-right: 1px solid var(--border);
+        flex-direction: column;
+        align-items: center;
+        padding: 16px 0;
+        z-index: 101;
+        box-shadow: 4px 0 16px rgba(0,0,0,0.3);
+      }
+
+      .sidebar .nav-item {
+        margin: 16px 0;
+        width: 100%;
+        padding: 12px;
+        border-radius: 0;
+        transition: background 0.2s ease;
+      }
+
+      .sidebar .nav-item:hover {
+        background: rgba(255,255,255,0.1);
+      }
+
+      .sidebar .nav-item.upload-btn {
+        width: 48px;
+        height: 48px;
+        margin: 16px 0;
+      }
+
+      .sidebar .nav-item svg {
+        width: 28px;
+        height: 28px;
+      }
+
+      .sidebar .nav-item span {
+        font-size: 12px;
+        margin-top: 8px;
+      }
+
+      .reels-container {
+        margin-left: 80px;
+        width: calc(100% - 80px);
+      }
+
+      .bottom-sheet {
+        margin-left: 80px;
+        width: calc(100% - 80px);
+        border-top-left-radius: 0;
+      }
+    }
   </style>
 </head>
 <body>
   <main class="flex flex-col h-screen" id="main-content">
-    <div class="reels-container" id="reels-container">
-      <p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">Loading reels...</p>
-    </div>
-
-    <nav class="bottom-nav">
+    <nav class="sidebar">
       <button class="nav-item btn active" id="home-btn" aria-label="AI Feed">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 18c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm-4-12h8v2H8v-2zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
@@ -666,6 +729,30 @@
         </svg>
       </button>
       <button class="nav-item btn" id="friends-nav-btn" aria-label="Friends">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </svg>
+        <span>Friends</span>
+      </button>
+    </nav>
+
+    <div class="reels-container" id="reels-container">
+      <p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">Loading reels...</p>
+    </div>
+
+    <nav class="bottom-nav">
+      <button class="nav-item btn active" id="home-btn-mobile" aria-label="AI Feed">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 18c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm-4-12h8v2H8v-2zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
+        </svg>
+        <span>AI Feed</span>
+      </button>
+      <button class="nav-item upload-btn" id="upload-nav-btn-mobile" aria-label="Upload">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 4v8m0 0v8m8-8H4"/>
+        </svg>
+      </button>
+      <button class="nav-item btn" id="friends-nav-btn-mobile" aria-label="Friends">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
         </svg>
@@ -769,14 +856,11 @@
       if (type === 'upload') {
         document.getElementById('upload-sheet').classList.add('active');
         document.getElementById('comment-sheet').classList.remove('active');
-        // Ensure bottom nav remains visible
-        document.querySelector('.bottom-nav').style.display = 'flex';
       } else if (type === 'comment') {
         document.getElementById('comment-sheet').classList.add('active');
         document.getElementById('upload-sheet').classList.remove('active');
         activeCommentReelId = reelId;
         loadComments(reelId);
-        document.querySelector('.bottom-nav').style.display = 'flex';
       }
     };
 
@@ -843,7 +927,6 @@
       }
     }
 
-    // Fisher-Yates shuffle for randomization
     function shuffleArray(array) {
       for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -872,7 +955,6 @@
           console.log('Data fetched:', Object.keys(reels).length, 'reels');
           const reelsArray = Object.entries(reels)
             .map(([reelId, reelData]) => ({ reelId, ...reelData }));
-          // Randomize reels using Fisher-Yates shuffle
           const randomizedReels = shuffleArray(reelsArray);
           
           if (reelsContainer.children.length !== randomizedReels.length) {
@@ -1044,11 +1126,6 @@
       } catch (error) {
         console.error('Error tracking impression:', error);
       }
-    }
-
-    function goToProfile(userId) {
-      console.log('Redirecting to profile for user:', userId);
-      window.location.href = `user.html?uid=${userId}`;
     }
 
     async function toggleLike(reelId, button) {
@@ -1500,13 +1577,33 @@
       e.currentTarget.classList.add('active');
     });
 
+    document.getElementById('upload-nav-btn-mobile').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openBottomSheet('upload');
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+    });
+
     document.getElementById('friends-nav-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       console.log('Redirecting to friends.html');
       window.location.href = 'friends.html';
     });
 
+    document.getElementById('friends-nav-btn-mobile').addEventListener('click', (e) => {
+      e.stopPropagation();
+      console.log('Redirecting to friends.html');
+      window.location.href = 'friends.html';
+    });
+
     document.getElementById('home-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      loadReels();
+    });
+
+    document.getElementById('home-btn-mobile').addEventListener('click', (e) => {
       e.stopPropagation();
       document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
       e.currentTarget.classList.add('active');
