@@ -343,12 +343,13 @@
     };
 
     // Cloudinary configuration
-    const CLOUDINARY_CLOUD_NAME = 'dqkujefxj'; // Replace with your Cloudinary cloud name
-    const CLOUDINARY_UPLOAD_PRESET = 'banter_box'; // Replace with your unsigned upload preset
+    const CLOUDINARY_CLOUD_NAME = 'your_cloud_name'; // Replace with your Cloudinary cloud name
+    const CLOUDINARY_UPLOAD_PRESET = 'your_upload_preset'; // Replace with your unsigned upload preset
     const CLOUDINARY_API_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
 
     let app, auth, db, currentUser, friendId, friendName;
-    const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456');
+    // Fixed encryption key to exactly 32 bytes (AES-256)
+    const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes12345');
 
     const showSpinner = () => {
       console.log('Showing spinner');
@@ -372,31 +373,39 @@
 
     async function encryptMessage(message) {
       try {
+        console.log('Encrypting message:', message);
         const iv = crypto.getRandomValues(new Uint8Array(12));
+        const key = await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['encrypt']);
+        const encodedMessage = new TextEncoder().encode(message);
         const encrypted = await crypto.subtle.encrypt(
           { name: 'AES-GCM', iv },
-          await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['encrypt']),
-          new TextEncoder().encode(message)
+          key,
+          encodedMessage
         );
         const encryptedArray = new Uint8Array(encrypted);
-        return { iv: Array.from(iv), data: Array.from(encryptedArray) };
+        const encryptedObj = { iv: Array.from(iv), data: Array.from(encryptedArray) };
+        console.log('Encryption successful');
+        return encryptedObj;
       } catch (error) {
         console.error('Encryption error:', error);
-        throw new Error('Failed to encrypt message');
+        throw new Error('Encryption failed: ' + error.message);
       }
     }
 
     async function decryptMessage(encryptedData, iv) {
       try {
+        const key = await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['decrypt']);
         const decrypted = await crypto.subtle.decrypt(
           { name: 'AES-GCM', iv: new Uint8Array(iv) },
-          await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['decrypt']),
+          key,
           new Uint8Array(encryptedData)
         );
-        return new TextDecoder().decode(decrypted);
+        const decryptedText = new TextDecoder().decode(decrypted);
+        console.log('Decryption successful');
+        return decryptedText;
       } catch (error) {
         console.error('Decryption error:', error);
-        return '[Encrypted Message]';
+        return '[Unable to decrypt message]';
       }
     }
 
@@ -493,10 +502,10 @@
             div.className = `message ${msg.senderId === currentUser.uid ? 'sender' : 'receiver'}`;
             let content = '';
             if (msg.type === 'text') {
-              content = msg.encrypted
+              const decryptedText = msg.encrypted
                 ? await decryptMessage(msg.encrypted.data, msg.encrypted.iv)
                 : msg.content || '';
-              content = `<div class="content">${content}<span class="timestamp">${formatBubbleTimestamp(msg.timestamp)}</span></div>`;
+              content = `<div class="content">${decryptedText}<span class="timestamp">${formatBubbleTimestamp(msg.timestamp)}</span></div>`;
             } else if (msg.type === 'image' || msg.type === 'video') {
               content = `<div class="content"><${msg.type} src="${msg.content}" ${msg.type === 'video' ? 'controls' : ''}></${msg.type}><span class="timestamp">${formatBubbleTimestamp(msg.timestamp)}</span></div>`;
             }
