@@ -699,26 +699,6 @@
       }
     }
 
-    async function deleteFriend(friendId) {
-      if (!currentUser) {
-        showAlert('Please log in to remove friends.');
-        return;
-      }
-      showSpinner();
-      try {
-        await remove(ref(db, `users/${currentUser.uid}/friends/${friendId}`));
-        console.log(`Removed friend ${friendId}`);
-        showAlert('Friend removed successfully.');
-        renderedFriends.delete(friendId); // Remove from rendered set
-        // No need to call loadFriends here; onValue listener will handle updates
-      } catch (error) {
-        console.error('Error removing friend:', error);
-        showAlert('Failed to remove friend. Please try again.');
-      } finally {
-        hideSpinner();
-      }
-    }
-
     function debounce(func, wait) {
       let timeout;
       return function executedFunction(...args) {
@@ -731,47 +711,15 @@
       };
     }
 
-    function initializeFirebase() {
-      console.log('Initializing Firebase');
-      try {
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getDatabase(app);
-        onAuthStateChanged(auth, (user) => {
-          if (user) {
-            console.log('User authenticated:', user.uid);
-            currentUser = user;
-            update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() })
-              .then(() => console.log('User lastSeen updated'))
-              .catch(err => console.error('Error updating lastSeen:', err));
-            loadFriends();
-            listenForNewMessages();
-          } else {
-            renderedFriends.clear(); // Clear on logout
-            console.log('No user logged in, redirecting to signup.html');
-            showAlert('Please log in to view friends.');
-            window.location.href = 'signup.html';
-          }
-        }, (error) => {
-          console.error('Auth state error:', error);
-          showAlert('Authentication error. Please try again.');
-        });
-      } catch (error) {
-        console.error('Firebase initialization error:', error);
-        showAlert('Failed to initialize Firebase. Please check your connection.');
-      }
-    }
-
     async function loadFriends(searchQuery = '') {
       if (!currentUser) return;
       showSpinner();
       const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
       try {
-        // Use a single onValue listener to handle friend list updates
+        renderedFriends.clear(); // Clear to avoid stale entries
         onValue(friendsRef, async (snapshot) => {
           const friendsList = document.getElementById('friends-list');
-          // Clear existing friend cards but preserve renderedFriends for deduplication
-          friendsList.innerHTML = '';
+          friendsList.innerHTML = ''; // Clear existing friend cards
           const friends = snapshot.val();
           if (!friends) {
             friendsList.innerHTML = '<p class="no-friends">No friends added yet. Add some friends to start chatting!</p>';
@@ -789,7 +737,6 @@
           }
           let totalUnread = 0;
           for (const friend of friendsArray) {
-            // Skip if friend is already rendered in this cycle
             if (renderedFriends.has(friend.friendId)) {
               console.log(`Skipping duplicate render for friend ${friend.friendId}`);
               continue;
@@ -864,6 +811,65 @@
       }
     }
 
+    const debouncedLoadFriends = debounce(loadFriends, 300);
+
+    async function deleteFriend(friendId) {
+      if (!currentUser) {
+        showAlert('Please log in to remove friends.');
+        return;
+      }
+      showSpinner();
+      try {
+        await remove(ref(db, `users/${currentUser.uid}/friends/${friendId}`));
+        console.log(`Removed friend ${friendId}`);
+        showAlert('Friend removed successfully.');
+        renderedFriends.delete(friendId); // Remove from rendered set
+        debouncedLoadFriends(document.getElementById('friend-search').value); // Explicitly reload
+      } catch (error) {
+        console.error('Error removing friend:', error);
+        showAlert('Failed to remove friend. Please try again.');
+      } finally {
+        hideSpinner();
+      }
+    }
+
+    async function addFriend(userId, name) {
+      if (!currentUser) {
+        showAlert('Please log in to add friends.');
+        return;
+      }
+      showSpinner();
+      const friendRef = ref(db, `users/${currentUser.uid}/friends/${userId}`);
+      try {
+        const snapshot = await new Promise((resolve, reject) => {
+          onValue(friendRef, resolve, { onlyOnce: true });
+        });
+        if (snapshot.exists()) {
+          showAlert('Friend already added.');
+          hideSpinner();
+          closeBottomSheet();
+          return;
+        }
+        await set(friendRef, {
+          name,
+          lastMessage: '',
+          lastMessageTime: '',
+          lastMessageType: 'text',
+          lastMessageEncrypted: null,
+          unreadCount: 0
+        });
+        console.log(`Added friend ${userId}`);
+        showAlert('Friend added successfully.');
+        closeBottomSheet();
+        debouncedLoadFriends(document.getElementById('friend-search').value); // Explicitly reload
+      } catch (error) {
+        console.error('Error adding friend:', error);
+        showAlert('Failed to add friend. Please try again.');
+      } finally {
+        hideSpinner();
+      }
+    }
+
     function listenForNewMessages() {
       if (!currentUser) return;
       const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
@@ -879,7 +885,7 @@
             }
             setTimeout(() => friendCard.classList.remove('vibrate'), 200);
           }
-          loadFriends(document.getElementById('friend-search').value);
+          debouncedLoadFriends(document.getElementById('friend-search').value);
         }
       });
     }
@@ -935,44 +941,6 @@
       }
     }
 
-    async function addFriend(userId, name) {
-      if (!currentUser) {
-        showAlert('Please log in to add friends.');
-        return;
-      }
-      showSpinner();
-      const friendRef = ref(db, `users/${currentUser.uid}/friends/${userId}`);
-      try {
-        // Check if friend already exists to prevent duplicates
-        const snapshot = await new Promise((resolve, reject) => {
-          onValue(friendRef, resolve, { onlyOnce: true });
-        });
-        if (snapshot.exists()) {
-          showAlert('Friend already added.');
-          hideSpinner();
-          closeBottomSheet();
-          return;
-        }
-        await set(friendRef, {
-          name,
-          lastMessage: '',
-          lastMessageTime: '',
-          lastMessageType: 'text',
-          lastMessageEncrypted: null,
-          unreadCount: 0
-        });
-        console.log(`Added friend ${userId}`);
-        showAlert('Friend added successfully.');
-        closeBottomSheet();
-        // No need to call loadFriends here; onValue listener will handle updates
-      } catch (error) {
-        console.error('Error adding friend:', error);
-        showAlert('Failed to add friend. Please try again.');
-      } finally {
-        hideSpinner();
-      }
-    }
-
     function closeBottomSheet(event) {
       if (event) event.stopPropagation();
       console.log('Closing bottom sheet');
@@ -1003,9 +971,40 @@
       return `${diffYear} year${diffYear === 1 ? '' : 's'} ago`;
     }
 
+    function initializeFirebase() {
+      console.log('Initializing Firebase');
+      try {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getDatabase(app);
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            console.log('User authenticated:', user.uid);
+            currentUser = user;
+            update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() })
+              .then(() => console.log('User lastSeen updated'))
+              .catch(err => console.error('Error updating lastSeen:', err));
+            debouncedLoadFriends();
+            listenForNewMessages();
+          } else {
+            renderedFriends.clear(); // Clear on logout
+            console.log('No user logged in, redirecting to signup.html');
+            showAlert('Please log in to view friends.');
+            window.location.href = 'signup.html';
+          }
+        }, (error) => {
+          console.error('Auth state error:', error);
+          showAlert('Authentication error. Please try again.');
+        });
+      } catch (error) {
+        console.error('Firebase initialization error:', error);
+        showAlert('Failed to initialize Firebase. Please check your connection.');
+      }
+    }
+
     document.getElementById('friend-search').addEventListener('input', debounce((e) => {
       e.stopPropagation();
-      loadFriends(e.target.value);
+      debouncedLoadFriends(e.target.value);
     }, 300));
 
     document.getElementById('add-friend-button').addEventListener('click', (e) => {
