@@ -710,13 +710,25 @@
         console.log(`Removed friend ${friendId}`);
         showAlert('Friend removed successfully.');
         renderedFriends.delete(friendId); // Remove from rendered set
-        loadFriends(document.getElementById('friend-search').value);
+        // No need to call loadFriends here; onValue listener will handle updates
       } catch (error) {
         console.error('Error removing friend:', error);
         showAlert('Failed to remove friend. Please try again.');
       } finally {
         hideSpinner();
       }
+    }
+
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
     }
 
     function initializeFirebase() {
@@ -735,6 +747,7 @@
             loadFriends();
             listenForNewMessages();
           } else {
+            renderedFriends.clear(); // Clear on logout
             console.log('No user logged in, redirecting to signup.html');
             showAlert('Please log in to view friends.');
             window.location.href = 'signup.html';
@@ -754,11 +767,11 @@
       showSpinner();
       const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
       try {
+        // Use a single onValue listener to handle friend list updates
         onValue(friendsRef, async (snapshot) => {
           const friendsList = document.getElementById('friends-list');
-          // Clear existing friend cards and reset rendered set
+          // Clear existing friend cards but preserve renderedFriends for deduplication
           friendsList.innerHTML = '';
-          renderedFriends.clear();
           const friends = snapshot.val();
           if (!friends) {
             friendsList.innerHTML = '<p class="no-friends">No friends added yet. Add some friends to start chatting!</p>';
@@ -776,55 +789,60 @@
           }
           let totalUnread = 0;
           for (const friend of friendsArray) {
-            if (renderedFriends.has(friend.friendId)) continue; // Skip if already rendered
+            // Skip if friend is already rendered in this cycle
+            if (renderedFriends.has(friend.friendId)) {
+              console.log(`Skipping duplicate render for friend ${friend.friendId}`);
+              continue;
+            }
             const userRef = ref(db, `users/${friend.friendId}`);
+            const userSnapshot = await new Promise((resolve, reject) => {
+              onValue(userRef, resolve, { onlyOnce: true });
+            });
+            const userData = userSnapshot.val();
+            const lastMessage = friend.lastMessageEncrypted
+              ? await decryptMessage(friend.lastMessageEncrypted.data, friend.lastMessageEncrypted.iv)
+              : friend.lastMessage || 'No messages yet';
             totalUnread += friend.unreadCount || 0;
-            onValue(userRef, async (userSnapshot) => {
-              const userData = userSnapshot.val();
-              const lastMessage = friend.lastMessageEncrypted
-                ? await decryptMessage(friend.lastMessageEncrypted.data, friend.lastMessageEncrypted.iv)
-                : friend.lastMessage || 'No messages yet';
-              const div = document.createElement('div');
-              div.className = 'friend-card';
-              div.dataset.friendId = friend.friendId;
-              div.innerHTML = `
-                ${userData?.photoURL
-                  ? `<img src="${userData.photoURL}" class="profile-pic" alt="${friend.name}'s profile picture">`
-                  : `<div class="avatar">${friend.name ? friend.name[0].toUpperCase() : 'F'}</div>`}
-                <div class="info">
-                  <h2>
-                    ${friend.name || 'Friend'}
-                    ${friend.lastMessageType === 'image'
-                      ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                           <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                         </svg>`
-                      : friend.lastMessageType === 'video'
-                      ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                           <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                         </svg>`
-                      : ''}
-                  </h2>
-                  <p>${lastMessage.slice(0, 20)}${lastMessage.length > 20 ? '...' : ''}</p>
-                </div>
-                <div class="meta">
-                  <div class="timestamp">${friend.lastMessageTime ? formatTimestamp(friend.lastMessageTime) : ''}</div>
-                  <div class="last-seen">${userData?.lastSeen ? formatTimestamp(userData.lastSeen) : ''}</div>
-                  ${friend.unreadCount > 0 ? `<span class="unread-badge">${friend.unreadCount}</span>` : ''}
-                  <button class="delete-friend" onclick="deleteFriend('${friend.friendId}')">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                      <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
-                    </svg>
-                  </button>
-                </div>
-              `;
-              div.addEventListener('click', (e) => {
-                if (e.target.closest('.delete-friend')) return;
-                update(ref(db, `users/${currentUser.uid}/friends/${friend.friendId}`), { unreadCount: 0 });
-                window.location.href = `conversation.html?friendId=${friend.friendId}`;
-              });
-              friendsList.appendChild(div);
-              renderedFriends.add(friend.friendId); // Mark as rendered
-            }, { onlyOnce: true });
+            const div = document.createElement('div');
+            div.className = 'friend-card';
+            div.dataset.friendId = friend.friendId;
+            div.innerHTML = `
+              ${userData?.photoURL
+                ? `<img src="${userData.photoURL}" class="profile-pic" alt="${friend.name}'s profile picture">`
+                : `<div class="avatar">${friend.name ? friend.name[0].toUpperCase() : 'F'}</div>`}
+              <div class="info">
+                <h2>
+                  ${friend.name || 'Friend'}
+                  ${friend.lastMessageType === 'image'
+                    ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                         <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                       </svg>`
+                    : friend.lastMessageType === 'video'
+                    ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                         <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                       </svg>`
+                    : ''}
+                </h2>
+                <p>${lastMessage.slice(0, 20)}${lastMessage.length > 20 ? '...' : ''}</p>
+              </div>
+              <div class="meta">
+                <div class="timestamp">${friend.lastMessageTime ? formatTimestamp(friend.lastMessageTime) : ''}</div>
+                <div class="last-seen">${userData?.lastSeen ? formatTimestamp(userData.lastSeen) : ''}</div>
+                ${friend.unreadCount > 0 ? `<span class="unread-badge">${friend.unreadCount}</span>` : ''}
+                <button class="delete-friend" onclick="deleteFriend('${friend.friendId}')">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
+                  </svg>
+                </button>
+              </div>
+            `;
+            div.addEventListener('click', (e) => {
+              if (e.target.closest('.delete-friend')) return;
+              update(ref(db, `users/${currentUser.uid}/friends/${friend.friendId}`), { unreadCount: 0 });
+              window.location.href = `conversation.html?friendId=${friend.friendId}`;
+            });
+            friendsList.appendChild(div);
+            renderedFriends.add(friend.friendId); // Mark as rendered
           }
           const friendsNav = document.getElementById('friends-nav');
           const friendsNavMobile = document.getElementById('friends-nav-mobile');
@@ -925,6 +943,16 @@
       showSpinner();
       const friendRef = ref(db, `users/${currentUser.uid}/friends/${userId}`);
       try {
+        // Check if friend already exists to prevent duplicates
+        const snapshot = await new Promise((resolve, reject) => {
+          onValue(friendRef, resolve, { onlyOnce: true });
+        });
+        if (snapshot.exists()) {
+          showAlert('Friend already added.');
+          hideSpinner();
+          closeBottomSheet();
+          return;
+        }
         await set(friendRef, {
           name,
           lastMessage: '',
@@ -935,9 +963,8 @@
         });
         console.log(`Added friend ${userId}`);
         showAlert('Friend added successfully.');
-        renderedFriends.add(userId); // Add to rendered set to prevent immediate duplication
-        loadFriends(document.getElementById('friend-search').value);
         closeBottomSheet();
+        // No need to call loadFriends here; onValue listener will handle updates
       } catch (error) {
         console.error('Error adding friend:', error);
         showAlert('Failed to add friend. Please try again.');
@@ -976,10 +1003,10 @@
       return `${diffYear} year${diffYear === 1 ? '' : 's'} ago`;
     }
 
-    document.getElementById('friend-search').addEventListener('input', (e) => {
+    document.getElementById('friend-search').addEventListener('input', debounce((e) => {
       e.stopPropagation();
       loadFriends(e.target.value);
-    });
+    }, 300));
 
     document.getElementById('add-friend-button').addEventListener('click', (e) => {
       e.stopPropagation();
