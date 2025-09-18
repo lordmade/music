@@ -8,7 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -90,18 +90,28 @@
       border: 2px solid var(--text-primary);
     }
 
+    .header .info {
+      flex: 1;
+    }
+
     .header h2 {
       font-size: 1.25rem;
       font-weight: 600;
       margin: 0;
     }
 
+    .header .last-seen {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
     .chat-container {
-      margin-top: 4.5rem;
+      margin-top: 5.5rem;
       margin-bottom: 5rem;
       padding: 1rem;
       overflow-y: auto;
-      max-height: calc(100vh - 9.5rem);
+      max-height: calc(100vh - 10.5rem);
     }
 
     .message {
@@ -121,6 +131,7 @@
       border-radius: 1rem;
       font-size: 0.875rem;
       line-height: 1.25;
+      position: relative;
     }
 
     .message.sender .content {
@@ -139,9 +150,10 @@
     }
 
     .message .timestamp {
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       color: var(--text-secondary);
       margin-top: 0.25rem;
+      text-align: right;
     }
 
     .input-container {
@@ -289,7 +301,10 @@
         </svg>
       </button>
       <div id="friend-avatar" class="avatar"></div>
-      <h2 id="friend-name">Loading...</h2>
+      <div class="info">
+        <h2 id="friend-name">Loading...</h2>
+        <div id="friend-last-seen" class="last-seen"></div>
+      </div>
     </div>
     <div id="chat-container" class="chat-container"></div>
     <div class="input-container">
@@ -315,7 +330,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import { getDatabase, ref, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
-    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -328,20 +342,28 @@
       measurementId: "G-V4W97VMSKL"
     };
 
-    let app, auth, db, storage, currentUser, friendId, friendName;
+    // Cloudinary configuration
+    const CLOUDINARY_CLOUD_NAME = 'your_cloud_name'; // Replace with your Cloudinary cloud name
+    const CLOUDINARY_UPLOAD_PRESET = 'your_upload_preset'; // Replace with your unsigned upload preset
+    const CLOUDINARY_API_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
+
+    let app, auth, db, currentUser, friendId, friendName;
     const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456');
 
     const showSpinner = () => {
+      console.log('Showing spinner');
       document.getElementById('spinner-overlay').classList.add('active');
       document.getElementById('main-content').setAttribute('aria-busy', 'true');
     };
 
     const hideSpinner = () => {
+      console.log('Hiding spinner');
       document.getElementById('spinner-overlay').classList.remove('active');
       document.getElementById('main-content').setAttribute('aria-busy', 'false');
     };
 
     const showAlert = (message) => {
+      console.log('Showing alert:', message);
       const alert = document.getElementById('alert-message');
       alert.textContent = message;
       alert.classList.add('active');
@@ -349,14 +371,19 @@
     };
 
     async function encryptMessage(message) {
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const encrypted = await crypto.subtle.encrypt(
-        { name: 'AES-GCM', iv },
-        await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['encrypt']),
-        new TextEncoder().encode(message)
-      );
-      const encryptedArray = new Uint8Array(encrypted);
-      return { iv: Array.from(iv), data: Array.from(encryptedArray) };
+      try {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const encrypted = await crypto.subtle.encrypt(
+          { name: 'AES-GCM', iv },
+          await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['encrypt']),
+          new TextEncoder().encode(message)
+        );
+        const encryptedArray = new Uint8Array(encrypted);
+        return { iv: Array.from(iv), data: Array.from(encryptedArray) };
+      } catch (error) {
+        console.error('Encryption error:', error);
+        throw new Error('Failed to encrypt message');
+      }
     }
 
     async function decryptMessage(encryptedData, iv) {
@@ -368,8 +395,31 @@
         );
         return new TextDecoder().decode(decrypted);
       } catch (error) {
-        console.error('Decryption Error:', error);
+        console.error('Decryption error:', error);
         return '[Encrypted Message]';
+      }
+    }
+
+    async function uploadToCloudinary(file, type) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      formData.append('resource_type', type === 'image' ? 'image' : 'video');
+      formData.append('public_id', `chat_media/${getChatId(currentUser.uid, friendId)}/${Date.now()}_${file.name}`);
+
+      try {
+        const response = await axios.post(CLOUDINARY_API_URL, formData, {
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (response.data.secure_url) {
+          console.log('Uploaded to Cloudinary:', response.data.secure_url);
+          return response.data.secure_url;
+        } else {
+          throw new Error('Cloudinary upload failed: No secure_url returned');
+        }
+      } catch (error) {
+        console.error('Cloudinary upload error:', error.response?.data || error.message);
+        throw new Error(`Failed to upload ${type}: ${error.message}`);
       }
     }
 
@@ -378,7 +428,6 @@
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
         db = getDatabase(app);
-        storage = getStorage(app);
         onAuthStateChanged(auth, (user) => {
           if (user) {
             currentUser = user;
@@ -387,6 +436,9 @@
             showAlert('Please log in to view the conversation.');
             window.location.href = 'signup.html';
           }
+        }, (error) => {
+          console.error('Auth state error:', error);
+          showAlert('Authentication error. Please try again.');
         });
       } catch (error) {
         console.error('Firebase initialization error:', error);
@@ -418,8 +470,12 @@
             } else {
               avatar.textContent = friendName[0]?.toUpperCase() || 'F';
             }
+            const lastSeen = friendData.lastSeen;
+            document.getElementById('friend-last-seen').textContent = lastSeen
+              ? `Last seen ${formatLastSeen(lastSeen)}`
+              : 'Last seen unknown';
           }
-        }, { onlyOnce: true });
+        }, { onlyOnce: false });
 
         // Load messages
         const chatRef = ref(db, `chats/${getChatId(currentUser.uid, friendId)}/messages`);
@@ -440,35 +496,44 @@
               content = msg.encrypted
                 ? await decryptMessage(msg.encrypted.data, msg.encrypted.iv)
                 : msg.content || '';
-              content = `<div class="content">${content}</div>`;
+              content = `<div class="content">${content}<span class="timestamp">${formatBubbleTimestamp(msg.timestamp)}</span></div>`;
             } else if (msg.type === 'image' || msg.type === 'video') {
-              content = `<div class="content"><${msg.type} src="${msg.content}" ${msg.type === 'video' ? 'controls' : ''}></${msg.type}></div>`;
+              content = `<div class="content"><${msg.type} src="${msg.content}" ${msg.type === 'video' ? 'controls' : ''}></${msg.type}><span class="timestamp">${formatBubbleTimestamp(msg.timestamp)}</span></div>`;
             }
-            div.innerHTML = `
-              ${content}
-              <div class="timestamp">${formatTimestamp(msg.timestamp)}</div>
-            `;
+            div.innerHTML = content;
             chatContainer.appendChild(div);
           }
-          chatContainer.scrollTop = chatContainer.scrollHeight; // Auto-scroll to latest message
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+          hideSpinner();
+        }, (error) => {
+          console.error('Error loading messages:', error, error.code, error.message);
+          showAlert('Failed to load messages: ' + (error.message || 'Unknown error'));
           hideSpinner();
         });
       } catch (error) {
-        console.error('Error loading conversation:', error);
-        showAlert('Failed to load conversation. Please try again.');
+        console.error('Error loading conversation:', error, error.code, error.message);
+        showAlert('Failed to load conversation: ' + (error.message || 'Unknown error'));
         hideSpinner();
       }
     }
 
     function getChatId(userId1, userId2) {
-      return [userId1, userId2].sort().join('_'); // Consistent chat ID for both users
+      return [userId1, userId2].sort().join('_');
     }
 
     async function sendMessage(content, type = 'text', file = null) {
-      if (!content && !file) return;
+      if (!content && !file) {
+        showAlert('Please enter a message or select a file.');
+        return;
+      }
+      if (!currentUser || !friendId) {
+        showAlert('User or friend not found.');
+        return;
+      }
       showSpinner();
       try {
         const chatId = getChatId(currentUser.uid, friendId);
+        console.log('Sending message to chat:', chatId);
         const messagesRef = ref(db, `chats/${chatId}/messages`);
         let messageData = {
           senderId: currentUser.uid,
@@ -479,13 +544,12 @@
         if (type === 'text') {
           messageData.encrypted = await encryptMessage(content);
         } else if (file) {
-          const storagePath = `chat_media/${chatId}/${Date.now()}_${file.name}`;
-          const fileRef = storageRef(storage, storagePath);
-          await uploadBytes(fileRef, file);
-          messageData.content = await getDownloadURL(fileRef);
+          const fileType = file.type.startsWith('image/') ? 'image' : 'video';
+          messageData.content = await uploadToCloudinary(file, fileType);
         }
 
-        await push(messagesRef, messageData);
+        const newMessageRef = await push(messagesRef, messageData);
+        console.log('Message sent, ID:', newMessageRef.key);
 
         // Update last message in friends list for both users
         const updates = {};
@@ -499,31 +563,39 @@
         updates[`users/${friendId}/friends/${currentUser.uid}/lastMessageType`] = type;
         updates[`users/${friendId}/friends/${currentUser.uid}/unreadCount`] = increment(1);
         await update(ref(db), updates);
+        console.log('Updated friend data for both users');
 
         document.getElementById('message-input').value = '';
         document.getElementById('file-input').value = '';
       } catch (error) {
-        console.error('Error sending message:', error);
-        showAlert('Failed to send message. Please try again.');
+        console.error('Error sending message:', error, error.code, error.message);
+        showAlert(`Failed to send message: ${error.message || 'Unknown error'}`);
       } finally {
         hideSpinner();
       }
     }
 
-    function formatTimestamp(timestamp) {
+    function formatLastSeen(timestamp) {
       const date = new Date(timestamp);
       const now = new Date();
       const diffMs = now - date;
-      const diffSec = Math.floor(diffMs / 1000);
-      const diffMin = Math.floor(diffSec / 60);
+      const diffMin = Math.floor(diffMs / 1000 / 60);
       const diffHr = Math.floor(diffMin / 60);
       const diffDay = Math.floor(diffHr / 24);
 
-      if (diffSec < 60) return `${diffSec} second${diffSec === 1 ? '' : 's'} ago`;
-      if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
-      if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
-      if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
-      return date.toLocaleDateString();
+      if (diffMin < 1) return 'just now';
+      if (diffDay === 0) {
+        return `today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
+      if (diffDay === 1) {
+        return `yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
+      return date.toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatBubbleTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
     function increment(n) {
@@ -560,6 +632,7 @@
     });
 
     document.addEventListener('DOMContentLoaded', () => {
+      console.log('Initializing Firebase');
       initializeFirebase();
     });
   </script>
