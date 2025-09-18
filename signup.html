@@ -10,198 +10,300 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #F7F7F8;
-      --card-bg: #1C2526;
-      --text-primary: #FFFFFF;
-      --text-secondary: #4B5EAA;
-      --border: #4A5568;
-      --highlight: #38B2AC;
-      --user-msg-bg: #E0E7FF;
-      --ai-msg-bg: #1C2526;
+      --bg: #FFFFFF;
+      --card-bg: rgba(255, 255, 255, 0.9);
+      --text-primary: #000000;
+      --text-secondary: #6B7280;
+      --border: rgba(0, 0, 0, 0.1);
+      --highlight: #0095F6;
+      --glass-bg: rgba(255, 255, 255, 0.8);
+      --glass-blur: blur(10px);
     }
 
     body {
       font-family: 'Inter', system-ui, sans-serif;
       background: var(--bg);
-      color: var(--text-secondary);
+      color: var(--text-primary);
       min-height: 100vh;
       margin: 0;
+      overflow-x: hidden;
+      -webkit-user-select: none;
+      user-select: none;
       display: flex;
-      justify-content: center;
       align-items: center;
-      padding: 1rem;
+      justify-content: center;
     }
 
-    .auth-container {
-      background: var(--card-bg);
-      color: var(--text-primary);
-      padding: 2rem;
-      border-radius: 1rem;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      position: relative;
-    }
-
-    .tab-container {
-      display: flex;
-      margin-bottom: 1.5rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .tab {
-      flex: 1;
-      padding: 0.75rem 1rem;
-      background: none;
-      border: none;
-      color: var(--text-primary);
+    .btn {
+      border-radius: 9999px;
+      padding: 8px 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
       cursor: pointer;
-      transition: background 0.3s;
-      font-weight: 500;
-      position: relative;
+      transition: background 0.2s;
     }
 
-    .tab.active {
-      background: var(--highlight);
-      color: var(--text-primary);
-    }
-
-    .tab:not(.active)::after {
-      content: '';
-      position: absolute;
+    .bottom-sheet {
+      position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      height: 2px;
-      background: var(--border);
-    }
-
-    .form-group {
-      margin-bottom: 1rem;
-    }
-
-    .form-group label {
-      display: block;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-      color: var(--text-primary);
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 0.75rem;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
       border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      background: var(--ai-msg-bg);
-      color: var(--text-primary);
-      font-size: 1rem;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      padding: 16px;
+      max-height: 80vh;
+      overflow-y: auto;
+      transform: translateY(0);
+      transition: transform 0.3s ease-in-out;
+      z-index: 102;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
     }
 
-    .form-group input:focus {
-      outline: none;
+    .bottom-sheet-content {
+      color: var(--text-primary);
+      padding-top: 40px;
+    }
+
+    .tab-view {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .tab-btn {
+      background: var(--glass-bg);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      padding: 6px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      z-index: 1;
+      margin-left: -1px;
+    }
+
+    .tab-btn:first-child {
+      margin-left: 0;
+    }
+
+    .tab-btn.active {
+      background: var(--highlight);
+      color: var(--text-primary);
       border-color: var(--highlight);
     }
 
-    .auth-button {
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 50%;
+      height: 2px;
+      background: var(--highlight);
+    }
+
+    .form-container {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-container.active {
+      display: flex;
+    }
+
+    .form-group {
+      position: relative;
+      width: 100%;
+    }
+
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      color: var(--text-primary);
+      font-size: 14px;
+      -webkit-user-select: auto;
+      user-select: auto;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+
+    .forgot-password {
+      font-size: 12px;
+      color: var(--highlight);
+      text-align: right;
+      cursor: pointer;
+      margin-top: -8px;
+      margin-bottom: 12px;
+    }
+
+    .forgot-password:hover {
+      text-decoration: underline;
+    }
+
+    .btn.submit {
       background: var(--highlight);
       color: var(--text-primary);
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      transition: background 0.2s;
       width: 100%;
-      font-size: 1rem;
-      font-weight: 500;
+      padding: 12px;
     }
 
-    .auth-button:hover {
-      background: #2d8c89;
+    .btn.submit:hover {
+      background: #0077c2;
     }
 
-    .switch-tab {
-      text-align: center;
-      margin-top: 1rem;
+    .alert {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
       color: var(--text-primary);
-      font-size: 0.875rem;
-    }
-
-    .switch-tab a {
-      color: var(--highlight);
-      text-decoration: none;
-      cursor: pointer;
-    }
-
-    .error {
-      color: #ef4444;
-      font-size: 0.875rem;
-      margin-top: 0.5rem;
-      text-align: center;
-    }
-
-    .hidden {
+      padding: 12px 24px;
+      border-radius: 9999px;
+      border: 1px solid var(--border);
+      z-index: 60;
       display: none;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
-    .slogan {
-      text-align: center;
-      margin-bottom: 1rem;
-      font-size: 1.125rem;
-      font-weight: 600;
-      color: var(--highlight);
+    .alert.active {
+      display: block;
+      animation: slideInAlert 0.3s ease-out;
+    }
+
+    @keyframes slideInAlert {
+      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    .spinner-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 45;
+    }
+
+    .spinner-overlay.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--highlight);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .bottom-sheet {
+        width: 100%;
+      }
+    }
+
+    @media (min-width: 769px) {
+      .bottom-sheet {
+        width: 400px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-radius: 20px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="auth-container">
-    <div class="slogan">Where AI Feels Like a Friend from Mokopane</div>
-    <h2 class="text-xl font-bold mb-4 text-center">Welcome to Vynix AI</h2>
-    
-    <div class="tab-container">
-      <button class="tab active" id="login-tab">Login</button>
-      <button class="tab" id="signup-tab">Sign Up</button>
+  <main class="flex flex-col h-screen" id="main-content">
+    <div class="bottom-sheet active" id="auth-sheet">
+      <div class="tab-view">
+        <button class="tab-btn active" id="login-tab">Login</button>
+        <button class="tab-btn" id="signup-tab">Sign Up</button>
+      </div>
+      <div class="bottom-sheet-content">
+        <div class="form-container active" id="login-form">
+          <div class="form-group">
+            <input type="email" id="login-email" placeholder="Email" required>
+          </div>
+          <div class="form-group">
+            <input type="password" id="login-password" placeholder="Password" required>
+            <svg class="password-toggle" id="login-password-toggle" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
+            </svg>
+          </div>
+          <a class="forgot-password" id="forgot-password">Forgot password?</a>
+          <button class="btn submit" id="login-submit">Login</button>
+        </div>
+        <div class="form-container" id="signup-form">
+          <div class="form-group">
+            <input type="text" id="signup-name" placeholder="Display Name" required>
+          </div>
+          <div class="form-group">
+            <input type="email" id="signup-email" placeholder="Email" required>
+          </div>
+          <div class="form-group">
+            <input type="password" id="signup-password" placeholder="Password" required>
+            <svg class="password-toggle" id="signup-password-toggle" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
+            </svg>
+          </div>
+          <button class="btn submit" id="signup-submit">Sign Up</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Login Form -->
-    <form id="login-form" class="auth-form">
-      <div class="form-group">
-        <label for="login-email">Email</label>
-        <input type="email" id="login-email" placeholder="Enter your email" required>
-      </div>
-      <div class="form-group">
-        <label for="login-password">Password</label>
-        <input type="password" id="login-password" placeholder="Enter your password" required>
-      </div>
-      <button type="submit" class="auth-button">Sign In</button>
-      <div id="login-error" class="error hidden"></div>
-    </form>
-
-    <!-- Signup Form -->
-    <form id="signup-form" class="auth-form hidden">
-      <div class="form-group">
-        <label for="signup-email">Email</label>
-        <input type="email" id="signup-email" placeholder="Enter your email" required>
-      </div>
-      <div class="form-group">
-        <label for="signup-password">Password</label>
-        <input type="password" id="signup-password" placeholder="Create a password" required>
-      </div>
-      <div class="form-group">
-        <label for="signup-name">Display Name</label>
-        <input type="text" id="signup-name" placeholder="Enter your display name" required>
-      </div>
-      <button type="submit" class="auth-button">Sign Up</button>
-      <div id="signup-error" class="error hidden"></div>
-    </form>
-
-    <div class="switch-tab">
-      <span id="switch-text"></span>
+    <div id="spinner-overlay" class="spinner-overlay">
+      <div class="spinner"></div>
     </div>
-  </div>
+
+    <div id="alert-message" class="alert"></div>
+  </main>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -217,77 +319,132 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    const elements = {
-      loginTab: document.getElementById('login-tab'),
-      signupTab: document.getElementById('signup-tab'),
-      loginForm: document.getElementById('login-form'),
-      signupForm: document.getElementById('signup-form'),
-      loginEmail: document.getElementById('login-email'),
-      loginPassword: document.getElementById('login-password'),
-      signupEmail: document.getElementById('signup-email'),
-      signupPassword: document.getElementById('signup-password'),
-      signupName: document.getElementById('signup-name'),
-      loginError: document.getElementById('login-error'),
-      signupError: document.getElementById('signup-error'),
-      switchText: document.getElementById('switch-text')
+    const showSpinner = () => {
+      document.getElementById('spinner-overlay').classList.add('active');
+      document.getElementById('main-content').setAttribute('aria-busy', 'true');
     };
 
-    // Tab Switching
-    elements.loginTab.addEventListener('click', () => {
-      elements.loginTab.classList.add('active');
-      elements.signupTab.classList.remove('active');
-      elements.loginForm.classList.remove('hidden');
-      elements.signupForm.classList.add('hidden');
-      elements.switchText.innerHTML = 'New to Vynix AI? <a>Sign up</a>';
-      elements.switchText.querySelector('a').onclick = () => elements.signupTab.click();
-    });
+    const hideSpinner = () => {
+      document.getElementById('spinner-overlay').classList.remove('active');
+      document.getElementById('main-content').setAttribute('aria-busy', 'false');
+    };
 
-    elements.signupTab.addEventListener('click', () => {
-      elements.signupTab.classList.add('active');
-      elements.loginTab.classList.remove('active');
-      elements.signupForm.classList.remove('hidden');
-      elements.loginForm.classList.add('hidden');
-      elements.switchText.innerHTML = 'Already have an account? <a>Login</a>';
-      elements.switchText.querySelector('a').onclick = () => elements.loginTab.click();
-    });
+    const showAlert = (message) => {
+      const alert = document.getElementById('alert-message');
+      alert.textContent = message;
+      alert.classList.add('active');
+      setTimeout(() => alert.classList.remove('active'), 3000);
+    };
 
-    // Signup
-    elements.signupForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = elements.signupEmail.value;
-      const password = elements.signupPassword.value;
-      const displayName = elements.signupName.value;
+    const togglePasswordVisibility = (inputId, toggleId) => {
+      const input = document.getElementById(inputId);
+      const toggle = document.getElementById(toggleId);
+      let isVisible = false;
 
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, { displayName });
-        window.location.href = 'home.html';
-      } catch (error) {
-        elements.signupError.textContent = error.message;
-        elements.signupError.classList.remove('hidden');
+      toggle.addEventListener('click', () => {
+        isVisible = !isVisible;
+        input.type = isVisible ? 'text' : 'password';
+        toggle.innerHTML = isVisible
+          ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+               <path d="M2 2l20 20M6.5 6.5A12 12 0 0012 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5c0-1.5.5-3 1.3-4.2"/>
+             </svg>`
+          : `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+               <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
+             </svg>`;
+      });
+
+      input.addEventListener('input', () => {
+        if (input.value) {
+          input.type = 'text';
+          setTimeout(() => {
+            if (!isVisible) input.type = 'password';
+          }, 1000);
+        }
+      });
+    };
+
+    const switchTab = (tab) => {
+      document.getElementById('login-tab').classList.remove('active');
+      document.getElementById('signup-tab').classList.remove('active');
+      document.getElementById('login-form').classList.remove('active');
+      document.getElementById('signup-form').classList.remove('active');
+
+      document.getElementById(`${tab}-tab`).classList.add('active');
+      document.getElementById(`${tab}-form`).classList.add('active');
+    };
+
+    document.getElementById('login-tab').addEventListener('click', () => switchTab('login'));
+    document.getElementById('signup-tab').addEventListener('click', () => switchTab('signup'));
+
+    document.getElementById('login-submit').addEventListener('click', async () => {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value.trim();
+
+      if (!email || !password) {
+        showAlert('Please fill in all fields.');
+        return;
       }
-    });
 
-    // Login
-    elements.loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = elements.loginEmail.value;
-      const password = elements.loginPassword.value;
-
+      showSpinner();
       try {
         await signInWithEmailAndPassword(auth, email, password);
-        window.location.href = 'home.html';
+        showAlert('Login successful!');
+        window.location.href = 'index.html';
       } catch (error) {
-        elements.loginError.textContent = error.message;
-        elements.loginError.classList.remove('hidden');
+        console.error('Login error:', error);
+        showAlert(error.message || 'Failed to login. Please try again.');
+      } finally {
+        hideSpinner();
       }
     });
 
-    // Check Auth State
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        window.location.href = 'home.html';
+    document.getElementById('signup-submit').addEventListener('click', async () => {
+      const name = document.getElementById('signup-name').value.trim();
+      const email = document.getElementById('signup-email').value.trim();
+      const password = document.getElementById('signup-password').value.trim();
+
+      if (!name || !email || !password) {
+        showAlert('Please fill in all fields.');
+        return;
       }
+
+      showSpinner();
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        showAlert('Sign-up successful!');
+        window.location.href = 'index.html';
+      } catch (error) {
+        console.error('Sign-up error:', error);
+        showAlert(error.message || 'Failed to sign up. Please try again.');
+      } finally {
+        hideSpinner();
+      }
+    });
+
+    document.getElementById('forgot-password').addEventListener('click', async () => {
+      const email = document.getElementById('login-email').value.trim();
+      if (!email) {
+        showAlert('Please enter your email address.');
+        return;
+      }
+
+      showSpinner();
+      try {
+        await sendPasswordResetEmail(auth, email);
+        showAlert('Password reset email sent! Check your inbox.');
+      } catch (error) {
+        console.error('Password reset error:', error);
+        showAlert(error.message || 'Failed to send reset email. Please try again.');
+      } finally {
+        hideSpinner();
+      }
+    });
+
+    togglePasswordVisibility('login-password', 'login-password-toggle');
+    togglePasswordVisibility('signup-password', 'signup-password-toggle');
+
+    document.addEventListener('DOMContentLoaded', () => {
+      switchTab('login');
     });
   </script>
 </body>
