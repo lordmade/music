@@ -5,24 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Vynix AI - Conversation</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #FFFFFF;
-      --card-bg: rgba(255, 255, 255, 0.6);
-      --text-primary: #000000;
-      --text-secondary: #4B5EAA;
-      --border: rgba(0, 0, 0, 0.15);
-      --highlight: #0095F6;
-      --badge-bg: #FA3E5F;
-      --glass-bg: rgba(255, 255, 255, 0.6);
-      --glass-blur: blur(12px);
-      --message-sent: #DCF8C6;
-      --message-received: #F5F5F5;
+      --bg: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      --glass-bg: rgba(255, 255, 255, 0.25);
+      --glass-blur: blur(20px);
+      --card-bg: rgba(255, 255, 255, 0.15);
+      --text-primary: #333333;
+      --text-secondary: #6c757d;
+      --border: rgba(255, 255, 255, 0.18);
+      --highlight: #0095f6;
+      --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      --message-sent: rgba(220, 248, 198, 0.8);
+      --message-received: rgba(245, 245, 245, 0.8);
+      --reaction-bg: rgba(255, 255, 255, 0.9);
     }
 
     body {
@@ -49,6 +46,7 @@
       display: flex;
       align-items: center;
       z-index: 10;
+      box-shadow: var(--shadow);
     }
 
     .header .back-button {
@@ -58,6 +56,12 @@
       padding: 0.5rem;
       display: flex;
       align-items: center;
+      border-radius: 50%;
+      backdrop-filter: blur(10px);
+    }
+
+    .header .back-button:hover {
+      background: rgba(255, 255, 255, 0.1);
     }
 
     .header .back-button svg {
@@ -76,7 +80,7 @@
     .header .avatar {
       width: 2.5rem;
       height: 2.5rem;
-      background: var(--text-secondary);
+      background: var(--glass-bg);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -84,6 +88,8 @@
       font-size: 1.25rem;
       font-weight: 600;
       color: var(--text-primary);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
     }
 
     .header .profile-pic {
@@ -91,7 +97,7 @@
       height: 2.5rem;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid var(--text-primary);
+      border: 2px solid var(--border);
     }
 
     .header h2 {
@@ -111,13 +117,23 @@
       padding: 1rem;
       overflow-y: auto;
       max-height: calc(100vh - 9rem);
+      background: var(--bg);
     }
 
-    .message {
-      margin-bottom: 0.75rem;
+    .message-wrapper {
+      position: relative;
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
+      margin-bottom: 0.75rem;
+      touch-action: pan-y pinch-zoom;
+    }
+
+    .message {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      position: relative;
     }
 
     .message.sent {
@@ -130,10 +146,15 @@
 
     .message-bubble {
       max-width: 70%;
-      padding: 0.75rem;
+      padding: 0.75rem 1rem;
       border-radius: 1rem;
       position: relative;
       word-wrap: break-word;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      transition: transform 0.2s ease;
     }
 
     .message.sent .message-bubble {
@@ -146,13 +167,11 @@
       border-bottom-left-radius: 0.25rem;
     }
 
-    .message img {
-      max-width: 200px;
-      border-radius: 1rem;
-      margin-top: 0.25rem;
+    .message-bubble:active {
+      transform: scale(0.98);
     }
 
-    .message video {
+    .message img, .message video {
       max-width: 200px;
       border-radius: 1rem;
       margin-top: 0.25rem;
@@ -166,6 +185,112 @@
 
     .message.sent .timestamp {
       text-align: right;
+    }
+
+    .reactions {
+      display: flex;
+      gap: 0.25rem;
+      margin-top: 0.25rem;
+      flex-wrap: wrap;
+    }
+
+    .reaction {
+      background: var(--reaction-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .reaction:hover {
+      transform: scale(1.1);
+      background: rgba(255,255,255,0.9);
+    }
+
+    .reply-container {
+      display: none;
+      position: fixed;
+      bottom: 6rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 0.5rem;
+      box-shadow: var(--shadow);
+      z-index: 20;
+      max-width: 80%;
+    }
+
+    .reply-container.active {
+      display: block;
+    }
+
+    .reply-input {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      outline: none;
+      width: 100%;
+      color: var(--text-primary);
+    }
+
+    .reply-button {
+      background: var(--highlight);
+      border: none;
+      border-radius: 50%;
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+
+    .emoji-picker {
+      position: absolute;
+      top: -10rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.5rem;
+      z-index: 30;
+      box-shadow: var(--shadow);
+      display: none;
+    }
+
+    .emoji-picker.active {
+      display: grid;
+    }
+
+    .emoji {
+      font-size: 1.5rem;
+      cursor: pointer;
+      border-radius: 0.5rem;
+      padding: 0.25rem;
+      transition: background 0.2s;
+    }
+
+    .emoji:hover {
+      background: rgba(255,255,255,0.2);
     }
 
     .input-container {
@@ -182,6 +307,7 @@
       align-items: center;
       gap: 0.5rem;
       z-index: 10;
+      box-shadow: var(--shadow);
     }
 
     .input-container input {
@@ -194,6 +320,8 @@
       outline: none;
       -webkit-user-select: auto;
       user-select: auto;
+      backdrop-filter: blur(10px);
+      color: var(--text-primary);
     }
 
     .input-container button {
@@ -207,6 +335,7 @@
       justify-content: center;
       cursor: pointer;
       transition: background 0.2s;
+      backdrop-filter: blur(10px);
     }
 
     .input-container button:hover {
@@ -216,7 +345,7 @@
     .input-container button svg {
       width: 1.25rem;
       height: 1.25rem;
-      stroke: var(--text-primary);
+      stroke: white;
     }
 
     .input-container input[type="file"] {
@@ -234,6 +363,7 @@
       align-items: center;
       justify-content: center;
       z-index: 45;
+      backdrop-filter: blur(5px);
     }
 
     .spinner-overlay.active {
@@ -269,7 +399,7 @@
       display: none;
       max-width: 90%;
       text-align: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      box-shadow: var(--shadow);
     }
 
     .alert.active {
@@ -331,6 +461,14 @@
         </svg>
       </button>
     </div>
+    <div id="reply-container" class="reply-container">
+      <input type="text" class="reply-input" id="reply-input" placeholder="Reply to message...">
+      <button class="reply-button" id="send-reply">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 19l9-7-9-7v14zm0 0H3"/>
+        </svg>
+      </button>
+    </div>
     <div id="spinner-overlay" class="spinner-overlay">
       <div class="spinner"></div>
     </div>
@@ -339,7 +477,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, update, get, off } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, push, update, get, off, set } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
     import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
 
     const firebaseConfig = {
@@ -354,21 +492,21 @@
     };
 
     let app, auth, db, storage, currentUser, friendId, messagesRef, userRef;
+    let replyingTo = null;
+
+    const emojis = ['😀', '😂', '❤️', '👍', '👎', '😢', '😡', '😎', '🤔', '🙌'];
 
     const showSpinner = () => {
-      console.log('Showing spinner');
       document.getElementById('spinner-overlay').classList.add('active');
       document.getElementById('main-content').setAttribute('aria-busy', 'true');
     };
 
     const hideSpinner = () => {
-      console.log('Hiding spinner');
       document.getElementById('spinner-overlay').classList.remove('active');
       document.getElementById('main-content').setAttribute('aria-busy', 'false');
     };
 
     const showAlert = (message) => {
-      console.log('Showing alert:', message);
       const alert = document.getElementById('alert-message');
       alert.textContent = message;
       alert.classList.add('active');
@@ -378,30 +516,201 @@
     function formatTimestamp(timestamp) {
       try {
         const date = new Date(timestamp);
-        if (isNaN(date.getTime())) {
-          throw new Error('Invalid timestamp');
-        }
+        if (isNaN(date.getTime())) return 'Unknown time';
         const now = new Date();
         const diffMs = now - date;
         const diffSec = Math.floor(diffMs / 1000);
         const diffMin = Math.floor(diffSec / 60);
         const diffHr = Math.floor(diffMin / 60);
         const diffDay = Math.floor(diffHr / 24);
-        const diffWeek = Math.floor(diffDay / 7);
-        const diffMonth = Math.floor(diffDay / 30);
-        const diffYear = Math.floor(diffDay / 365);
-
-        if (diffSec < 60) return `${diffSec} second${diffSec === 1 ? '' : 's'} ago`;
-        if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
-        if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
-        if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
-        if (diffWeek < 4) return `${diffWeek} week${diffWeek === 1 ? '' : 's'} ago`;
-        if (diffMonth < 12) return `${diffMonth} month${diffMonth === 1 ? '' : 's'} ago`;
-        return `${diffYear} year${diffYear === 1 ? '' : 's'} ago`;
+        if (diffSec < 60) return `${diffSec}s ago`;
+        if (diffMin < 60) return `${diffMin}m ago`;
+        if (diffHr < 24) return `${diffHr}h ago`;
+        return `${diffDay}d ago`;
       } catch (error) {
-        console.error('Timestamp formatting error:', error.message);
         return 'Unknown time';
       }
+    }
+
+    function renderEmojiPicker(messageBubble, messageId) {
+      let picker = document.querySelector('.emoji-picker');
+      if (!picker) {
+        picker = document.createElement('div');
+        picker.className = 'emoji-picker';
+        emojis.forEach(emoji => {
+          const btn = document.createElement('div');
+          btn.className = 'emoji';
+          btn.textContent = emoji;
+          btn.onclick = () => addReaction(messageId, emoji);
+          picker.appendChild(btn);
+        });
+        document.body.appendChild(picker);
+      }
+      picker.style.display = 'grid';
+      picker.classList.add('active');
+      const rect = messageBubble.getBoundingClientRect();
+      picker.style.top = `${rect.top - 160}px`;
+      picker.style.left = `${rect.left}px`;
+      picker.dataset.target = messageId;
+    }
+
+    function hideEmojiPicker() {
+      const picker = document.querySelector('.emoji-picker');
+      if (picker) picker.classList.remove('active');
+    }
+
+    function addReaction(messageId, emoji) {
+      if (!currentUser || !friendId) return;
+      const chatId = getChatId(currentUser.uid, friendId);
+      const reactionRef = ref(db, `messages/${chatId}/${messageId}/reactions/${currentUser.uid}`);
+      set(reactionRef, emoji)
+        .then(() => {
+          showAlert('Reaction added!');
+          hideEmojiPicker();
+        })
+        .catch(error => showAlert('Failed to add reaction: ' + error.message));
+    }
+
+    function renderReactions(reactions, messageId) {
+      if (!reactions) return '';
+      const reactionCounts = {};
+      Object.values(reactions).forEach(emoji => {
+        reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+      });
+      return `<div class="reactions">${Object.entries(reactionCounts).map(([emoji, count]) => 
+        `<div class="reaction" onclick="toggleReaction('${messageId}', '${emoji}')">${emoji}${count > 1 ? count : ''}</div>`
+      ).join('')}</div>`;
+    }
+
+    function toggleReaction(messageId, emoji) {
+      if (!currentUser) return;
+      const chatId = getChatId(currentUser.uid, friendId);
+      const reactionRef = ref(db, `messages/${chatId}/${messageId}/reactions/${currentUser.uid}`);
+      get(reactionRef).then(snap => {
+        if (snap.val() === emoji) {
+          set(reactionRef, null);
+        } else {
+          set(reactionRef, emoji);
+        }
+      });
+    }
+
+    function showReplyContainer(messageId, messageContent) {
+      replyingTo = messageId;
+      const container = document.getElementById('reply-container');
+      const input = document.getElementById('reply-input');
+      input.placeholder = `Reply to: ${messageContent.substring(0, 20)}...`;
+      container.classList.add('active');
+      input.focus();
+    }
+
+    function hideReplyContainer() {
+      replyingTo = null;
+      document.getElementById('reply-container').classList.remove('active');
+      document.getElementById('reply-input').value = '';
+    }
+
+    function deleteMessage(messageId) {
+      if (!confirm('Delete this message?')) return;
+      const chatId = getChatId(currentUser.uid, friendId);
+      set(ref(db, `messages/${chatId}/${messageId}`), null)
+        .then(() => showAlert('Message deleted!'))
+        .catch(error => showAlert('Failed to delete: ' + error.message));
+    }
+
+    function setupMessageGestures(messageEl, messageId, messageContent) {
+      let startX, startY, currentX, currentY;
+      let isLongPress = false;
+      let longPressTimer;
+
+      const handleTouchStart = (e) => {
+        const touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        currentX = startX;
+        currentY = startY;
+        longPressTimer = setTimeout(() => {
+          isLongPress = true;
+          hideReplyContainer();
+          renderEmojiPicker(messageEl.querySelector('.message-bubble'), messageId);
+        }, 500);
+      };
+
+      const handleTouchMove = (e) => {
+        if (longPressTimer) clearTimeout(longPressTimer);
+        const touch = e.touches[0];
+        currentX = touch.clientX;
+        currentY = touch.clientY;
+        const deltaX = currentX - startX;
+        const deltaY = Math.abs(currentY - startY);
+        if (Math.abs(deltaX) > 50 && deltaY < 30) {
+          e.preventDefault();
+          messageEl.style.transform = `translateX(${deltaX}px)`;
+        }
+      };
+
+      const handleTouchEnd = (e) => {
+        if (longPressTimer) clearTimeout(longPressTimer);
+        const deltaX = currentX - startX;
+        const deltaY = Math.abs(currentY - startY);
+        messageEl.style.transform = '';
+        if (isLongPress) {
+          isLongPress = false;
+          return;
+        }
+        if (Math.abs(deltaX) > 50 && deltaY < 30) {
+          if (deltaX > 0) {
+            // Right swipe - reply
+            showReplyContainer(messageId, messageContent);
+          } else {
+            // Left swipe - delete
+            deleteMessage(messageId);
+          }
+        }
+      };
+
+      messageEl.addEventListener('touchstart', handleTouchStart, { passive: true });
+      messageEl.addEventListener('touchmove', handleTouchMove, { passive: false });
+      messageEl.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+      // Mouse support for desktop
+      let isMouseDown = false;
+      messageEl.addEventListener('mousedown', (e) => {
+        startX = e.clientX;
+        startY = e.clientY;
+        currentX = startX;
+        currentY = startY;
+        longPressTimer = setTimeout(() => {
+          renderEmojiPicker(messageEl.querySelector('.message-bubble'), messageId);
+        }, 500);
+        isMouseDown = true;
+      });
+
+      messageEl.addEventListener('mousemove', (e) => {
+        if (!isMouseDown) return;
+        currentX = e.clientX;
+        currentY = e.clientY;
+        const deltaX = currentX - startX;
+        if (Math.abs(deltaX) > 50) {
+          if (deltaX > 0) {
+            showReplyContainer(messageId, messageContent);
+          } else {
+            deleteMessage(messageId);
+          }
+          isMouseDown = false;
+        }
+      });
+
+      messageEl.addEventListener('mouseup', () => {
+        if (longPressTimer) clearTimeout(longPressTimer);
+        isMouseDown = false;
+      });
+
+      messageEl.addEventListener('mouseleave', () => {
+        if (longPressTimer) clearTimeout(longPressTimer);
+        isMouseDown = false;
+        messageEl.style.transform = '';
+      });
     }
 
     async function loadFriendInfo(friendId) {
@@ -424,7 +733,6 @@
           }
         }, { onlyOnce: true });
       } catch (error) {
-        console.error('Error loading friend info:', error.message);
         showAlert(`Failed to load friend info: ${error.message}`);
       } finally {
         hideSpinner();
@@ -444,25 +752,29 @@
         onValue(messagesRef, (snapshot) => {
           chatContainer.innerHTML = '';
           const messages = snapshot.val();
-          if (!messages) {
-            return;
-          }
+          if (!messages) return;
           const messagesArray = Object.entries(messages).sort((a, b) => 
             new Date(a[1].timestamp).getTime() - new Date(b[1].timestamp).getTime()
           );
           messagesArray.forEach(([messageId, messageData]) => {
             const messageContent = messageData.content || '[Message]';
+            const reactionsHtml = renderReactions(messageData.reactions, messageId);
             const div = document.createElement('div');
-            div.className = `message ${messageData.senderId === currentUser.uid ? 'sent' : 'received'}`;
+            div.className = `message-wrapper`;
+            div.id = `message-${messageId}`;
             div.innerHTML = `
-              <div class="message-bubble">
-                ${messageData.type === 'image' ? `<img src="${messageContent}" alt="Shared image">` :
-                  messageData.type === 'video' ? `<video src="${messageContent}" controls></video>` :
-                  `<span>${messageContent}</span>`}
+              <div class="message ${messageData.senderId === currentUser.uid ? 'sent' : 'received'}">
+                <div class="message-bubble">
+                  ${messageData.type === 'image' ? `<img src="${messageContent}" alt="Shared image">` :
+                    messageData.type === 'video' ? `<video src="${messageContent}" controls></video>` :
+                    `<span>${messageContent}</span>`}
+                </div>
+                ${reactionsHtml}
+                <div class="timestamp">${formatTimestamp(messageData.timestamp)}</div>
               </div>
-              <div class="timestamp">${formatTimestamp(messageData.timestamp)}</div>
             `;
             chatContainer.appendChild(div);
+            setupMessageGestures(div, messageId, messageContent);
           });
           chatContainer.scrollTop = chatContainer.scrollHeight;
           update(ref(db, `users/${currentUser.uid}/friends/${friendId}`), { unreadCount: 0 }).catch(error => {
@@ -470,7 +782,6 @@
           });
         });
       } catch (error) {
-        console.error('Error loading messages:', error.message);
         showAlert(`Failed to load messages: ${error.message}`);
       } finally {
         hideSpinner();
@@ -481,7 +792,7 @@
       return [userId1, userId2].sort().join('_');
     }
 
-    async function sendMessage(friendId, content, type = 'text') {
+    async function sendMessage(friendId, content, type = 'text', isReply = false) {
       if (!currentUser) {
         showAlert('User not authenticated.');
         return;
@@ -498,7 +809,8 @@
           senderId: currentUser.uid,
           timestamp: new Date().toISOString(),
           type,
-          content
+          content,
+          ...(isReply && replyingTo ? { replyTo: replyingTo } : {})
         };
 
         await push(messagesRef, messageData);
@@ -523,9 +835,9 @@
           update(ref(db, `users/${friendId}/friends/${currentUser.uid}`), userUpdate)
         ]);
 
-        document.getElementById('message-input').value = '';
+        if (isReply) hideReplyContainer();
+        else document.getElementById('message-input').value = '';
       } catch (error) {
-        console.error('Error sending message:', error.message);
         showAlert(`Failed to send message: ${error.message}`);
       } finally {
         hideSpinner();
@@ -547,7 +859,6 @@
         const type = file.type.startsWith('image/') ? 'image' : 'video';
         await sendMessage(friendId, url, type);
       } catch (error) {
-        console.error('Error uploading media:', error.message);
         showAlert(`Failed to upload media: ${error.message}`);
       } finally {
         hideSpinner();
@@ -555,7 +866,6 @@
     }
 
     function initializeFirebase() {
-      console.log('Initializing Firebase');
       try {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
@@ -563,10 +873,8 @@
         storage = getStorage(app);
         onAuthStateChanged(auth, (user) => {
           if (user) {
-            console.log('User authenticated:', user.uid);
             currentUser = user;
             update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() })
-              .then(() => console.log('User lastSeen updated'))
               .catch(err => console.error('Error updating lastSeen:', err.message));
             const urlParams = new URLSearchParams(window.location.search);
             friendId = urlParams.get('friendId');
@@ -574,32 +882,39 @@
               loadFriendInfo(friendId);
               loadMessages(friendId);
               document.getElementById('send-message').onclick = () => {
-                const messageInput = document.getElementById('message-input').value;
-                sendMessage(friendId, messageInput);
+                sendMessage(friendId, document.getElementById('message-input').value);
               };
               document.getElementById('message-input').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                  sendMessage(friendId, e.target.value);
-                }
+                if (e.key === 'Enter') sendMessage(friendId, e.target.value);
               });
               document.getElementById('media-input').addEventListener('change', (e) => {
                 if (e.target.files[0]) sendMedia(friendId, e.target.files[0]);
+              });
+              document.getElementById('send-reply').onclick = () => {
+                const replyText = document.getElementById('reply-input').value;
+                sendMessage(friendId, replyText, 'text', true);
+              };
+              document.getElementById('reply-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                  const replyText = e.target.value;
+                  sendMessage(friendId, replyText, 'text', true);
+                }
+              });
+              document.addEventListener('click', (e) => {
+                if (!e.target.closest('.emoji-picker') && !e.target.closest('.message-wrapper')) {
+                  hideEmojiPicker();
+                }
               });
             } else {
               showAlert('No friend selected.');
               window.location.href = 'friends.html';
             }
           } else {
-            console.log('No user logged in, redirecting to signup.html');
             showAlert('Please log in to view conversation.');
             window.location.href = 'signup.html';
           }
-        }, (error) => {
-          console.error('Auth state error:', error.message);
-          showAlert(`Authentication error: ${error.message}`);
         });
       } catch (error) {
-        console.error('Firebase initialization error:', error.message);
         showAlert(`Failed to initialize Firebase: ${error.message}`);
       }
     }
@@ -609,14 +924,9 @@
       if (userRef) off(userRef);
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log('DOM loaded, initializing Firebase');
-      initializeFirebase();
-    });
+    document.addEventListener('DOMContentLoaded', initializeFirebase);
 
-    document.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-    });
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
   </script>
 </body>
 </html>
