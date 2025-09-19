@@ -360,14 +360,15 @@
             currentUser = user;
             const urlParams = new URLSearchParams(window.location.search);
             friendId = urlParams.get('friendId');
-            if (!friendId) {
+            if (!friendId || friendId.trim() === '') {
+              console.error('Invalid or missing friendId');
               showAlert('No friend selected.');
               window.location.href = 'friends.html';
               return;
             }
             update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() })
               .then(() => console.log('User lastSeen updated'))
-              .catch(err => console.error('Error updating lastSeen:', err));
+              .catch(err => console.error('Error updating lastSeen:', err.message, err.code));
             generateConversationId();
             loadFriendProfile();
             loadMessages();
@@ -377,30 +378,37 @@
             window.location.href = 'signup.html';
           }
         }, (error) => {
-          console.error('Auth state error:', error);
-          showAlert('Authentication error. Please try again.');
+          console.error('Auth state error:', error.message, error.code);
+          showAlert('Authentication error: ' + (error.message || 'Please try again.'));
         });
       } catch (error) {
-        console.error('Firebase initialization error:', error);
-        showAlert('Failed to initialize Firebase. Please check your connection.');
+        console.error('Firebase initialization error:', error.message, error.code);
+        showAlert('Failed to initialize Firebase: ' + (error.message || 'Please check your connection.'));
       }
     }
 
     function generateConversationId() {
-      if (!currentUser || !friendId) return;
+      if (!currentUser || !friendId) {
+        console.error('Cannot generate conversationId: missing currentUser or friendId');
+        return;
+      }
       const ids = [currentUser.uid, friendId].sort();
       conversationId = `${ids[0]}_${ids[1]}`;
       console.log('Generated conversationId:', conversationId);
     }
 
     async function loadFriendProfile() {
-      if (!friendId) return;
+      if (!friendId) {
+        console.error('No friendId provided for loading profile');
+        return;
+      }
       showSpinner();
       const friendRef = ref(db, `users/${friendId}`);
       try {
         onValue(friendRef, (snapshot) => {
           const friendData = snapshot.val();
           if (!friendData) {
+            console.error('Friend data not found for friendId:', friendId);
             showAlert('Friend not found.');
             hideSpinner();
             return;
@@ -421,16 +429,24 @@
             defaultAvatar.style.display = 'block';
           }
           hideSpinner();
-        }, { onlyOnce: false });
+        }, { onlyOnce: false }, (error) => {
+          console.error('Error loading friend profile:', error.message, error.code);
+          showAlert('Failed to load friend profile: ' + (error.message || 'Please try again.'));
+          hideSpinner();
+        });
       } catch (error) {
-        console.error('Error loading friend profile:', error);
-        showAlert('Failed to load friend profile. Please try again.');
+        console.error('Error loading friend profile:', error.message, error.code);
+        showAlert('Failed to load friend profile: ' + (error.message || 'Please check your connection.'));
         hideSpinner();
       }
     }
 
     async function loadMessages() {
-      if (!conversationId) return;
+      if (!conversationId) {
+        console.error('No conversationId provided for loading messages');
+        showAlert('Invalid conversation. Please try again.');
+        return;
+      }
       console.log('Loading messages for conversation:', conversationId);
       showSpinner();
       const messagesRef = ref(db, `conversations/${conversationId}/messages`);
@@ -462,57 +478,77 @@
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
           hideSpinner();
         }, (error) => {
-          console.error('Error loading messages:', error);
-          showAlert('Failed to load messages. Please try again.');
+          console.error('Error loading messages:', error.message, error.code);
+          showAlert('Failed to load messages: ' + (error.message || 'Please try again.'));
           hideSpinner();
         });
       } catch (error) {
-        console.error('Error loading messages:', error);
-        showAlert('Failed to load messages. Please check your connection.');
+        console.error('Error loading messages:', error.message, error.code);
+        showAlert('Failed to load messages: ' + (error.message || 'Please check your connection.'));
         hideSpinner();
       }
     }
 
     async function sendMessage() {
       if (!currentUser || !conversationId) {
-        showAlert('Please log in to send messages.');
+        console.error('Cannot send message: missing currentUser or conversationId', { currentUser, conversationId });
+        showAlert('Please log in or select a valid conversation.');
         return;
       }
       const now = Date.now();
       if (now - lastMessageTimestamp < 3000) {
+        console.warn('Rate limit hit: too soon to send another message');
         showAlert('Please wait a few seconds before sending another message.');
         return;
       }
       const messageInput = document.getElementById('message-input');
       const messageText = messageInput.value.trim();
       if (!messageText) {
+        console.warn('Empty message input');
         showAlert('Please enter a message.');
+        return;
+      }
+      if (!navigator.onLine) {
+        console.error('No internet connection');
+        showAlert('No internet connection. Please check your network.');
         return;
       }
       showSpinner();
       try {
-        await push(ref(db, `conversations/${conversationId}/messages`), {
+        console.log('Sending message:', { senderId: currentUser.uid, text: messageText, conversationId });
+        const messageRef = await push(ref(db, `conversations/${conversationId}/messages`), {
           senderId: currentUser.uid,
           text: messageText,
           timestamp: new Date().toISOString()
         });
+        console.log('Message pushed to Firebase:', messageRef.key);
         lastMessageTimestamp = now;
         messageInput.value = '';
-        console.log('Message sent:', messageText);
-        await update(ref(db, `users/${currentUser.uid}/friends/${friendId}`), {
-          lastMessage: messageText,
-          lastMessageTimestamp: new Date().toISOString(),
-          senderId: currentUser.uid
-        });
-        await update(ref(db, `users/${friendId}/friends/${currentUser.uid}`), {
-          lastMessage: messageText,
-          lastMessageTimestamp: new Date().toISOString(),
-          senderId: currentUser.uid,
-          unreadCount: firebase.database.ServerValue.increment(1)
-        });
+        await Promise.all([
+          update(ref(db, `users/${currentUser.uid}/friends/${friendId}`), {
+            lastMessage: messageText,
+            lastMessageTimestamp: new Date().toISOString(),
+            senderId: currentUser.uid
+          }).then(() => console.log('Updated sender friend data')),
+          update(ref(db, `users/${friendId}/friends/${currentUser.uid}`), {
+            lastMessage: messageText,
+            lastMessageTimestamp: new Date().toISOString(),
+            senderId: currentUser.uid,
+            unreadCount: firebase.database.ServerValue.increment(1)
+          }).then(() => console.log('Updated receiver friend data'))
+        ]);
+        console.log('Message sent successfully');
       } catch (error) {
-        console.error('Error sending message:', error);
-        showAlert('Failed to send message. Please try again.');
+        console.error('Error sending message:', error.message, error.code, error);
+        let errorMessage = 'Failed to send message. ';
+        if (error.code === 'PERMISSION_DENIED') {
+          errorMessage += 'You do not have permission to send messages.';
+        } else if (error.code === 'NETWORK_ERROR') {
+          errorMessage += 'Network error. Please check your connection.';
+        } else {
+          errorMessage += error.message || 'Please try again.';
+        }
+        showAlert(errorMessage);
       } finally {
         hideSpinner();
       }
