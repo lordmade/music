@@ -355,7 +355,7 @@
     };
 
     let app, auth, db, storage, currentUser, friendId, messagesRef, userRef;
-    const encryptionKey = 'vynix-ai-secret-key-32bytes123456';
+    const encryptionKey = 'vynix-ai-secret-key-32bytes123456'; // 32 bytes for AES-256
 
     const showSpinner = () => {
       console.log('Showing spinner');
@@ -379,24 +379,33 @@
 
     function encryptMessage(message) {
       try {
-        const iv = CryptoJS.lib.WordArray.random(12);
+        if (!message || typeof message !== 'string') {
+          throw new Error('Invalid message: must be a non-empty string');
+        }
+        const iv = CryptoJS.lib.WordArray.random(12); // 12 bytes for GCM
         const encrypted = CryptoJS.AES.encrypt(message, CryptoJS.enc.Utf8.parse(encryptionKey), {
           iv: iv,
           mode: CryptoJS.mode.GCM,
           padding: CryptoJS.pad.Pkcs7
         });
+        if (!encrypted.ciphertext) {
+          throw new Error('Encryption failed: no ciphertext produced');
+        }
         return {
           iv: CryptoJS.enc.Hex.stringify(iv).match(/.{1,2}/g).map(hex => parseInt(hex, 16)),
           data: CryptoJS.enc.Hex.stringify(encrypted.ciphertext).match(/.{1,2}/g).map(hex => parseInt(hex, 16))
         };
       } catch (error) {
-        console.error('Encryption error:', error);
-        throw new Error('Failed to encrypt message');
+        console.error('Encryption error:', error.message);
+        throw new Error(`Failed to encrypt message: ${error.message}`);
       }
     }
 
     function decryptMessage(encryptedData, iv) {
       try {
+        if (!encryptedData || !iv) {
+          throw new Error('Invalid encrypted data or IV');
+        }
         const ivHex = iv.map(byte => byte.toString(16).padStart(2, '0')).join('');
         const dataHex = encryptedData.map(byte => byte.toString(16).padStart(2, '0')).join('');
         const ivWordArray = CryptoJS.enc.Hex.parse(ivHex);
@@ -410,9 +419,13 @@
             padding: CryptoJS.pad.Pkcs7
           }
         );
-        return decrypted.toString(CryptoJS.enc.Utf8) || '[Decryption Failed]';
+        const result = decrypted.toString(CryptoJS.enc.Utf8);
+        if (!result) {
+          throw new Error('Decryption produced empty result');
+        }
+        return result;
       } catch (error) {
-        console.error('Decryption Error:', error);
+        console.error('Decryption error:', error.message);
         return '[Encrypted Message]';
       }
     }
@@ -420,7 +433,9 @@
     function formatTimestamp(timestamp) {
       try {
         const date = new Date(timestamp);
-        if (isNaN(date.getTime())) throw new Error('Invalid timestamp');
+        if (isNaN(date.getTime())) {
+          throw new Error('Invalid timestamp');
+        }
         const now = new Date();
         const diffMs = now - date;
         const diffSec = Math.floor(diffMs / 1000);
@@ -439,7 +454,7 @@
         if (diffMonth < 12) return `${diffMonth} month${diffMonth === 1 ? '' : 's'} ago`;
         return `${diffYear} year${diffYear === 1 ? '' : 's'} ago`;
       } catch (error) {
-        console.error('Timestamp formatting error:', error);
+        console.error('Timestamp formatting error:', error.message);
         return 'Unknown time';
       }
     }
@@ -464,8 +479,8 @@
           }
         }, { onlyOnce: true });
       } catch (error) {
-        console.error('Error loading friend info:', error);
-        showAlert('Failed to load friend info: ' + error.message);
+        console.error('Error loading friend info:', error.message);
+        showAlert(`Failed to load friend info: ${error.message}`);
       } finally {
         hideSpinner();
       }
@@ -508,12 +523,12 @@
           });
           chatContainer.scrollTop = chatContainer.scrollHeight;
           update(ref(db, `users/${currentUser.uid}/friends/${friendId}`), { unreadCount: 0 }).catch(error => {
-            console.error('Error resetting unread count:', error);
+            console.error('Error resetting unread count:', error.message);
           });
         });
       } catch (error) {
-        console.error('Error loading messages:', error);
-        showAlert('Failed to load messages: ' + error.message);
+        console.error('Error loading messages:', error.message);
+        showAlert(`Failed to load messages: ${error.message}`);
       } finally {
         hideSpinner();
       }
@@ -544,18 +559,15 @@
           [type === 'text' ? 'encrypted' : 'content']: type === 'text' ? encrypted : content
         };
 
-        // Push the message to the database
         await push(messagesRef, messageData);
 
-        // Fetch current unread count for the friend
         const unreadRef = ref(db, `users/${friendId}/friends/${currentUser.uid}/unreadCount`);
         const unreadSnap = await get(unreadRef);
         const currentUnread = unreadSnap.val() || 0;
 
-        // Update both users' friend data
         const friendUpdate = {
           lastMessageEncrypted: type === 'text' ? encrypted : null,
-          lastMessage: type !== 'text' ? 'Media' : content.substring(0, 50), // Store a preview for non-text
+          lastMessage: type !== 'text' ? 'Media' : content.substring(0, 50),
           lastMessageType: type,
           lastMessageTime: messageData.timestamp,
           unreadCount: 0
@@ -572,7 +584,7 @@
 
         document.getElementById('message-input').value = '';
       } catch (error) {
-        console.error('Error sending message:', error);
+        console.error('Error sending message:', error.message);
         showAlert(`Failed to send message: ${error.message}`);
       } finally {
         hideSpinner();
@@ -594,7 +606,7 @@
         const type = file.type.startsWith('image/') ? 'image' : 'video';
         await sendMessage(friendId, url, type);
       } catch (error) {
-        console.error('Error uploading media:', error);
+        console.error('Error uploading media:', error.message);
         showAlert(`Failed to upload media: ${error.message}`);
       } finally {
         hideSpinner();
@@ -614,7 +626,7 @@
             currentUser = user;
             update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() })
               .then(() => console.log('User lastSeen updated'))
-              .catch(err => console.error('Error updating lastSeen:', err));
+              .catch(err => console.error('Error updating lastSeen:', err.message));
             const urlParams = new URLSearchParams(window.location.search);
             friendId = urlParams.get('friendId');
             if (friendId) {
@@ -642,16 +654,15 @@
             window.location.href = 'signup.html';
           }
         }, (error) => {
-          console.error('Auth state error:', error);
-          showAlert('Authentication error: ' + error.message);
+          console.error('Auth state error:', error.message);
+          showAlert(`Authentication error: ${error.message}`);
         });
       } catch (error) {
-        console.error('Firebase initialization error:', error);
-        showAlert('Failed to initialize Firebase: ' + error.message);
+        console.error('Firebase initialization error:', error.message);
+        showAlert(`Failed to initialize Firebase: ${error.message}`);
       }
     }
 
-    // Cleanup listeners on page unload
     window.addEventListener('beforeunload', () => {
       if (messagesRef) off(messagesRef);
       if (userRef) off(userRef);
