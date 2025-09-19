@@ -20,6 +20,9 @@
       --message-sent: rgba(220, 248, 198, 0.8);
       --message-received: rgba(245, 245, 245, 0.8);
       --reaction-bg: rgba(255, 255, 255, 0.9);
+      --alert-success: rgba(46, 204, 113, 0.9);
+      --alert-error: rgba(231, 76, 60, 0.9);
+      --typing-color: #28a745;
     }
 
     body {
@@ -109,6 +112,11 @@
     .header .last-seen {
       font-size: 0.75rem;
       color: var(--text-secondary);
+    }
+
+    .header .last-seen.typing {
+      color: var(--typing-color);
+      font-weight: 500;
     }
 
     .chat-container {
@@ -400,6 +408,16 @@
       max-width: 90%;
       text-align: center;
       box-shadow: var(--shadow);
+      font-size: 0.875rem;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .alert.success {
+      background: var(--alert-success);
+    }
+
+    .alert.error {
+      background: var(--alert-error);
     }
 
     .alert.active {
@@ -472,7 +490,7 @@
     <div id="spinner-overlay" class="spinner-overlay">
       <div class="spinner"></div>
     </div>
-    <div id="alert-message" class="alert"></div>
+    <div id="alert-message" class="alert" role="alert" aria-live="assertive"></div>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -491,7 +509,7 @@
       measurementId: "G-V4W97VMSKL"
     };
 
-    let app, auth, db, storage, currentUser, friendId, messagesRef, userRef;
+    let app, auth, db, storage, currentUser, friendId, messagesRef, userRef, typingTimeout;
     let replyingTo = null;
 
     const emojis = ['😀', '😂', '❤️', '👍', '👎', '😢', '😡', '😎', '🤔', '🙌'];
@@ -506,11 +524,16 @@
       document.getElementById('main-content').setAttribute('aria-busy', 'false');
     };
 
-    const showAlert = (message) => {
+    const showAlert = (message, type = 'success', duration = 3000) => {
       const alert = document.getElementById('alert-message');
       alert.textContent = message;
-      alert.classList.add('active');
-      setTimeout(() => alert.classList.remove('active'), 3000);
+      alert.className = `alert ${type} active`;
+      alert.setAttribute('aria-label', `${type}: ${message}`);
+      setTimeout(() => {
+        alert.classList.remove('active');
+        alert.textContent = '';
+        alert.removeAttribute('aria-label');
+      }, duration);
     };
 
     function formatTimestamp(timestamp) {
@@ -532,6 +555,13 @@
       }
     }
 
+    function updateTypingStatus(isTyping) {
+      if (!currentUser || !friendId) return;
+      const typingRef = ref(db, `users/${friendId}/friends/${currentUser.uid}/typing`);
+      set(typingRef, isTyping)
+        .catch(error => showAlert(`Failed to update typing status: ${error.message}`, 'error'));
+    }
+
     function renderEmojiPicker(messageBubble, messageId) {
       let picker = document.querySelector('.emoji-picker');
       if (!picker) {
@@ -541,7 +571,15 @@
           const btn = document.createElement('div');
           btn.className = 'emoji';
           btn.textContent = emoji;
+          btn.setAttribute('role', 'button');
+          btn.setAttribute('aria-label', `Add ${emoji} reaction`);
+          btn.tabIndex = 0;
           btn.onclick = () => addReaction(messageId, emoji);
+          btn.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              addReaction(messageId, emoji);
+            }
+          };
           picker.appendChild(btn);
         });
         document.body.appendChild(picker);
@@ -552,6 +590,7 @@
       picker.style.top = `${rect.top - 160}px`;
       picker.style.left = `${rect.left}px`;
       picker.dataset.target = messageId;
+      picker.querySelector('.emoji').focus();
     }
 
     function hideEmojiPicker() {
@@ -565,10 +604,13 @@
       const reactionRef = ref(db, `messages/${chatId}/${messageId}/reactions/${currentUser.uid}`);
       set(reactionRef, emoji)
         .then(() => {
-          showAlert('Reaction added!');
+          showAlert('Reaction added!', 'success');
           hideEmojiPicker();
         })
-        .catch(error => showAlert('Failed to add reaction: ' + error.message));
+        .catch(error => {
+          showAlert(`Failed to add reaction: ${error.message}`, 'error');
+          hideEmojiPicker();
+        });
     }
 
     function renderReactions(reactions, messageId) {
@@ -578,7 +620,7 @@
         reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
       });
       return `<div class="reactions">${Object.entries(reactionCounts).map(([emoji, count]) => 
-        `<div class="reaction" onclick="toggleReaction('${messageId}', '${emoji}')">${emoji}${count > 1 ? count : ''}</div>`
+        `<div class="reaction" role="button" aria-label="${emoji} reaction, ${count} users" onclick="toggleReaction('${messageId}', '${emoji}')">${emoji}${count > 1 ? count : ''}</div>`
       ).join('')}</div>`;
     }
 
@@ -588,9 +630,25 @@
       const reactionRef = ref(db, `messages/${chatId}/${messageId}/reactions/${currentUser.uid}`);
       get(reactionRef).then(snap => {
         if (snap.val() === emoji) {
-          set(reactionRef, null);
+          set(reactionRef, null)
+            .then(() => {
+              showAlert('Reaction removed!', 'success');
+              hideEmojiPicker();
+            })
+            .catch(error => {
+              showAlert(`Failed to remove reaction: ${error.message}`, 'error');
+              hideEmojiPicker();
+            });
         } else {
-          set(reactionRef, emoji);
+          set(reactionRef, emoji)
+            .then(() => {
+              showAlert('Reaction updated!', 'success');
+              hideEmojiPicker();
+            })
+            .catch(error => {
+              showAlert(`Failed to update reaction: ${error.message}`, 'error');
+              hideEmojiPicker();
+            });
         }
       });
     }
@@ -608,14 +666,17 @@
       replyingTo = null;
       document.getElementById('reply-container').classList.remove('active');
       document.getElementById('reply-input').value = '';
+      updateTypingStatus(false);
     }
 
     function deleteMessage(messageId) {
-      if (!confirm('Delete this message?')) return;
       const chatId = getChatId(currentUser.uid, friendId);
-      set(ref(db, `messages/${chatId}/${messageId}`), null)
-        .then(() => showAlert('Message deleted!'))
-        .catch(error => showAlert('Failed to delete: ' + error.message));
+      showAlert('Are you sure you want to delete this message?', 'error', 5000);
+      setTimeout(() => {
+        set(ref(db, `messages/${chatId}/${messageId}`), null)
+          .then(() => showAlert('Message deleted!', 'success'))
+          .catch(error => showAlert(`Failed to delete: ${error.message}`, 'error'));
+      }, 5000);
     }
 
     function setupMessageGestures(messageEl, messageId, messageContent) {
@@ -660,10 +721,8 @@
         }
         if (Math.abs(deltaX) > 50 && deltaY < 30) {
           if (deltaX > 0) {
-            // Right swipe - reply
             showReplyContainer(messageId, messageContent);
           } else {
-            // Left swipe - delete
             deleteMessage(messageId);
           }
         }
@@ -673,7 +732,6 @@
       messageEl.addEventListener('touchmove', handleTouchMove, { passive: false });
       messageEl.addEventListener('touchend', handleTouchEnd, { passive: true });
 
-      // Mouse support for desktop
       let isMouseDown = false;
       messageEl.addEventListener('mousedown', (e) => {
         startX = e.clientX;
@@ -721,7 +779,6 @@
           const userData = snapshot.val();
           if (userData) {
             document.getElementById('friend-name').textContent = userData.displayName || 'Friend';
-            document.getElementById('friend-last-seen').textContent = userData.lastSeen ? `Last seen ${formatTimestamp(userData.lastSeen)}` : '';
             const avatar = document.getElementById('friend-avatar');
             if (userData.photoURL) {
               avatar.outerHTML = `<img src="${userData.photoURL}" class="profile-pic" alt="${userData.displayName || 'Friend'}'s profile picture">`;
@@ -729,11 +786,27 @@
               avatar.textContent = userData.displayName ? userData.displayName[0].toUpperCase() : 'F';
             }
           } else {
-            showAlert('Friend data not found.');
+            showAlert('Friend data not found.', 'error');
           }
         }, { onlyOnce: true });
+
+        const typingRef = ref(db, `users/${currentUser.uid}/friends/${friendId}/typing`);
+        onValue(typingRef, (snapshot) => {
+          const isTyping = snapshot.val();
+          const lastSeenEl = document.getElementById('friend-last-seen');
+          if (isTyping) {
+            lastSeenEl.textContent = 'Typing...';
+            lastSeenEl.classList.add('typing');
+          } else {
+            const lastSeenRef = ref(db, `users/${friendId}/lastSeen`);
+            get(lastSeenRef).then(snap => {
+              lastSeenEl.textContent = snap.val() ? `Last seen ${formatTimestamp(snap.val())}` : '';
+              lastSeenEl.classList.remove('typing');
+            });
+          }
+        });
       } catch (error) {
-        showAlert(`Failed to load friend info: ${error.message}`);
+        showAlert(`Failed to load friend info: ${error.message}`, 'error');
       } finally {
         hideSpinner();
       }
@@ -741,7 +814,7 @@
 
     async function loadMessages(friendId) {
       if (!currentUser) {
-        showAlert('User not authenticated.');
+        showAlert('User not authenticated.', 'error');
         return;
       }
       showSpinner();
@@ -777,12 +850,11 @@
             setupMessageGestures(div, messageId, messageContent);
           });
           chatContainer.scrollTop = chatContainer.scrollHeight;
-          update(ref(db, `users/${currentUser.uid}/friends/${friendId}`), { unreadCount: 0 }).catch(error => {
-            console.error('Error resetting unread count:', error.message);
-          });
+          update(ref(db, `users/${currentUser.uid}/friends/${friendId}`), { unreadCount: 0 })
+            .catch(error => showAlert(`Error resetting unread count: ${error.message}`, 'error'));
         });
       } catch (error) {
-        showAlert(`Failed to load messages: ${error.message}`);
+        showAlert(`Failed to load messages: ${error.message}`, 'error');
       } finally {
         hideSpinner();
       }
@@ -794,11 +866,11 @@
 
     async function sendMessage(friendId, content, type = 'text', isReply = false) {
       if (!currentUser) {
-        showAlert('User not authenticated.');
+        showAlert('User not authenticated.', 'error');
         return;
       }
       if (!content.trim()) {
-        showAlert('Please enter a message.');
+        showAlert('Please enter a message.', 'error');
         return;
       }
       showSpinner();
@@ -823,7 +895,8 @@
           lastMessage: type !== 'text' ? 'Media' : content.substring(0, 50),
           lastMessageType: type,
           lastMessageTime: messageData.timestamp,
-          unreadCount: 0
+          unreadCount: 0,
+          typing: false
         };
         const userUpdate = {
           ...friendUpdate,
@@ -835,10 +908,12 @@
           update(ref(db, `users/${friendId}/friends/${currentUser.uid}`), userUpdate)
         ]);
 
+        showAlert('Message sent!', 'success');
         if (isReply) hideReplyContainer();
         else document.getElementById('message-input').value = '';
+        updateTypingStatus(false);
       } catch (error) {
-        showAlert(`Failed to send message: ${error.message}`);
+        showAlert(`Failed to send message: ${error.message}`, 'error');
       } finally {
         hideSpinner();
       }
@@ -846,7 +921,7 @@
 
     async function sendMedia(friendId, file) {
       if (!currentUser || !file) {
-        showAlert('No file selected.');
+        showAlert('No file selected.', 'error');
         return;
       }
       showSpinner();
@@ -859,7 +934,7 @@
         const type = file.type.startsWith('image/') ? 'image' : 'video';
         await sendMessage(friendId, url, type);
       } catch (error) {
-        showAlert(`Failed to upload media: ${error.message}`);
+        showAlert(`Failed to upload media: ${error.message}`, 'error');
       } finally {
         hideSpinner();
       }
@@ -875,26 +950,35 @@
           if (user) {
             currentUser = user;
             update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() })
-              .catch(err => console.error('Error updating lastSeen:', err.message));
+              .catch(err => showAlert(`Error updating last seen: ${err.message}`, 'error'));
             const urlParams = new URLSearchParams(window.location.search);
             friendId = urlParams.get('friendId');
             if (friendId) {
               loadFriendInfo(friendId);
               loadMessages(friendId);
-              document.getElementById('send-message').onclick = () => {
-                sendMessage(friendId, document.getElementById('message-input').value);
+              const messageInput = document.getElementById('message-input');
+              const replyInput = document.getElementById('reply-input');
+              const handleTyping = () => {
+                if (typingTimeout) clearTimeout(typingTimeout);
+                updateTypingStatus(true);
+                typingTimeout = setTimeout(() => updateTypingStatus(false), 2000);
               };
-              document.getElementById('message-input').addEventListener('keypress', (e) => {
+              messageInput.addEventListener('input', handleTyping);
+              replyInput.addEventListener('input', handleTyping);
+              document.getElementById('send-message').onclick = () => {
+                sendMessage(friendId, messageInput.value);
+              };
+              messageInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') sendMessage(friendId, e.target.value);
               });
               document.getElementById('media-input').addEventListener('change', (e) => {
                 if (e.target.files[0]) sendMedia(friendId, e.target.files[0]);
               });
               document.getElementById('send-reply').onclick = () => {
-                const replyText = document.getElementById('reply-input').value;
+                const replyText = replyInput.value;
                 sendMessage(friendId, replyText, 'text', true);
               };
-              document.getElementById('reply-input').addEventListener('keypress', (e) => {
+              replyInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                   const replyText = e.target.value;
                   sendMessage(friendId, replyText, 'text', true);
@@ -906,22 +990,25 @@
                 }
               });
             } else {
-              showAlert('No friend selected.');
+              showAlert('No friend selected.', 'error');
               window.location.href = 'friends.html';
             }
           } else {
-            showAlert('Please log in to view conversation.');
+            showAlert('Please log in to view conversation.', 'error');
             window.location.href = 'signup.html';
           }
+        }, (error) => {
+          showAlert(`Authentication error: ${error.message}`, 'error');
         });
       } catch (error) {
-        showAlert(`Failed to initialize Firebase: ${error.message}`);
+        showAlert(`Failed to initialize Firebase: ${error.message}`, 'error');
       }
     }
 
     window.addEventListener('beforeunload', () => {
       if (messagesRef) off(messagesRef);
       if (userRef) off(userRef);
+      if (currentUser && friendId) updateTypingStatus(false);
     });
 
     document.addEventListener('DOMContentLoaded', initializeFirebase);
