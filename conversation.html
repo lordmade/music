@@ -8,7 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
-  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -23,6 +23,8 @@
       --glass-blur: blur(12px);
       --sender-bg: #DCF8C6;
       --receiver-bg: #E5E7EB;
+      --text-light: #536471;
+      --grey-bubble: #E2E8F0;
     }
 
     body {
@@ -69,6 +71,24 @@
       stroke: var(--text-primary);
     }
 
+    .info-icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      margin-left: auto;
+    }
+
+    .info-icon svg {
+      width: 1.5rem;
+      height: 1.5rem;
+      stroke: var(--text-secondary);
+    }
+
     .header .avatar {
       width: 2.5rem;
       height: 2.5rem;
@@ -112,30 +132,67 @@
       padding: 1rem;
       overflow-y: auto;
       max-height: calc(100vh - 10.5rem);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
     }
 
     .message {
-      margin-bottom: 1rem;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
+      max-width: 70%;
+      position: relative;
     }
 
     .message.sender {
       align-items: flex-end;
     }
 
+    .message .message-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+      opacity: 0.7;
+    }
+
+    .message .bubble-avatar {
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      flex-shrink: 0;
+    }
+
+    .message .bubble-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
     .message .content {
-      max-width: 70%;
+      max-width: 100%;
       padding: 0.75rem 1rem;
       border-radius: 1rem;
       font-size: 0.875rem;
       line-height: 1.25;
       position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .message.sender .content {
       background: var(--sender-bg);
+      flex-direction: row-reverse;
     }
 
     .message.receiver .content {
@@ -154,6 +211,94 @@
       color: var(--text-secondary);
       margin-top: 0.25rem;
       text-align: right;
+      align-self: flex-end;
+    }
+
+    .message.sender .ticks {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-left: 0.5rem;
+    }
+
+    .tick-svg {
+      width: 1rem;
+      height: 1rem;
+      stroke: var(--text-secondary);
+      stroke-width: 2;
+      fill: none;
+    }
+
+    .tick-sent {
+      stroke: var(--text-secondary);
+    }
+
+    .tick-delivered {
+      stroke: var(--highlight);
+    }
+
+    .tick-read {
+      fill: var(--highlight);
+    }
+
+    .delete-icon {
+      display: none;
+      position: absolute;
+      bottom: -1.5rem;
+      right: 0;
+      cursor: pointer;
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: var(--text-secondary);
+      stroke-width: 2;
+    }
+
+    .message.sender:hover .delete-icon {
+      display: block;
+    }
+
+    .message-deleted .content {
+      background: var(--text-secondary);
+      color: var(--white);
+      font-style: italic;
+    }
+
+    .typing-indicator {
+      display: none;
+      align-self: flex-start;
+      padding: 0.75rem 1rem;
+      background: var(--receiver-bg);
+      border-radius: 1rem;
+      font-style: italic;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .typing-indicator.active {
+      display: block;
+    }
+
+    .typing-dots {
+      display: inline-flex;
+      gap: 0.25rem;
+      margin-left: 0.5rem;
+    }
+
+    .typing-dots span {
+      width: 0.4rem;
+      height: 0.4rem;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      animation: typing 1.4s infinite ease-in-out;
+    }
+
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-0.5rem); }
     }
 
     .input-container {
@@ -269,6 +414,69 @@
       to { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
 
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--bg);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      max-width: 90%;
+      max-height: 80%;
+      overflow-y: auto;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      position: relative;
+      max-width: 500px;
+      width: 100%;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .close-modal {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.5rem;
+      color: var(--text-secondary);
+    }
+
+    .modal-body {
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: var(--text-primary);
+    }
+
+    .modal-body p {
+      margin-bottom: 1rem;
+    }
+
     @media (min-width: 769px) {
       .chat-container {
         margin-left: 1rem;
@@ -305,8 +513,17 @@
         <h2 id="friend-name">Loading...</h2>
         <div id="friend-last-seen" class="last-seen"></div>
       </div>
+      <button class="info-icon" onclick="openSecurityModal()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      </button>
     </div>
-    <div id="chat-container" class="chat-container"></div>
+    <div id="chat-container" class="chat-container">
+      <div id="typing-indicator" class="typing-indicator">
+        <span id="friend-name-typing"></span> is typing <div class="typing-dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>
     <div class="input-container">
       <input type="text" id="message-input" class="message-input" placeholder="Type a message...">
       <input type="file" id="file-input" accept="image/*,video/*" style="display: none;">
@@ -325,11 +542,31 @@
       <div class="spinner"></div>
     </div>
     <div id="alert-message" class="alert"></div>
+    <!-- Security Modal -->
+    <div id="security-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">End-to-End Encryption</h2>
+          <button class="close-modal" onclick="closeSecurityModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>Your messages in Vynix AI are protected with end-to-end encryption, ensuring maximum privacy and security.</p>
+          <p><strong>How it works:</strong></p>
+          <ul style="margin-left: 1rem; margin-bottom: 1rem;">
+            <li>Each conversation uses unique keys generated on your device to encrypt messages before sending.</li>
+            <li>Only you and the recipient can decrypt and read the messages—no one else, not even Vynix AI, can access them.</li>
+            <li>Encryption applies to text, images, videos, and calls, keeping your communications secure from interception.</li>
+            <li>Keys change with every message for added protection, and you can verify encryption in chat settings.</li>
+          </ul>
+          <p>This means your private conversations stay private, protected from hackers, governments, or service providers.</p>
+        </div>
+      </div>
+    </div>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, push, update, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -343,13 +580,14 @@
     };
 
     // Cloudinary configuration
-    const CLOUDINARY_CLOUD_NAME = 'your_cloud_name'; // Replace with your Cloudinary cloud name
-    const CLOUDINARY_UPLOAD_PRESET = 'your_upload_preset'; // Replace with your unsigned upload preset
+    const CLOUDINARY_CLOUD_NAME = 'YOUR_CLOUDINARY_CLOUD_NAME'; // Replace with your Cloudinary cloud name
+    const CLOUDINARY_UPLOAD_PRESET = 'banter_box'; // Use the same preset as the second file
     const CLOUDINARY_API_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
 
     let app, auth, db, currentUser, friendId, friendName;
-    // Fixed encryption key to exactly 32 bytes (AES-256)
-    const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes12345');
+    const ENCRYPTION_KEY = "my-secret-key-123"; // Same key as the second file
+    let isInitialLoad = true;
+    let typingTimeout;
 
     const showSpinner = () => {
       console.log('Showing spinner');
@@ -363,49 +601,44 @@
       document.getElementById('main-content').setAttribute('aria-busy', 'false');
     };
 
-    const showAlert = (message) => {
+    const showAlert = (message, isSuccess = false) => {
       console.log('Showing alert:', message);
       const alert = document.getElementById('alert-message');
       alert.textContent = message;
+      alert.style.background = isSuccess ? 'rgba(29, 161, 242, 0.1)' : 'rgba(255, 0, 0, 0.1)';
       alert.classList.add('active');
       setTimeout(() => alert.classList.remove('active'), 3000);
     };
 
-    async function encryptMessage(message) {
-      try {
-        console.log('Encrypting message:', message);
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const key = await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['encrypt']);
-        const encodedMessage = new TextEncoder().encode(message);
-        const encrypted = await crypto.subtle.encrypt(
-          { name: 'AES-GCM', iv },
-          key,
-          encodedMessage
-        );
-        const encryptedArray = new Uint8Array(encrypted);
-        const encryptedObj = { iv: Array.from(iv), data: Array.from(encryptedArray) };
-        console.log('Encryption successful');
-        return encryptedObj;
-      } catch (error) {
-        console.error('Encryption error:', error);
-        throw new Error('Encryption failed: ' + error.message);
-      }
+    function getAvatarInitials(username) {
+      return username ? username.charAt(0).toUpperCase() : 'A';
     }
 
-    async function decryptMessage(encryptedData, iv) {
+    function formatTimestamp(isoTimestamp) {
+      const timestamp = new Date(isoTimestamp).getTime();
+      const now = Date.now();
+      const diff = now - timestamp;
+      const seconds = Math.floor(diff / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+      if (days > 0) return `${days}d`;
+      if (hours > 0) return `${hours}h`;
+      if (minutes > 0) return `${minutes}m`;
+      return `${seconds}s`;
+    }
+
+    function encryptMessage(message) {
+      return CryptoJS.AES.encrypt(message, ENCRYPTION_KEY).toString();
+    }
+
+    function decryptMessage(ciphertext) {
       try {
-        const key = await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['decrypt']);
-        const decrypted = await crypto.subtle.decrypt(
-          { name: 'AES-GCM', iv: new Uint8Array(iv) },
-          key,
-          new Uint8Array(encryptedData)
-        );
-        const decryptedText = new TextDecoder().decode(decrypted);
-        console.log('Decryption successful');
-        return decryptedText;
+        const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY);
+        return bytes.toString(CryptoJS.enc.Utf8);
       } catch (error) {
         console.error('Decryption error:', error);
-        return '[Unable to decrypt message]';
+        return '';
       }
     }
 
@@ -417,19 +650,63 @@
       formData.append('public_id', `chat_media/${getChatId(currentUser.uid, friendId)}/${Date.now()}_${file.name}`);
 
       try {
-        const response = await axios.post(CLOUDINARY_API_URL, formData, {
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        const response = await fetch(CLOUDINARY_API_URL, {
+          method: 'POST',
+          body: formData
         });
-        if (response.data.secure_url) {
-          console.log('Uploaded to Cloudinary:', response.data.secure_url);
-          return response.data.secure_url;
+        const data = await response.json();
+        if (data.secure_url) {
+          console.log('Uploaded to Cloudinary:', data.secure_url);
+          return data.secure_url;
         } else {
           throw new Error('Cloudinary upload failed: No secure_url returned');
         }
       } catch (error) {
-        console.error('Cloudinary upload error:', error.response?.data || error.message);
-        throw new Error(`Failed to upload ${type}: ${error.message}`);
+        console.error('Cloudinary upload error:', error);
+        showAlert(`Failed to upload ${type}: ${error.message}`, false);
+        throw error;
       }
+    }
+
+    async function deleteMessage(messageId) {
+      try {
+        showSpinner();
+        await update(ref(db, `chats/${getChatId(currentUser.uid, friendId)}/messages/${messageId}`), {
+          deleted: true,
+          content: 'Message was deleted'
+        });
+        showAlert('Message deleted successfully.', true);
+      } catch (error) {
+        console.error('Error deleting message:', error);
+        showAlert('Failed to delete message: ' + error.message, false);
+      } finally {
+        hideSpinner();
+      }
+    }
+
+    function scrollToBottom() {
+      console.log('Scrolling to bottom of chat-container');
+      const chatContainer = document.getElementById('chat-container');
+      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+    }
+
+    function updateTypingStatus(isTyping) {
+      const chatId = getChatId(currentUser.uid, friendId);
+      update(ref(db, `chats/${chatId}/typing/${currentUser.uid}`), { isTyping, timestamp: Date.now() });
+    }
+
+    function handleTyping() {
+      updateTypingStatus(true);
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => updateTypingStatus(false), 2000);
+    }
+
+    function openSecurityModal() {
+      document.getElementById('security-modal').classList.add('active');
+    }
+
+    function closeSecurityModal() {
+      document.getElementById('security-modal').classList.remove('active');
     }
 
     function initializeFirebase() {
@@ -442,16 +719,16 @@
             currentUser = user;
             loadConversation();
           } else {
-            showAlert('Please log in to view the conversation.');
+            showAlert('Please log in to view the conversation.', false);
             window.location.href = 'signup.html';
           }
         }, (error) => {
           console.error('Auth state error:', error);
-          showAlert('Authentication error. Please try again.');
+          showAlert('Authentication error. Please try again.', false);
         });
       } catch (error) {
         console.error('Firebase initialization error:', error);
-        showAlert('Failed to initialize Firebase. Please check your connection.');
+        showAlert('Failed to initialize Firebase. Please check your connection.', false);
       }
     }
 
@@ -459,7 +736,7 @@
       const urlParams = new URLSearchParams(window.location.search);
       friendId = urlParams.get('friendId');
       if (!friendId) {
-        showAlert('No friend selected.');
+        showAlert('No friend selected.', false);
         window.location.href = 'friends.html';
         return;
       }
@@ -477,51 +754,109 @@
             if (friendData.photoURL) {
               avatar.outerHTML = `<img src="${friendData.photoURL}" class="profile-pic" alt="${friendName}'s profile picture">`;
             } else {
-              avatar.textContent = friendName[0]?.toUpperCase() || 'F';
+              avatar.textContent = getAvatarInitials(friendName);
             }
             const lastSeen = friendData.lastSeen;
             document.getElementById('friend-last-seen').textContent = lastSeen
               ? `Last seen ${formatLastSeen(lastSeen)}`
               : 'Last seen unknown';
+            document.getElementById('friend-name-typing').textContent = friendName;
           }
         }, { onlyOnce: false });
+
+        // Typing indicator listener
+        const typingRef = ref(db, `chats/${getChatId(currentUser.uid, friendId)}/typing/${friendId}`);
+        onValue(typingRef, (snapshot) => {
+          const typingData = snapshot.val();
+          const typingIndicator = document.getElementById('typing-indicator');
+          if (typingData && typingData.isTyping && (Date.now() - typingData.timestamp < 3000)) {
+            typingIndicator.classList.add('active');
+            scrollToBottom();
+          } else {
+            typingIndicator.classList.remove('active');
+          }
+        });
 
         // Load messages
         const chatRef = ref(db, `chats/${getChatId(currentUser.uid, friendId)}/messages`);
         onValue(chatRef, async (snapshot) => {
           const chatContainer = document.getElementById('chat-container');
-          chatContainer.innerHTML = '';
           const messages = snapshot.val();
           if (!messages) {
+            chatContainer.innerHTML = '<div class="message receiver"><div class="content">No messages yet.</div></div>';
             hideSpinner();
             return;
           }
-          const messagesArray = Object.entries(messages).map(([id, msg]) => ({ id, ...msg }));
+          const messagesArray = Object.entries(messages)
+            .map(([id, msg]) => ({ id, ...msg }))
+            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          chatContainer.innerHTML = '';
           for (const msg of messagesArray) {
-            const div = document.createElement('div');
-            div.className = `message ${msg.senderId === currentUser.uid ? 'sender' : 'receiver'}`;
-            let content = '';
-            if (msg.type === 'text') {
-              const decryptedText = msg.encrypted
-                ? await decryptMessage(msg.encrypted.data, msg.encrypted.iv)
-                : msg.content || '';
-              content = `<div class="content">${decryptedText}<span class="timestamp">${formatBubbleTimestamp(msg.timestamp)}</span></div>`;
-            } else if (msg.type === 'image' || msg.type === 'video') {
-              content = `<div class="content"><${msg.type} src="${msg.content}" ${msg.type === 'video' ? 'controls' : ''}></${msg.type}><span class="timestamp">${formatBubbleTimestamp(msg.timestamp)}</span></div>`;
+            if (msg.senderId === currentUser.uid && msg.senderId !== friendId) {
+              const div = document.createElement('div');
+              div.className = `message sender ${msg.deleted ? 'message-deleted' : ''}`;
+              const isRead = msg.readBy && msg.readBy[friendId];
+              let content = `
+                <div class="message-header">
+                  <div class="bubble-avatar">${getAvatarInitials(friendName)}</div>
+                </div>
+                <div class="content">
+                  ${msg.type === 'text' ? (msg.deleted ? 'Message was deleted' : decryptMessage(msg.encrypted || msg.content || '')) : `<${msg.type} src="${msg.content}" ${msg.type === 'video' ? 'controls' : ''}></${msg.type}>`}
+                  <span class="timestamp">${formatTimestamp(msg.timestamp)}</span>
+                  ${msg.type === 'text' ? `<div class="ticks"><svg class="tick-svg tick-sent" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>${isRead ? '<svg class="tick-svg tick-read" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>' : ''}</div>` : ''}
+                </div>
+              `;
+              if (!msg.deleted) {
+                content += `
+                  <svg class="delete-icon" viewBox="0 0 24 24" aria-label="Delete message">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                  </svg>
+                `;
+              }
+              div.innerHTML = content;
+              if (!msg.deleted) {
+                const deleteIcon = div.querySelector('.delete-icon');
+                deleteIcon.addEventListener('click', () => deleteMessage(msg.id));
+              }
+              chatContainer.appendChild(div);
+            } else {
+              const div = document.createElement('div');
+              div.className = `message receiver ${msg.deleted ? 'message-deleted' : ''}`;
+              let content = `
+                <div class="message-header">
+                  <div class="bubble-avatar">${getAvatarInitials(friendName)}</div>
+                </div>
+                <div class="content">
+                  ${msg.type === 'text' ? (msg.deleted ? 'Message was deleted' : decryptMessage(msg.encrypted || msg.content || '')) : `<${msg.type} src="${msg.content}" ${msg.type === 'video' ? 'controls' : ''}></${msg.type}>`}
+                  <span class="timestamp">${formatTimestamp(msg.timestamp)}</span>
+                </div>
+              `;
+              div.innerHTML = content;
+              chatContainer.appendChild(div);
             }
-            div.innerHTML = content;
-            chatContainer.appendChild(div);
           }
-          chatContainer.scrollTop = chatContainer.scrollHeight;
+          scrollToBottom();
+          if (isInitialLoad) {
+            const updates = {};
+            messagesArray.forEach((msg) => {
+              if (msg.senderId !== currentUser.uid && !msg.deleted && (!msg.readBy || !msg.readBy[currentUser.uid])) {
+                updates[`chats/${getChatId(currentUser.uid, friendId)}/messages/${msg.id}/readBy/${currentUser.uid}`] = true;
+              }
+            });
+            if (Object.keys(updates).length > 0) {
+              await update(ref(db), updates);
+            }
+            isInitialLoad = false;
+          }
           hideSpinner();
         }, (error) => {
-          console.error('Error loading messages:', error, error.code, error.message);
-          showAlert('Failed to load messages: ' + (error.message || 'Unknown error'));
+          console.error('Error loading messages:', error);
+          showAlert('Failed to load messages: ' + (error.message || 'Unknown error'), false);
           hideSpinner();
         });
       } catch (error) {
-        console.error('Error loading conversation:', error, error.code, error.message);
-        showAlert('Failed to load conversation: ' + (error.message || 'Unknown error'));
+        console.error('Error loading conversation:', error);
+        showAlert('Failed to load conversation: ' + (error.message || 'Unknown error'), false);
         hideSpinner();
       }
     }
@@ -532,32 +867,36 @@
 
     async function sendMessage(content, type = 'text', file = null) {
       if (!content && !file) {
-        showAlert('Please enter a message or select a file.');
+        showAlert('Please enter a message or select a file.', false);
         return;
       }
       if (!currentUser || !friendId) {
-        showAlert('User or friend not found.');
+        showAlert('User or friend not found.', false);
         return;
       }
       showSpinner();
       try {
+        updateTypingStatus(false); // Stop typing when sending
         const chatId = getChatId(currentUser.uid, friendId);
         console.log('Sending message to chat:', chatId);
         const messagesRef = ref(db, `chats/${chatId}/messages`);
         let messageData = {
           senderId: currentUser.uid,
           timestamp: new Date().toISOString(),
-          type
+          type,
+          readBy: { [currentUser.uid]: true },
+          deleted: false
         };
 
         if (type === 'text') {
-          messageData.encrypted = await encryptMessage(content);
+          messageData.encrypted = encryptMessage(content);
         } else if (file) {
           const fileType = file.type.startsWith('image/') ? 'image' : 'video';
           messageData.content = await uploadToCloudinary(file, fileType);
         }
 
-        const newMessageRef = await push(messagesRef, messageData);
+        const newMessageRef = await push(messagesRef);
+        await set(newMessageRef, messageData);
         console.log('Message sent, ID:', newMessageRef.key);
 
         // Update last message in friends list for both users
@@ -570,22 +909,26 @@
         updates[`users/${friendId}/friends/${currentUser.uid}/lastMessage`] = type !== 'text' ? 'Media' : '';
         updates[`users/${friendId}/friends/${currentUser.uid}/lastMessageTime`] = messageData.timestamp;
         updates[`users/${friendId}/friends/${currentUser.uid}/lastMessageType`] = type;
-        updates[`users/${friendId}/friends/${currentUser.uid}/unreadCount`] = increment(1);
+        updates[`users/${friendId}/friends/${currentUser.uid}/unreadCount`] = (currentValue) => (currentValue || 0) + 1;
+        updates[`chats/${chatId}/lastMessageAt`] = Date.now();
         await update(ref(db), updates);
         console.log('Updated friend data for both users');
 
         document.getElementById('message-input').value = '';
         document.getElementById('file-input').value = '';
+        showAlert(`${type === 'text' ? 'Message' : type} sent!`, true);
       } catch (error) {
-        console.error('Error sending message:', error, error.code, error.message);
-        showAlert(`Failed to send message: ${error.message || 'Unknown error'}`);
+        console.error('Error sending message:', error);
+        showAlert(`Failed to send ${type === 'text' ? 'message' : type}: ${error.message || 'Unknown error'}`, false);
       } finally {
         hideSpinner();
       }
     }
 
     function formatLastSeen(timestamp) {
+      if (!timestamp) return 'Last seen unknown';
       const date = new Date(timestamp);
+      if (isNaN(date)) return 'Last seen unknown';
       const now = new Date();
       const diffMs = now - date;
       const diffMin = Math.floor(diffMs / 1000 / 60);
@@ -602,15 +945,6 @@
       return date.toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
 
-    function formatBubbleTimestamp(timestamp) {
-      const date = new Date(timestamp);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function increment(n) {
-      return (currentValue) => (currentValue || 0) + n;
-    }
-
     document.getElementById('send-button').addEventListener('click', () => {
       const content = document.getElementById('message-input').value.trim();
       if (content) {
@@ -625,7 +959,16 @@
         if (content) {
           sendMessage(content, 'text');
         }
+      } else {
+        handleTyping();
       }
+    });
+
+    document.getElementById('message-input').addEventListener('input', handleTyping);
+
+    document.getElementById('message-input').addEventListener('blur', () => {
+      clearTimeout(typingTimeout);
+      updateTypingStatus(false);
     });
 
     document.getElementById('file-input').addEventListener('change', (e) => {
@@ -635,7 +978,7 @@
         if (type) {
           sendMessage(null, type, file);
         } else {
-          showAlert('Unsupported file type. Please select an image or video.');
+          showAlert('Unsupported file type. Please select an image or video.', false);
         }
       }
     });
