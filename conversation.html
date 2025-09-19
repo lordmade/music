@@ -20,6 +20,8 @@
       --message-sent: rgba(220, 248, 198, 0.8);
       --message-received: rgba(245, 245, 245, 0.8);
       --reaction-bg: rgba(255, 255, 255, 0.9);
+      --alert-success: rgba(46, 204, 113, 0.9);
+      --alert-error: rgba(231, 76, 60, 0.9);
     }
 
     body {
@@ -400,6 +402,16 @@
       max-width: 90%;
       text-align: center;
       box-shadow: var(--shadow);
+      font-size: 0.875rem;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .alert.success {
+      background: var(--alert-success);
+    }
+
+    .alert.error {
+      background: var(--alert-error);
     }
 
     .alert.active {
@@ -447,20 +459,6 @@
       </div>
     </header>
     <div id="chat-container" class="chat-container"></div>
-    <div class="input-container">
-      <input type="file" id="media-input" accept="image/*,video/*">
-      <button onclick="document.getElementById('media-input').click()">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-        </svg>
-      </button>
-      <input type="text" id="message-input" placeholder="Type a message...">
-      <button id="send-message">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M12 19l9-7-9-7v14zm0 0H3"/>
-        </svg>
-      </button>
-    </div>
     <div id="reply-container" class="reply-container">
       <input type="text" class="reply-input" id="reply-input" placeholder="Reply to message...">
       <button class="reply-button" id="send-reply">
@@ -469,10 +467,7 @@
         </svg>
       </button>
     </div>
-    <div id="spinner-overlay" class="spinner-overlay">
-      <div class="spinner"></div>
-    </div>
-    <div id="alert-message" class="alert"></div>
+    <div id="alert-message" class="alert" role="alert" aria-live="assertive"></div>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -506,11 +501,16 @@
       document.getElementById('main-content').setAttribute('aria-busy', 'false');
     };
 
-    const showAlert = (message) => {
+    const showAlert = (message, type = 'success', duration = 3000) => {
       const alert = document.getElementById('alert-message');
       alert.textContent = message;
-      alert.classList.add('active');
-      setTimeout(() => alert.classList.remove('active'), 3000);
+      alert.className = `alert ${type} active`;
+      alert.setAttribute('aria-label', `${type}: ${message}`);
+      setTimeout(() => {
+        alert.classList.remove('active');
+        alert.textContent = '';
+        alert.removeAttribute('aria-label');
+      }, duration);
     };
 
     function formatTimestamp(timestamp) {
@@ -541,7 +541,15 @@
           const btn = document.createElement('div');
           btn.className = 'emoji';
           btn.textContent = emoji;
+          btn.setAttribute('role', 'button');
+          btn.setAttribute('aria-label', `Add ${emoji} reaction`);
+          btn.tabIndex = 0;
           btn.onclick = () => addReaction(messageId, emoji);
+          btn.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              addReaction(messageId, emoji);
+            }
+          };
           picker.appendChild(btn);
         });
         document.body.appendChild(picker);
@@ -552,6 +560,7 @@
       picker.style.top = `${rect.top - 160}px`;
       picker.style.left = `${rect.left}px`;
       picker.dataset.target = messageId;
+      picker.querySelector('.emoji').focus();
     }
 
     function hideEmojiPicker() {
@@ -565,10 +574,12 @@
       const reactionRef = ref(db, `messages/${chatId}/${messageId}/reactions/${currentUser.uid}`);
       set(reactionRef, emoji)
         .then(() => {
-          showAlert('Reaction added!');
+          showAlert('Reaction added!', 'success');
           hideEmojiPicker();
         })
-        .catch(error => showAlert('Failed to add reaction: ' + error.message));
+        .catch(error => {
+          showAlert('Failed to add reaction: ' + error.message, 'error');
+        });
     }
 
     function renderReactions(reactions, messageId) {
@@ -578,7 +589,7 @@
         reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
       });
       return `<div class="reactions">${Object.entries(reactionCounts).map(([emoji, count]) => 
-        `<div class="reaction" onclick="toggleReaction('${messageId}', '${emoji}')">${emoji}${count > 1 ? count : ''}</div>`
+        `<div class="reaction" role="button" aria-label="${emoji} reaction, ${count} users" onclick="toggleReaction('${messageId}', '${emoji}')">${emoji}${count > 1 ? count : ''}</div>`
       ).join('')}</div>`;
     }
 
@@ -588,10 +599,15 @@
       const reactionRef = ref(db, `messages/${chatId}/${messageId}/reactions/${currentUser.uid}`);
       get(reactionRef).then(snap => {
         if (snap.val() === emoji) {
-          set(reactionRef, null);
+          set(reactionRef, null)
+            .then(() => showAlert('Reaction removed!', 'success'))
+            .catch(error => showAlert('Failed to remove reaction: ' + error.message, 'error'));
         } else {
-          set(reactionRef, emoji);
+          set(reactionRef, emoji)
+            .then(() => showAlert('Reaction updated!', 'success'))
+            .catch(error => showAlert('Failed to update reaction: ' + error.message, 'error'));
         }
+        hideEmojiPicker();
       });
     }
 
@@ -611,11 +627,10 @@
     }
 
     function deleteMessage(messageId) {
-      if (!confirm('Delete this message?')) return;
       const chatId = getChatId(currentUser.uid, friendId);
       set(ref(db, `messages/${chatId}/${messageId}`), null)
-        .then(() => showAlert('Message deleted!'))
-        .catch(error => showAlert('Failed to delete: ' + error.message));
+        .then(() => showAlert('Message deleted!', 'success'))
+        .catch(error => showAlert('Failed to delete: ' + error.message, 'error'));
     }
 
     function setupMessageGestures(messageEl, messageId, messageContent) {
@@ -660,10 +675,8 @@
         }
         if (Math.abs(deltaX) > 50 && deltaY < 30) {
           if (deltaX > 0) {
-            // Right swipe - reply
             showReplyContainer(messageId, messageContent);
           } else {
-            // Left swipe - delete
             deleteMessage(messageId);
           }
         }
@@ -673,7 +686,6 @@
       messageEl.addEventListener('touchmove', handleTouchMove, { passive: false });
       messageEl.addEventListener('touchend', handleTouchEnd, { passive: true });
 
-      // Mouse support for desktop
       let isMouseDown = false;
       messageEl.addEventListener('mousedown', (e) => {
         startX = e.clientX;
@@ -729,11 +741,11 @@
               avatar.textContent = userData.displayName ? userData.displayName[0].toUpperCase() : 'F';
             }
           } else {
-            showAlert('Friend data not found.');
+            showAlert('Friend data not found.', 'error');
           }
         }, { onlyOnce: true });
       } catch (error) {
-        showAlert(`Failed to load friend info: ${error.message}`);
+        showAlert(`Failed to load friend info: ${error.message}`, 'error');
       } finally {
         hideSpinner();
       }
@@ -741,7 +753,7 @@
 
     async function loadMessages(friendId) {
       if (!currentUser) {
-        showAlert('User not authenticated.');
+        showAlert('User not authenticated.', 'error');
         return;
       }
       showSpinner();
@@ -777,12 +789,11 @@
             setupMessageGestures(div, messageId, messageContent);
           });
           chatContainer.scrollTop = chatContainer.scrollHeight;
-          update(ref(db, `users/${currentUser.uid}/friends/${friendId}`), { unreadCount: 0 }).catch(error => {
-            console.error('Error resetting unread count:', error.message);
-          });
+          update(ref(db, `users/${currentUser.uid}/friends/${friendId}`), { unreadCount: 0 })
+            .catch(error => showAlert('Error resetting unread count: ' + error.message, 'error'));
         });
       } catch (error) {
-        showAlert(`Failed to load messages: ${error.message}`);
+        showAlert(`Failed to load messages: ${error.message}`, 'error');
       } finally {
         hideSpinner();
       }
@@ -794,11 +805,11 @@
 
     async function sendMessage(friendId, content, type = 'text', isReply = false) {
       if (!currentUser) {
-        showAlert('User not authenticated.');
+        showAlert('User not authenticated.', 'error');
         return;
       }
       if (!content.trim()) {
-        showAlert('Please enter a message.');
+        showAlert('Please enter a message.', 'error');
         return;
       }
       showSpinner();
@@ -835,10 +846,11 @@
           update(ref(db, `users/${friendId}/friends/${currentUser.uid}`), userUpdate)
         ]);
 
+        showAlert('Message sent!', 'success');
         if (isReply) hideReplyContainer();
         else document.getElementById('message-input').value = '';
       } catch (error) {
-        showAlert(`Failed to send message: ${error.message}`);
+        showAlert(`Failed to send message: ${error.message}`, 'error');
       } finally {
         hideSpinner();
       }
@@ -846,7 +858,7 @@
 
     async function sendMedia(friendId, file) {
       if (!currentUser || !file) {
-        showAlert('No file selected.');
+        showAlert('No file selected.', 'error');
         return;
       }
       showSpinner();
@@ -859,7 +871,7 @@
         const type = file.type.startsWith('image/') ? 'image' : 'video';
         await sendMessage(friendId, url, type);
       } catch (error) {
-        showAlert(`Failed to upload media: ${error.message}`);
+        showAlert(`Failed to upload media: ${error.message}`, 'error');
       } finally {
         hideSpinner();
       }
@@ -875,7 +887,7 @@
           if (user) {
             currentUser = user;
             update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() })
-              .catch(err => console.error('Error updating lastSeen:', err.message));
+              .catch(err => showAlert('Error updating last seen: ' + err.message, 'error'));
             const urlParams = new URLSearchParams(window.location.search);
             friendId = urlParams.get('friendId');
             if (friendId) {
@@ -906,16 +918,18 @@
                 }
               });
             } else {
-              showAlert('No friend selected.');
+              showAlert('No friend selected.', 'error');
               window.location.href = 'friends.html';
             }
           } else {
-            showAlert('Please log in to view conversation.');
+            showAlert('Please log in to view conversation.', 'error');
             window.location.href = 'signup.html';
           }
+        }, (error) => {
+          showAlert(`Authentication error: ${error.message}`, 'error');
         });
       } catch (error) {
-        showAlert(`Failed to initialize Firebase: ${error.message}`);
+        showAlert(`Failed to initialize Firebase: ${error.message}`, 'error');
       }
     }
 
