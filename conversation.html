@@ -22,6 +22,7 @@
       --reaction-bg: rgba(255, 255, 255, 0.9);
       --alert-success: rgba(46, 204, 113, 0.9);
       --alert-error: rgba(231, 76, 60, 0.9);
+      --typing-color: #28a745;
     }
 
     body {
@@ -111,6 +112,11 @@
     .header .last-seen {
       font-size: 0.75rem;
       color: var(--text-secondary);
+    }
+
+    .header .last-seen.typing {
+      color: var(--typing-color);
+      font-weight: 500;
     }
 
     .chat-container {
@@ -486,7 +492,7 @@
       measurementId: "G-V4W97VMSKL"
     };
 
-    let app, auth, db, storage, currentUser, friendId, messagesRef, userRef;
+    let app, auth, db, storage, currentUser, friendId, messagesRef, userRef, typingTimeout;
     let replyingTo = null;
 
     const emojis = ['😀', '😂', '❤️', '👍', '👎', '😢', '😡', '😎', '🤔', '🙌'];
@@ -530,6 +536,13 @@
       } catch (error) {
         return 'Unknown time';
       }
+    }
+
+    function updateTypingStatus(isTyping) {
+      if (!currentUser || !friendId) return;
+      const typingRef = ref(db, `users/${friendId}/friends/${currentUser.uid}/typing`);
+      set(typingRef, isTyping)
+        .catch(error => showAlert(`Failed to update typing status: ${error.message}`, 'error'));
     }
 
     function renderEmojiPicker(messageBubble, messageId) {
@@ -579,6 +592,7 @@
         })
         .catch(error => {
           showAlert('Failed to add reaction: ' + error.message, 'error');
+          hideEmojiPicker();
         });
     }
 
@@ -624,6 +638,7 @@
       replyingTo = null;
       document.getElementById('reply-container').classList.remove('active');
       document.getElementById('reply-input').value = '';
+      updateTypingStatus(false);
     }
 
     function deleteMessage(messageId) {
@@ -733,7 +748,6 @@
           const userData = snapshot.val();
           if (userData) {
             document.getElementById('friend-name').textContent = userData.displayName || 'Friend';
-            document.getElementById('friend-last-seen').textContent = userData.lastSeen ? `Last seen ${formatTimestamp(userData.lastSeen)}` : '';
             const avatar = document.getElementById('friend-avatar');
             if (userData.photoURL) {
               avatar.outerHTML = `<img src="${userData.photoURL}" class="profile-pic" alt="${userData.displayName || 'Friend'}'s profile picture">`;
@@ -744,6 +758,22 @@
             showAlert('Friend data not found.', 'error');
           }
         }, { onlyOnce: true });
+
+        const typingRef = ref(db, `users/${currentUser.uid}/friends/${friendId}/typing`);
+        onValue(typingRef, (snapshot) => {
+          const isTyping = snapshot.val();
+          const lastSeenEl = document.getElementById('friend-last-seen');
+          if (isTyping) {
+            lastSeenEl.textContent = 'Typing...';
+            lastSeenEl.classList.add('typing');
+          } else {
+            const lastSeenRef = ref(db, `users/${friendId}/lastSeen`);
+            get(lastSeenRef).then(snap => {
+              lastSeenEl.textContent = snap.val() ? `Last seen ${formatTimestamp(snap.val())}` : '';
+              lastSeenEl.classList.remove('typing');
+            });
+          }
+        });
       } catch (error) {
         showAlert(`Failed to load friend info: ${error.message}`, 'error');
       } finally {
@@ -834,7 +864,8 @@
           lastMessage: type !== 'text' ? 'Media' : content.substring(0, 50),
           lastMessageType: type,
           lastMessageTime: messageData.timestamp,
-          unreadCount: 0
+          unreadCount: 0,
+          typing: false
         };
         const userUpdate = {
           ...friendUpdate,
@@ -849,6 +880,7 @@
         showAlert('Message sent!', 'success');
         if (isReply) hideReplyContainer();
         else document.getElementById('message-input').value = '';
+        updateTypingStatus(false);
       } catch (error) {
         showAlert(`Failed to send message: ${error.message}`, 'error');
       } finally {
@@ -893,20 +925,29 @@
             if (friendId) {
               loadFriendInfo(friendId);
               loadMessages(friendId);
-              document.getElementById('send-message').onclick = () => {
-                sendMessage(friendId, document.getElementById('message-input').value);
+              const messageInput = document.getElementById('message-input');
+              const replyInput = document.getElementById('reply-input');
+              const handleTyping = () => {
+                if (typingTimeout) clearTimeout(typingTimeout);
+                updateTypingStatus(true);
+                typingTimeout = setTimeout(() => updateTypingStatus(false), 2000);
               };
-              document.getElementById('message-input').addEventListener('keypress', (e) => {
+              messageInput.addEventListener('input', handleTyping);
+              replyInput.addEventListener('input', handleTyping);
+              document.getElementById('send-message').onclick = () => {
+                sendMessage(friendId, messageInput.value);
+              };
+              messageInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') sendMessage(friendId, e.target.value);
               });
               document.getElementById('media-input').addEventListener('change', (e) => {
                 if (e.target.files[0]) sendMedia(friendId, e.target.files[0]);
               });
               document.getElementById('send-reply').onclick = () => {
-                const replyText = document.getElementById('reply-input').value;
+                const replyText = replyInput.value;
                 sendMessage(friendId, replyText, 'text', true);
               };
-              document.getElementById('reply-input').addEventListener('keypress', (e) => {
+              replyInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                   const replyText = e.target.value;
                   sendMessage(friendId, replyText, 'text', true);
@@ -936,6 +977,7 @@
     window.addEventListener('beforeunload', () => {
       if (messagesRef) off(messagesRef);
       if (userRef) off(userRef);
+      if (currentUser && friendId) updateTypingStatus(false);
     });
 
     document.addEventListener('DOMContentLoaded', initializeFirebase);
