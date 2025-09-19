@@ -8,6 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -339,7 +340,8 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, push, update, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -447,11 +449,11 @@
               avatar.textContent = userData.displayName ? userData.displayName[0].toUpperCase() : 'F';
             }
           }
-          hideSpinner();
-        }, { onlyOnce: true });
+        });
       } catch (error) {
         console.error('Error loading friend info:', error);
         showAlert('Failed to load friend info.');
+      } finally {
         hideSpinner();
       }
     }
@@ -467,10 +469,11 @@
           chatContainer.innerHTML = '';
           const messages = snapshot.val();
           if (!messages) {
-            hideSpinner();
             return;
           }
-          const messagesArray = Object.entries(messages).sort((a, b) => a[1].timestamp - b[1].timestamp);
+          const messagesArray = Object.entries(messages).sort((a, b) => 
+            new Date(a[1].timestamp).getTime() - new Date(b[1].timestamp).getTime()
+          );
           messagesArray.forEach(([messageId, messageData]) => {
             const messageContent = messageData.encrypted
               ? decryptMessage(messageData.encrypted.data, messageData.encrypted.iv)
@@ -486,14 +489,14 @@
               <div class="timestamp">${formatTimestamp(messageData.timestamp)}</div>
             `;
             chatContainer.appendChild(div);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
           });
+          chatContainer.scrollTop = chatContainer.scrollHeight;
           update(ref(db, `users/${currentUser.uid}/friends/${friendId}`), { unreadCount: 0 });
-          hideSpinner();
         });
       } catch (error) {
         console.error('Error loading messages:', error);
         showAlert('Failed to load messages.');
+      } finally {
         hideSpinner();
       }
     }
@@ -519,6 +522,11 @@
           [type === 'text' ? 'encrypted' : 'content']: type === 'text' ? encrypted : content
         };
         await push(messagesRef, messageData);
+
+        const unreadRef = ref(db, `users/${friendId}/friends/${currentUser.uid}/unreadCount`);
+        const unreadSnap = await get(unreadRef);
+        const currentUnread = unreadSnap.val() || 0;
+
         const friendUpdate = {
           lastMessageEncrypted: type === 'text' ? encrypted : null,
           lastMessage: type !== 'text' ? 'Media' : '',
@@ -526,25 +534,18 @@
           lastMessageTime: messageData.timestamp,
           unreadCount: 0
         };
-        const userUpdate = {
-          lastMessageEncrypted: type === 'text' ? encrypted : null,
-          lastMessage: type !== 'text' ? 'Media' : '',
-          lastMessageType: type,
-          lastMessageTime: messageData.timestamp,
-          unreadCount: ref(db, `users/${friendId}/friends/${currentUser.uid}/unreadCount`)
-        };
         await Promise.all([
           update(ref(db, `users/${currentUser.uid}/friends/${friendId}`), friendUpdate),
           update(ref(db, `users/${friendId}/friends/${currentUser.uid}`), {
             ...friendUpdate,
-            unreadCount: userUpdate.unreadCount ? userUpdate.unreadCount + 1 : 1
+            unreadCount: currentUnread + 1
           })
         ]);
         document.getElementById('message-input').value = '';
-        hideSpinner();
       } catch (error) {
         console.error('Error sending message:', error);
         showAlert('Failed to send message.');
+      } finally {
         hideSpinner();
       }
     }
@@ -553,16 +554,17 @@
       if (!currentUser || !file) return;
       showSpinner();
       try {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          const mediaUrl = e.target.result;
-          const type = file.type.startsWith('image/') ? 'image' : 'video';
-          await sendMessage(friendId, mediaUrl, type);
-        };
-        reader.readAsDataURL(file);
+        const storage = getStorage(app);
+        const chatId = getChatId(currentUser.uid, friendId);
+        const mediaRef = sRef(storage, `media/${chatId}/${Date.now()}_${file.name}`);
+        await uploadBytes(mediaRef, file);
+        const url = await getDownloadURL(mediaRef);
+        const type = file.type.startsWith('image/') ? 'image' : 'video';
+        await sendMessage(friendId, url, type);
       } catch (error) {
         console.error('Error uploading media:', error);
         showAlert('Failed to upload media.');
+      } finally {
         hideSpinner();
       }
     }
