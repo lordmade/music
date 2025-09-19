@@ -8,6 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -634,11 +635,7 @@
     </div>
     <div id="alert-message" class="alert"></div>
   </main>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, set, update, onChildChanged, remove } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
-
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
       authDomain: "fire-b-a8878.firebaseapp.com",
@@ -651,7 +648,7 @@
     };
 
     let app, auth, db, currentUser;
-    const encryptionKey = new TextEncoder().encode('vynix-ai-secret-key-32bytes123456');
+    const encryptionKey = 'vynix-ai-secret-key-32bytes123456'; // Must be 32 bytes for AES-256
     const renderedFriends = new Set(); // Track rendered friend IDs
 
     const showSpinner = () => {
@@ -674,25 +671,41 @@
       setTimeout(() => alert.classList.remove('active'), 3000);
     };
 
-    async function encryptMessage(message) {
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const encrypted = await crypto.subtle.encrypt(
-        { name: 'AES-GCM', iv },
-        await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['encrypt']),
-        new TextEncoder().encode(message)
-      );
-      const encryptedArray = new Uint8Array(encrypted);
-      return { iv: Array.from(iv), data: Array.from(encryptedArray) };
+    function encryptMessage(message) {
+      // Generate a random IV (12 bytes for AES-GCM)
+      const iv = CryptoJS.lib.WordArray.random(12);
+      // Encrypt the message using AES-GCM
+      const encrypted = CryptoJS.AES.encrypt(message, CryptoJS.enc.Utf8.parse(encryptionKey), {
+        iv: iv,
+        mode: CryptoJS.mode.GCM,
+        padding: CryptoJS.pad.Pkcs7
+      });
+      // Return IV and encrypted data as arrays for Firebase storage
+      return {
+        iv: CryptoJS.enc.Hex.stringify(iv).match(/.{1,2}/g).map(hex => parseInt(hex, 16)),
+        data: CryptoJS.enc.Hex.stringify(encrypted.ciphertext).match(/.{1,2}/g).map(hex => parseInt(hex, 16))
+      };
     }
 
-    async function decryptMessage(encryptedData, iv) {
+    function decryptMessage(encryptedData, iv) {
       try {
-        const decrypted = await crypto.subtle.decrypt(
-          { name: 'AES-GCM', iv: new Uint8Array(iv) },
-          await crypto.subtle.importKey('raw', encryptionKey, 'AES-GCM', false, ['decrypt']),
-          new Uint8Array(encryptedData)
+        // Convert arrays back to hex strings
+        const ivHex = iv.map(byte => byte.toString(16).padStart(2, '0')).join('');
+        const dataHex = encryptedData.map(byte => byte.toString(16).padStart(2, '0')).join('');
+        // Create WordArray objects for CryptoJS
+        const ivWordArray = CryptoJS.enc.Hex.parse(ivHex);
+        const ciphertext = CryptoJS.enc.Hex.parse(dataHex);
+        // Decrypt using AES-GCM
+        const decrypted = CryptoJS.AES.decrypt(
+          { ciphertext: ciphertext },
+          CryptoJS.enc.Utf8.parse(encryptionKey),
+          {
+            iv: ivWordArray,
+            mode: CryptoJS.mode.GCM,
+            padding: CryptoJS.pad.Pkcs7
+          }
         );
-        return new TextDecoder().decode(decrypted);
+        return decrypted.toString(CryptoJS.enc.Utf8);
       } catch (error) {
         console.error('Decryption Error:', error);
         return '[Encrypted Message]';
@@ -714,10 +727,10 @@
     async function loadFriends(searchQuery = '') {
       if (!currentUser) return;
       showSpinner();
-      const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
+      const friendsRef = firebase.database().ref(`users/${currentUser.uid}/friends`);
       try {
         renderedFriends.clear(); // Clear to avoid stale entries
-        onValue(friendsRef, async (snapshot) => {
+        friendsRef.on('value', async (snapshot) => {
           const friendsList = document.getElementById('friends-list');
           friendsList.innerHTML = ''; // Clear existing friend cards
           const friends = snapshot.val();
@@ -741,13 +754,13 @@
               console.log(`Skipping duplicate render for friend ${friend.friendId}`);
               continue;
             }
-            const userRef = ref(db, `users/${friend.friendId}`);
+            const userRef = firebase.database().ref(`users/${friend.friendId}`);
             const userSnapshot = await new Promise((resolve, reject) => {
-              onValue(userRef, resolve, { onlyOnce: true });
+              userRef.once('value', resolve);
             });
             const userData = userSnapshot.val();
             const lastMessage = friend.lastMessageEncrypted
-              ? await decryptMessage(friend.lastMessageEncrypted.data, friend.lastMessageEncrypted.iv)
+              ? decryptMessage(friend.lastMessageEncrypted.data, friend.lastMessageEncrypted.iv)
               : friend.lastMessage || 'No messages yet';
             totalUnread += friend.unreadCount || 0;
             const div = document.createElement('div');
@@ -785,7 +798,7 @@
             `;
             div.addEventListener('click', (e) => {
               if (e.target.closest('.delete-friend')) return;
-              update(ref(db, `users/${currentUser.uid}/friends/${friend.friendId}`), { unreadCount: 0 });
+              firebase.database().ref(`users/${currentUser.uid}/friends/${friend.friendId}`).update({ unreadCount: 0 });
               window.location.href = `conversation.html?friendId=${friend.friendId}`;
             });
             friendsList.appendChild(div);
@@ -803,7 +816,7 @@
             }
           });
           hideSpinner();
-        }, { onlyOnce: false });
+        });
       } catch (error) {
         console.error('Error loading friends:', error);
         showAlert('Failed to load friends. Please try again.');
@@ -820,7 +833,7 @@
       }
       showSpinner();
       try {
-        await remove(ref(db, `users/${currentUser.uid}/friends/${friendId}`));
+        await firebase.database().ref(`users/${currentUser.uid}/friends/${friendId}`).remove();
         console.log(`Removed friend ${friendId}`);
         showAlert('Friend removed successfully.');
         renderedFriends.delete(friendId); // Remove from rendered set
@@ -839,10 +852,10 @@
         return;
       }
       showSpinner();
-      const friendRef = ref(db, `users/${currentUser.uid}/friends/${userId}`);
+      const friendRef = firebase.database().ref(`users/${currentUser.uid}/friends/${userId}`);
       try {
         const snapshot = await new Promise((resolve, reject) => {
-          onValue(friendRef, resolve, { onlyOnce: true });
+          friendRef.once('value', resolve);
         });
         if (snapshot.exists()) {
           showAlert('Friend already added.');
@@ -850,7 +863,7 @@
           closeBottomSheet();
           return;
         }
-        await set(friendRef, {
+        await friendRef.set({
           name,
           lastMessage: '',
           lastMessageTime: '',
@@ -872,8 +885,8 @@
 
     function listenForNewMessages() {
       if (!currentUser) return;
-      const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
-      onChildChanged(friendsRef, (snapshot) => {
+      const friendsRef = firebase.database().ref(`users/${currentUser.uid}/friends`);
+      friendsRef.on('child_changed', (snapshot) => {
         const friendData = snapshot.val();
         const friendId = snapshot.key;
         if (friendData.unreadCount > 0) {
@@ -894,17 +907,17 @@
       showSpinner();
       const userList = document.getElementById('user-list');
       userList.innerHTML = '';
-      const usersRef = ref(db, 'users');
+      const usersRef = firebase.database().ref('users');
       try {
-        onValue(usersRef, (snapshot) => {
+        usersRef.once('value', (snapshot) => {
           const users = snapshot.val();
           if (!users) {
             userList.innerHTML = '<p class="no-friends">No users found.</p>';
             hideSpinner();
             return;
           }
-          const friendsRef = ref(db, `users/${currentUser.uid}/friends`);
-          onValue(friendsRef, (friendSnapshot) => {
+          const friendsRef = firebase.database().ref(`users/${currentUser.uid}/friends`);
+          friendsRef.once('value', (friendSnapshot) => {
             const friends = friendSnapshot.val() || {};
             const filteredUsers = Object.entries(users)
               .filter(([userId, userData]) =>
@@ -932,8 +945,8 @@
               userList.appendChild(div);
             });
             hideSpinner();
-          }, { onlyOnce: true });
-        }, { onlyOnce: true });
+          });
+        });
       } catch (error) {
         console.error('Error loading users:', error);
         showAlert('Failed to load users. Please try again.');
@@ -974,14 +987,14 @@
     function initializeFirebase() {
       console.log('Initializing Firebase');
       try {
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getDatabase(app);
-        onAuthStateChanged(auth, (user) => {
+        app = firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.database();
+        auth.onAuthStateChanged((user) => {
           if (user) {
             console.log('User authenticated:', user.uid);
             currentUser = user;
-            update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() })
+            db.ref(`users/${user.uid}`).update({ lastSeen: new Date().toISOString() })
               .then(() => console.log('User lastSeen updated'))
               .catch(err => console.error('Error updating lastSeen:', err));
             debouncedLoadFriends();
