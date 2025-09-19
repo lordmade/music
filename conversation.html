@@ -12,294 +12,294 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-  :root {
-    --bg: #FFFFFF;
-    --card-bg: rgba(255, 255, 255, 0.6);
-    --text-primary: #000000;
-    --text-secondary: #4B5EAA;
-    --border: rgba(0, 0, 0, 0.15);
-    --highlight: #0095F6;
-    --badge-bg: #FA3E5F;
-    --glass-bg: rgba(255, 255, 255, 0.6);
-    --glass-blur: blur(12px);
-    --message-sent: #DCF8C6;
-    --message-received: #F5F5F5;
-  }
+    :root {
+      --bg: #FFFFFF;
+      --card-bg: rgba(255, 255, 255, 0.6);
+      --text-primary: #000000;
+      --text-secondary: #4B5EAA;
+      --border: rgba(0, 0, 0, 0.15);
+      --highlight: #0095F6;
+      --badge-bg: #FA3E5F;
+      --glass-bg: rgba(255, 255, 255, 0.6);
+      --glass-blur: blur(12px);
+      --message-sent: #DCF8C6;
+      --message-received: #F5F5F5;
+    }
 
-  body {
-    font-family: 'Inter', system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text-primary);
-    min-height: 100vh;
-    margin: 0;
-    overflow-x: hidden;
-    -webkit-user-select: none;
-    user-select: none;
-  }
-
-  .header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: var(--glass-bg);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
-    border-bottom: 1px solid var(--border);
-    padding: 0.75rem 1rem;
-    display: flex;
-    align-items: center;
-    z-index: 10;
-  }
-
-  .header .back-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0.5rem;
-    display: flex;
-    align-items: center;
-  }
-
-  .header .back-button svg {
-    width: 1.5rem;
-    height: 1.5rem;
-    stroke: var(--text-primary);
-  }
-
-  .header .friend-info {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .header .avatar {
-    width: 2.5rem;
-    height: 2.5rem;
-    background: var(--text-secondary);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-
-  .header .profile-pic {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--text-primary);
-  }
-
-  .header h2 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-  }
-
-  .header .last-seen {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-  }
-
-  .chat-container {
-    margin-top: 4rem;
-    margin-bottom: 5rem;
-    padding: 1rem;
-    overflow-y: auto;
-    max-height: calc(100vh - 9rem);
-  }
-
-  .message {
-    margin-bottom: 0.75rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .message.sent {
-    align-items: flex-end;
-  }
-
-  .message.received {
-    align-items: flex-start;
-  }
-
-  .message-bubble {
-    max-width: 70%;
-    padding: 0.75rem;
-    border-radius: 1rem;
-    position: relative;
-    word-wrap: break-word;
-  }
-
-  .message.sent .message-bubble {
-    background: var(--message-sent);
-    border-bottom-right-radius: 0.25rem;
-  }
-
-  .message.received .message-bubble {
-    background: var(--message-received);
-    border-bottom-left-radius: 0.25rem;
-  }
-
-  .message img {
-    max-width: 200px;
-    border-radius: 1rem;
-    margin-top: 0.25rem;
-  }
-
-  .message video {
-    max-width: 200px;
-    border-radius: 1rem;
-    margin-top: 0.25rem;
-  }
-
-  .message .timestamp {
-    font-size: 0.65rem;
-    color: var(--text-secondary);
-    margin-top: 0.25rem;
-  }
-
-  .message.sent .timestamp {
-    text-align: right;
-  }
-
-  .input-container {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--glass-bg);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
-    border-top: 1px solid var(--border);
-    padding: 0.75rem 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    z-index: 10;
-  }
-
-  .input-container input {
-    flex: 1;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 9999px;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    outline: none;
-    -webkit-user-select: auto;
-    user-select: auto;
-  }
-
-  .input-container button {
-    background: var(--highlight);
-    border: none;
-    border-radius: 50%;
-    width: 2.5rem;
-    height: 2.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .input-container button:hover {
-    background: #0077c2;
-  }
-
-  .input-container button svg {
-    width: 1.25rem;
-    height: 1.25rem;
-    stroke: var(--text-primary);
-  }
-
-  .input-container input[type="file"] {
-    display: none;
-  }
-
-  .spinner-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 45;
-  }
-
-  .spinner-overlay.active {
-    display: flex;
-  }
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid var(--highlight);
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  .alert {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--glass-bg);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
-    color: var(--text-primary);
-    padding: 12px 24px;
-    border-radius: 9999px;
-    border: 1px solid var(--border);
-    z-index: 60;
-    display: none;
-    max-width: 90%;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  }
-
-  .alert.active {
-    display: block;
-    animation: slideInAlert 0.3s ease-out;
-  }
-
-  @keyframes slideInAlert {
-    from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-    to { opacity: 1; transform: translateX(-50%) translateY(0); }
-  }
-
-  @media (min-width: 769px) {
-    .chat-container {
-      margin-left: 112px;
-      width: calc(100% - 112px);
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     .header {
-      margin-left: 112px;
-      width: calc(100% - 112px);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .header .back-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .header .back-button svg {
+      width: 1.5rem;
+      height: 1.5rem;
+      stroke: var(--text-primary);
+    }
+
+    .header .friend-info {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .header .avatar {
+      width: 2.5rem;
+      height: 2.5rem;
+      background: var(--text-secondary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .header .profile-pic {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--text-primary);
+    }
+
+    .header h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .header .last-seen {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .chat-container {
+      margin-top: 4rem;
+      margin-bottom: 5rem;
+      padding: 1rem;
+      overflow-y: auto;
+      max-height: calc(100vh - 9rem);
+    }
+
+    .message {
+      margin-bottom: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .message.sent {
+      align-items: flex-end;
+    }
+
+    .message.received {
+      align-items: flex-start;
+    }
+
+    .message-bubble {
+      max-width: 70%;
+      padding: 0.75rem;
+      border-radius: 1rem;
+      position: relative;
+      word-wrap: break-word;
+    }
+
+    .message.sent .message-bubble {
+      background: var(--message-sent);
+      border-bottom-right-radius: 0.25rem;
+    }
+
+    .message.received .message-bubble {
+      background: var(--message-received);
+      border-bottom-left-radius: 0.25rem;
+    }
+
+    .message img {
+      max-width: 200px;
+      border-radius: 1rem;
+      margin-top: 0.25rem;
+    }
+
+    .message video {
+      max-width: 200px;
+      border-radius: 1rem;
+      margin-top: 0.25rem;
+    }
+
+    .message .timestamp {
+      font-size: 0.65rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    .message.sent .timestamp {
+      text-align: right;
     }
 
     .input-container {
-      margin-left: 112px;
-      width: calc(100% - 112px);
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border-top: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      z-index: 10;
     }
-  }
-</style>
+
+    .input-container input {
+      flex: 1;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      outline: none;
+      -webkit-user-select: auto;
+      user-select: auto;
+    }
+
+    .input-container button {
+      background: var(--highlight);
+      border: none;
+      border-radius: 50%;
+      width: 2.5rem;
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .input-container button:hover {
+      background: #0077c2;
+    }
+
+    .input-container button svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      stroke: var(--text-primary);
+    }
+
+    .input-container input[type="file"] {
+      display: none;
+    }
+
+    .spinner-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 45;
+    }
+
+    .spinner-overlay.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--highlight);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .alert {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      color: var(--text-primary);
+      padding: 12px 24px;
+      border-radius: 9999px;
+      border: 1px solid var(--border);
+      z-index: 60;
+      display: none;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .alert.active {
+      display: block;
+      animation: slideInAlert 0.3s ease-out;
+    }
+
+    @keyframes slideInAlert {
+      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    @media (min-width: 769px) {
+      .chat-container {
+        margin-left: 112px;
+        width: calc(100% - 112px);
+      }
+
+      .header {
+        margin-left: 112px;
+        width: calc(100% - 112px);
+      }
+
+      .input-container {
+        margin-left: 112px;
+        width: calc(100% - 112px);
+      }
+    }
+  </style>
 </head>
 <body>
   <main class="flex flex-col h-screen" id="main-content">
@@ -340,7 +340,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, update, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, push, update, get, off } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
     import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
 
     const firebaseConfig = {
@@ -354,7 +354,7 @@
       measurementId: "G-V4W97VMSKL"
     };
 
-    let app, auth, db, currentUser;
+    let app, auth, db, storage, currentUser, friendId, messagesRef, userRef;
     const encryptionKey = 'vynix-ai-secret-key-32bytes123456';
 
     const showSpinner = () => {
@@ -378,16 +378,21 @@
     };
 
     function encryptMessage(message) {
-      const iv = CryptoJS.lib.WordArray.random(12);
-      const encrypted = CryptoJS.AES.encrypt(message, CryptoJS.enc.Utf8.parse(encryptionKey), {
-        iv: iv,
-        mode: CryptoJS.mode.GCM,
-        padding: CryptoJS.pad.Pkcs7
-      });
-      return {
-        iv: CryptoJS.enc.Hex.stringify(iv).match(/.{1,2}/g).map(hex => parseInt(hex, 16)),
-        data: CryptoJS.enc.Hex.stringify(encrypted.ciphertext).match(/.{1,2}/g).map(hex => parseInt(hex, 16))
-      };
+      try {
+        const iv = CryptoJS.lib.WordArray.random(12);
+        const encrypted = CryptoJS.AES.encrypt(message, CryptoJS.enc.Utf8.parse(encryptionKey), {
+          iv: iv,
+          mode: CryptoJS.mode.GCM,
+          padding: CryptoJS.pad.Pkcs7
+        });
+        return {
+          iv: CryptoJS.enc.Hex.stringify(iv).match(/.{1,2}/g).map(hex => parseInt(hex, 16)),
+          data: CryptoJS.enc.Hex.stringify(encrypted.ciphertext).match(/.{1,2}/g).map(hex => parseInt(hex, 16))
+        };
+      } catch (error) {
+        console.error('Encryption error:', error);
+        throw new Error('Failed to encrypt message');
+      }
     }
 
     function decryptMessage(encryptedData, iv) {
@@ -405,7 +410,7 @@
             padding: CryptoJS.pad.Pkcs7
           }
         );
-        return decrypted.toString(CryptoJS.enc.Utf8);
+        return decrypted.toString(CryptoJS.enc.Utf8) || '[Decryption Failed]';
       } catch (error) {
         console.error('Decryption Error:', error);
         return '[Encrypted Message]';
@@ -413,30 +418,36 @@
     }
 
     function formatTimestamp(timestamp) {
-      const date = new Date(timestamp);
-      const now = new Date();
-      const diffMs = now - date;
-      const diffSec = Math.floor(diffMs / 1000);
-      const diffMin = Math.floor(diffSec / 60);
-      const diffHr = Math.floor(diffMin / 60);
-      const diffDay = Math.floor(diffHr / 24);
-      const diffWeek = Math.floor(diffDay / 7);
-      const diffMonth = Math.floor(diffDay / 30);
-      const diffYear = Math.floor(diffDay / 365);
+      try {
+        const date = new Date(timestamp);
+        if (isNaN(date.getTime())) throw new Error('Invalid timestamp');
+        const now = new Date();
+        const diffMs = now - date;
+        const diffSec = Math.floor(diffMs / 1000);
+        const diffMin = Math.floor(diffSec / 60);
+        const diffHr = Math.floor(diffMin / 60);
+        const diffDay = Math.floor(diffHr / 24);
+        const diffWeek = Math.floor(diffDay / 7);
+        const diffMonth = Math.floor(diffDay / 30);
+        const diffYear = Math.floor(diffDay / 365);
 
-      if (diffSec < 60) return `${diffSec} second${diffSec === 1 ? '' : 's'} ago`;
-      if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
-      if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
-      if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
-      if (diffWeek < 4) return `${diffWeek} week${diffWeek === 1 ? '' : 's'} ago`;
-      if (diffMonth < 12) return `${diffMonth} month${diffMonth === 1 ? '' : 's'} ago`;
-      return `${diffYear} year${diffYear === 1 ? '' : 's'} ago`;
+        if (diffSec < 60) return `${diffSec} second${diffSec === 1 ? '' : 's'} ago`;
+        if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+        if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
+        if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
+        if (diffWeek < 4) return `${diffWeek} week${diffWeek === 1 ? '' : 's'} ago`;
+        if (diffMonth < 12) return `${diffMonth} month${diffMonth === 1 ? '' : 's'} ago`;
+        return `${diffYear} year${diffYear === 1 ? '' : 's'} ago`;
+      } catch (error) {
+        console.error('Timestamp formatting error:', error);
+        return 'Unknown time';
+      }
     }
 
     async function loadFriendInfo(friendId) {
       showSpinner();
       try {
-        const userRef = ref(db, `users/${friendId}`);
+        userRef = ref(db, `users/${friendId}`);
         onValue(userRef, (snapshot) => {
           const userData = snapshot.val();
           if (userData) {
@@ -444,27 +455,32 @@
             document.getElementById('friend-last-seen').textContent = userData.lastSeen ? `Last seen ${formatTimestamp(userData.lastSeen)}` : '';
             const avatar = document.getElementById('friend-avatar');
             if (userData.photoURL) {
-              avatar.outerHTML = `<img src="${userData.photoURL}" class="profile-pic" alt="${userData.displayName}'s profile picture">`;
+              avatar.outerHTML = `<img src="${userData.photoURL}" class="profile-pic" alt="${userData.displayName || 'Friend'}'s profile picture">`;
             } else {
               avatar.textContent = userData.displayName ? userData.displayName[0].toUpperCase() : 'F';
             }
+          } else {
+            showAlert('Friend data not found.');
           }
-        });
+        }, { onlyOnce: true });
       } catch (error) {
         console.error('Error loading friend info:', error);
-        showAlert('Failed to load friend info.');
+        showAlert('Failed to load friend info: ' + error.message);
       } finally {
         hideSpinner();
       }
     }
 
     async function loadMessages(friendId) {
-      if (!currentUser) return;
+      if (!currentUser) {
+        showAlert('User not authenticated.');
+        return;
+      }
       showSpinner();
       const chatContainer = document.getElementById('chat-container');
       chatContainer.innerHTML = '';
       try {
-        const messagesRef = ref(db, `messages/${getChatId(currentUser.uid, friendId)}`);
+        messagesRef = ref(db, `messages/${getChatId(currentUser.uid, friendId)}`);
         onValue(messagesRef, (snapshot) => {
           chatContainer.innerHTML = '';
           const messages = snapshot.val();
@@ -491,11 +507,13 @@
             chatContainer.appendChild(div);
           });
           chatContainer.scrollTop = chatContainer.scrollHeight;
-          update(ref(db, `users/${currentUser.uid}/friends/${friendId}`), { unreadCount: 0 });
+          update(ref(db, `users/${currentUser.uid}/friends/${friendId}`), { unreadCount: 0 }).catch(error => {
+            console.error('Error resetting unread count:', error);
+          });
         });
       } catch (error) {
         console.error('Error loading messages:', error);
-        showAlert('Failed to load messages.');
+        showAlert('Failed to load messages: ' + error.message);
       } finally {
         hideSpinner();
       }
@@ -506,7 +524,11 @@
     }
 
     async function sendMessage(friendId, content, type = 'text') {
-      if (!currentUser || !content) {
+      if (!currentUser) {
+        showAlert('User not authenticated.');
+        return;
+      }
+      if (!content.trim()) {
         showAlert('Please enter a message.');
         return;
       }
@@ -521,49 +543,59 @@
           type,
           [type === 'text' ? 'encrypted' : 'content']: type === 'text' ? encrypted : content
         };
+
+        // Push the message to the database
         await push(messagesRef, messageData);
 
+        // Fetch current unread count for the friend
         const unreadRef = ref(db, `users/${friendId}/friends/${currentUser.uid}/unreadCount`);
         const unreadSnap = await get(unreadRef);
         const currentUnread = unreadSnap.val() || 0;
 
+        // Update both users' friend data
         const friendUpdate = {
           lastMessageEncrypted: type === 'text' ? encrypted : null,
-          lastMessage: type !== 'text' ? 'Media' : '',
+          lastMessage: type !== 'text' ? 'Media' : content.substring(0, 50), // Store a preview for non-text
           lastMessageType: type,
           lastMessageTime: messageData.timestamp,
           unreadCount: 0
         };
+        const userUpdate = {
+          ...friendUpdate,
+          unreadCount: currentUnread + 1
+        };
+
         await Promise.all([
           update(ref(db, `users/${currentUser.uid}/friends/${friendId}`), friendUpdate),
-          update(ref(db, `users/${friendId}/friends/${currentUser.uid}`), {
-            ...friendUpdate,
-            unreadCount: currentUnread + 1
-          })
+          update(ref(db, `users/${friendId}/friends/${currentUser.uid}`), userUpdate)
         ]);
+
         document.getElementById('message-input').value = '';
       } catch (error) {
         console.error('Error sending message:', error);
-        showAlert('Failed to send message.');
+        showAlert(`Failed to send message: ${error.message}`);
       } finally {
         hideSpinner();
       }
     }
 
     async function sendMedia(friendId, file) {
-      if (!currentUser || !file) return;
+      if (!currentUser || !file) {
+        showAlert('No file selected.');
+        return;
+      }
       showSpinner();
       try {
-        const storage = getStorage(app);
+        storage = storage || getStorage(app);
         const chatId = getChatId(currentUser.uid, friendId);
         const mediaRef = sRef(storage, `media/${chatId}/${Date.now()}_${file.name}`);
-        await uploadBytes(mediaRef, file);
-        const url = await getDownloadURL(mediaRef);
+        const uploadResult = await uploadBytes(mediaRef, file);
+        const url = await getDownloadURL(uploadResult.ref);
         const type = file.type.startsWith('image/') ? 'image' : 'video';
         await sendMessage(friendId, url, type);
       } catch (error) {
         console.error('Error uploading media:', error);
-        showAlert('Failed to upload media.');
+        showAlert(`Failed to upload media: ${error.message}`);
       } finally {
         hideSpinner();
       }
@@ -575,6 +607,7 @@
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
         db = getDatabase(app);
+        storage = getStorage(app);
         onAuthStateChanged(auth, (user) => {
           if (user) {
             console.log('User authenticated:', user.uid);
@@ -583,13 +616,18 @@
               .then(() => console.log('User lastSeen updated'))
               .catch(err => console.error('Error updating lastSeen:', err));
             const urlParams = new URLSearchParams(window.location.search);
-            const friendId = urlParams.get('friendId');
+            friendId = urlParams.get('friendId');
             if (friendId) {
               loadFriendInfo(friendId);
               loadMessages(friendId);
-              document.getElementById('send-message').onclick = () => sendMessage(friendId, document.getElementById('message-input').value);
+              document.getElementById('send-message').onclick = () => {
+                const messageInput = document.getElementById('message-input').value;
+                sendMessage(friendId, messageInput);
+              };
               document.getElementById('message-input').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendMessage(friendId, e.target.value);
+                if (e.key === 'Enter') {
+                  sendMessage(friendId, e.target.value);
+                }
               });
               document.getElementById('media-input').addEventListener('change', (e) => {
                 if (e.target.files[0]) sendMedia(friendId, e.target.files[0]);
@@ -605,13 +643,19 @@
           }
         }, (error) => {
           console.error('Auth state error:', error);
-          showAlert('Authentication error. Please try again.');
+          showAlert('Authentication error: ' + error.message);
         });
       } catch (error) {
         console.error('Firebase initialization error:', error);
-        showAlert('Failed to initialize Firebase. Please check your connection.');
+        showAlert('Failed to initialize Firebase: ' + error.message);
       }
     }
+
+    // Cleanup listeners on page unload
+    window.addEventListener('beforeunload', () => {
+      if (messagesRef) off(messagesRef);
+      if (userRef) off(userRef);
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
       console.log('DOM loaded, initializing Firebase');
