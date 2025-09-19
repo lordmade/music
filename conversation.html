@@ -1,244 +1,252 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Vynix AI - Conversation</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messages | X Friends</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #FFFFFF;
-      --card-bg: rgba(255, 255, 255, 0.6);
-      --text-primary: #000000;
-      --text-secondary: #4B5EAA;
-      --border: rgba(0, 0, 0, 0.15);
-      --highlight: #0095F6;
-      --badge-bg: #FA3E5F;
-      --glass-bg: rgba(255, 255, 255, 0.6);
-      --glass-blur: blur(12px);
-      --sender-bg: #DCF8C6;
-      --receiver-bg: #E5E7EB;
+      --twitter-blue: #1DA1F2;
+      --twitter-purple: #8A3FFC;
+      --twitter-accent: #FF2D55;
+      --text-dark: #0F1419;
       --text-light: #536471;
+      --border: #D8D9DB;
+      --white: #FFFFFF;
+      --background: #F5F8FA;
+      --dark-bg: #15202B;
+      --dark-border: #2F3B43;
+      --dark-text: #FFFFFF;
       --grey-bubble: #E2E8F0;
+      --input-bg-light: linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
+      --input-bg-dark: linear-gradient(180deg, #2D3748 0%, #1A202C 100%);
+      --modal-bg: linear-gradient(135deg, var(--twitter-blue) 0%, var(--twitter-purple) 100%);
+    }
+
+    [data-theme="dark"] {
+      --text-dark: var(--dark-text);
+      --border: var(--dark-border);
+      --white: var(--dark-bg);
+      --background: #1E2A3C;
+      --grey-bubble: #2D3748;
+      --modal-bg: linear-gradient(135deg, #4da8f7 0%, #a675fc 100%);
     }
 
     body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--background);
+      color: var(--text-dark);
       min-height: 100vh;
       margin: 0;
-      overflow-x: hidden;
+      padding: 0;
+      transition: background 0.3s ease, color 0.3s ease;
       -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
       user-select: none;
     }
 
-    .header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: var(--glass-bg);
-      -webkit-backdrop-filter: var(--glass-blur);
-      backdrop-filter: var(--glass-blur);
-      border-bottom: 1px solid var(--border);
+    body.fade-out {
+      opacity: 0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
       padding: 1rem;
       display: flex;
-      align-items: center;
-      gap: 1rem;
-      z-index: 10;
-    }
-
-    .back-button {
-      background: none;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 2rem;
-      height: 2rem;
-    }
-
-    .back-button svg {
-      width: 1.5rem;
-      height: 1.5rem;
-      stroke: var(--text-primary);
-    }
-
-    .info-icon {
-      background: none;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 2rem;
-      height: 2rem;
-      margin-left: auto;
-    }
-
-    .info-icon svg {
-      width: 1.5rem;
-      height: 1.5rem;
-      stroke: var(--text-secondary);
-    }
-
-    .header .avatar {
-      width: 2.5rem;
-      height: 2.5rem;
-      background: var(--text-secondary);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .header .profile-pic {
-      width: 2.5rem;
-      height: 2.5rem;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid var(--text-primary);
-    }
-
-    .header .info {
-      flex: 1;
-    }
-
-    .header h2 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin: 0;
-    }
-
-    .header .last-seen {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      margin-top: 0.25rem;
-    }
-
-    .chat-container {
-      margin-top: 5.5rem;
-      margin-bottom: 5rem;
-      padding: 1rem;
-      overflow-y: auto;
-      max-height: calc(100vh - 10.5rem);
-      display: flex;
       flex-direction: column;
-      gap: 1rem;
-    }
-
-    .message {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      max-width: 70%;
+      min-height: 100vh;
       position: relative;
     }
 
-    .message.sender {
-      align-items: flex-end;
+    .top-buttons {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      z-index: 1000;
     }
 
-    .message .message-header {
+    .settings-btn, .attach-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+
+    .settings-btn svg, .attach-btn svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--text-light);
+      transition: stroke 0.2s ease;
+    }
+
+    .settings-btn:hover svg, .attach-btn:hover svg {
+      stroke: var(--twitter-purple);
+    }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .loading-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid transparent;
+      border-top-color: var(--twitter-blue);
+      border-right-color: var(--twitter-purple);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .spinner-text {
+      color: var(--white);
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-top: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    .chat-header {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.25rem;
-      opacity: 0.7;
+      gap: 0.75rem;
+      position: sticky;
+      top: 0;
+      background: var(--white);
+      z-index: 100;
     }
 
-    .message .bubble-avatar {
-      width: 1.5rem;
-      height: 1.5rem;
+    .user-avatar {
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
-      background: var(--text-secondary);
+      background: var(--text-light);
+      color: var(--white);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.75rem;
+      font-size: 1rem;
       font-weight: 600;
-      color: var(--text-primary);
       flex-shrink: 0;
     }
 
-    .message .bubble-avatar img {
+    .user-avatar img {
       width: 100%;
       height: 100%;
       border-radius: 50%;
       object-fit: cover;
     }
 
-    .message .content {
-      max-width: 100%;
-      padding: 0.75rem 1rem;
-      border-radius: 1rem;
-      font-size: 0.875rem;
-      line-height: 1.25;
-      position: relative;
+    .user-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-username {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .user-handle {
+      font-size: 0.8rem;
+      color: var(--text-light);
+    }
+
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 1rem;
+      padding-bottom: 1.5rem;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    .message {
+      display: flex;
+      flex-direction: column;
+      max-width: 85%;
+      padding: 1rem 1.25rem;
+      border-radius: 20px;
+      background: var(--white);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      animation: slideIn 0.4s ease-out;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .message.sent {
+      align-self: flex-end;
+      background: linear-gradient(135deg, var(--twitter-blue) 0%, #4da8f7 100%);
+      color: var(--white);
+    }
+
+    .message.received {
+      align-self: flex-start;
+      background: var(--grey-bubble);
+      color: var(--text-dark);
+    }
+
+    .message:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .message-deleted {
+      background: var(--text-light);
+      color: var(--white);
+      font-style: italic;
+    }
+
+    .message-header {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
     }
 
-    .message.sender .content {
-      background: var(--sender-bg);
-      flex-direction: row-reverse;
+    .message-content {
+      font-size: 1rem;
+      line-height: 1.5;
+      word-break: break-word;
     }
 
-    .message.receiver .content {
-      background: var(--receiver-bg);
-    }
-
-    .message .content img,
-    .message .content video {
+    .message-content img {
       max-width: 100%;
-      border-radius: 1rem;
+      border-radius: 8px;
       margin-top: 0.5rem;
     }
 
-    .message .timestamp {
-      font-size: 0.65rem;
-      color: var(--text-secondary);
-      margin-top: 0.25rem;
-      text-align: right;
-      align-self: flex-end;
-    }
-
-    .message.sender .ticks {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      margin-left: 0.5rem;
-    }
-
-    .tick-svg {
-      width: 1rem;
-      height: 1rem;
-      stroke: var(--text-secondary);
-      stroke-width: 2;
-      fill: none;
-    }
-
-    .tick-sent {
-      stroke: var(--text-secondary);
-    }
-
-    .tick-delivered {
-      stroke: var(--highlight);
-    }
-
-    .tick-read {
-      fill: var(--highlight);
+    .message-timestamp {
+      font-size: 0.8rem;
+      opacity: 0.7;
     }
 
     .delete-icon {
@@ -250,323 +258,252 @@
       width: 20px;
       height: 20px;
       fill: none;
-      stroke: var(--text-secondary);
+      stroke: var(--text-light);
       stroke-width: 2;
     }
 
-    .message.sender:hover .delete-icon {
+    .message.sent:hover .delete-icon {
       display: block;
     }
 
-    .message-deleted .content {
-      background: var(--text-secondary);
-      color: var(--white);
-      font-style: italic;
-    }
-
-    .typing-indicator {
-      display: none;
-      align-self: flex-start;
-      padding: 0.75rem 1rem;
-      background: var(--receiver-bg);
-      border-radius: 1rem;
-      font-style: italic;
-      color: var(--text-secondary);
-      font-size: 0.875rem;
-    }
-
-    .typing-indicator.active {
-      display: block;
-    }
-
-    .typing-dots {
-      display: inline-flex;
-      gap: 0.25rem;
-      margin-left: 0.5rem;
-    }
-
-    .typing-dots span {
-      width: 0.4rem;
-      height: 0.4rem;
-      border-radius: 50%;
-      background: var(--text-secondary);
-      animation: typing 1.4s infinite ease-in-out;
-    }
-
-    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes typing {
-      0%, 60%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-0.5rem); }
-    }
-
-    .input-container {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--glass-bg);
-      -webkit-backdrop-filter: var(--glass-blur);
-      backdrop-filter: var(--glass-blur);
-      border-top: 1px solid var(--border);
-      padding: 0.75rem;
+    .message-form {
+      position: sticky;
+      bottom: 1.5rem;
+      margin: 0 1rem;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      z-index: 10;
+      justify-content: space-between;
+      background: var(--input-bg-light);
+      border-radius: 30px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      transition: box-shadow 0.3s ease, transform 0.3s ease;
+      padding: 0.5rem 0.25rem;
+    }
+
+    [data-theme="dark"] .message-form {
+      background: var(--input-bg-dark);
+    }
+
+    .message-form:hover {
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+      transform: translateY(-2px);
     }
 
     .message-input {
       flex: 1;
-      background: var(--glass-bg);
-      border: 1px solid var(--border);
-      border-radius: 9999px;
-      padding: 0.75rem 1rem;
-      font-size: 1rem;
-      outline: none;
-      -webkit-user-select: auto;
-      user-select: auto;
-    }
-
-    .send-button,
-    .attach-button {
-      background: var(--highlight);
+      width: 100%;
+      padding: 0.75rem 0;
       border: none;
-      border-radius: 50%;
-      width: 2.5rem;
-      height: 2.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      border-radius: 30px;
+      font-size: 1.05rem;
+      line-height: 1.4;
+      color: var(--text-dark);
+      background: transparent;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .message-input:focus {
+      box-shadow: inset 0 0 8px rgba(29, 161, 242, 0.2);
+    }
+
+    .message-input:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .message-input::placeholder {
+      color: var(--text-light);
+      font-style: italic;
+      padding-left: 0.75rem;
+    }
+
+    .send-button, .attach-btn {
+      background: linear-gradient(135deg, var(--twitter-blue) 0%, var(--twitter-purple) 100%);
+      border: none;
+      padding: 0.85rem;
       cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .send-button:hover,
-    .attach-button:hover {
-      background: #0077c2;
-    }
-
-    .send-button svg,
-    .attach-button svg {
-      width: 1.25rem;
-      height: 1.25rem;
-      stroke: var(--text-primary);
-    }
-
-    .spinner-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 45;
-    }
-
-    .spinner-overlay.active {
-      display: flex;
-    }
-
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid var(--highlight);
-      border-top-color: transparent;
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.2s ease;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
+      display: flex;
+      align-items: center;
+      margin-left: 0.25rem;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    .send-button.active, .attach-btn.active {
+      opacity: 1;
+      transform: scale(1.1);
     }
 
-    .alert {
+    .send-button svg, .attach-btn svg {
+      width: 26px;
+      height: 26px;
+      stroke: var(--white);
+      stroke-width: 2;
+    }
+
+    .send-button:hover, .attach-btn:hover {
+      transform: scale(1.15) rotate(5deg);
+    }
+
+    .send-button:disabled, .attach-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+      transform: scale(1);
+    }
+
+    .custom-alert {
+      display: none;
       position: fixed;
-      top: 20px;
+      top: 1rem;
       left: 50%;
       transform: translateX(-50%);
-      background: var(--glass-bg);
-      -webkit-backdrop-filter: var(--glass-blur);
-      backdrop-filter: var(--glass-blur);
-      color: var(--text-primary);
-      padding: 12px 24px;
-      border-radius: 9999px;
-      border: 1px solid var(--border);
-      z-index: 60;
-      display: none;
-      max-width: 90%;
+      background: var(--white);
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 1001;
+      color: var(--text-dark);
+      font-weight: 500;
       text-align: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-
-    .alert.active {
-      display: block;
-      animation: slideInAlert 0.3s ease-out;
-    }
-
-    @keyframes slideInAlert {
-      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
-
-    /* Modal Styles */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-    }
-
-    .modal.active {
-      display: flex;
-    }
-
-    .modal-content {
-      background: var(--bg);
-      border-radius: 1rem;
-      padding: 1.5rem;
       max-width: 90%;
-      max-height: 80%;
-      overflow-y: auto;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      position: relative;
-      max-width: 500px;
-      width: 100%;
+      width: 320px;
+      animation: fadeIn 0.3s ease-out forwards;
     }
 
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1rem;
+    .custom-alert.active {
+      display: block;
     }
 
-    .modal-title {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin: 0;
-    }
-
-    .close-modal {
+    .custom-alert .close-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      width: 20px;
+      height: 20px;
       background: none;
       border: none;
       cursor: pointer;
-      font-size: 1.5rem;
-      color: var(--text-secondary);
     }
 
-    .modal-body {
-      font-size: 0.95rem;
-      line-height: 1.5;
-      color: var(--text-primary);
+    .custom-alert .close-btn svg {
+      width: 100%;
+      height: 100%;
+      stroke: var(--text-dark);
+      stroke-width: 2;
     }
 
-    .modal-body p {
-      margin-bottom: 1rem;
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    @media (min-width: 769px) {
-      .chat-container {
-        margin-left: 1rem;
-        margin-right: 1rem;
-        width: calc(100% - 2rem);
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translate(-50%, -60%); }
+      to { opacity: 1; transform: translate(-50%, -50%); }
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 0.75rem;
       }
 
-      .header {
-        margin-left: 1rem;
-        margin-right: 1rem;
-        width: calc(100% - 2rem);
-        border-radius: 0 0 1rem 1rem;
+      .chat-header {
+        padding: 0.5rem 0;
       }
 
-      .input-container {
-        margin-left: 1rem;
-        margin-right: 1rem;
-        width: calc(100% - 2rem);
-        border-radius: 1rem 1rem 0 0;
+      .user-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+      }
+
+      .user-username {
+        font-size: 0.9rem;
+      }
+
+      .user-handle {
+        font-size: 0.75rem;
+      }
+
+      .message {
+        max-width: 90%;
+        padding: 0.75rem 1rem;
+      }
+
+      .message-content {
+        font-size: 0.95rem;
+      }
+
+      .message-form {
+        margin: 0 0.75rem;
+        padding: 0.25rem;
+      }
+
+      .message-input {
+        font-size: 0.95rem;
+        padding: 0.5rem 0;
+      }
+
+      .message-input::placeholder {
+        padding-left: 0.5rem;
+      }
+
+      .send-button, .attach-btn {
+        padding: 0.65rem;
+        margin-left: 0.25rem;
+      }
+
+      .send-button svg, .attach-btn svg {
+        width: 22px;
+        height: 22px;
       }
     }
   </style>
 </head>
 <body>
-  <main class="flex flex-col h-screen" id="main-content">
-    <div class="header">
-      <button class="back-button" onclick="window.location.href='friends.html'">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M15 19l-7-7 7-7"/>
+  <div class="container">
+    <div class="top-buttons">
+      <button class="settings-btn" aria-label="Toggle settings" onclick="toggleTheme()">
+        <svg viewBox="0 0 24 24">
+          <path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.49.49 0 0 0-.48-.41h-3.84a.49.49 0 0 0-.48.41l-.36 2.54c-.59.24-1.13-.56-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.86 9.41a.49.49 0 0 0 .12.61l2.03 1.58a2.66 2.66 0 0 0 0 1.88l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32a.49.49 0 0 0 .59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54a.49.49 0 0 0 .48.41h3.84a.49.49 0 0 0 .48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96a.49.49 0 0 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
         </svg>
       </button>
-      <div id="friend-avatar" class="avatar"></div>
-      <div class="info">
-        <h2 id="friend-name">Loading...</h2>
-        <div id="friend-last-seen" class="last-seen"></div>
-      </div>
-      <button class="info-icon" onclick="openSecurityModal()">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      <button class="attach-btn" aria-label="Attach image" onclick="document.getElementById('attach-input').click()">
+        <svg viewBox="0 0 24 24">
+          <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/>
         </svg>
       </button>
     </div>
-    <div id="chat-container" class="chat-container">
-      <div id="typing-indicator" class="typing-indicator">
-        <span id="friend-name-typing"></span> is typing <div class="typing-dots"><span></span><span></span><span></span></div>
-      </div>
-    </div>
-    <div class="input-container">
-      <input type="text" id="message-input" class="message-input" placeholder="Type a message...">
-      <input type="file" id="file-input" accept="image/*,video/*" style="display: none;">
-      <button class="attach-button" onclick="document.getElementById('file-input').click()">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 008.486 8.486L20.5 13"/>
-        </svg>
-      </button>
-      <button class="send-button" id="send-button">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M5 12h14M5 12l6-6m-6 6l6 6"/>
+    <input type="file" id="attach-input" accept="image/*" style="display: none;" />
+    <div class="custom-alert" id="alert">
+      <span id="alert-message"></span>
+      <button class="close-btn" aria-label="Close alert">
+        <svg viewBox="0 0 24 24">
+          <path d="M6 18L18 6M6 6l12 12"/>
         </svg>
       </button>
     </div>
-    <div id="spinner-overlay" class="spinner-overlay">
+    <div class="loading-overlay" id="loading-overlay">
       <div class="spinner"></div>
+      <span class="spinner-text">Loading...</span>
     </div>
-    <div id="alert-message" class="alert"></div>
-    <!-- Security Modal -->
-    <div id="security-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2 class="modal-title">End-to-End Encryption</h2>
-          <button class="close-modal" onclick="closeSecurityModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-          <p>Your messages in Vynix AI are protected with end-to-end encryption, ensuring maximum privacy and security.</p>
-          <p><strong>How it works:</strong></p>
-          <ul style="margin-left: 1rem; margin-bottom: 1rem;">
-            <li>Each conversation uses unique keys generated on your device to encrypt messages before sending.</li>
-            <li>Only you and the recipient can decrypt and read the messages—no one else, not even Vynix AI, can access them.</li>
-            <li>Encryption applies to text, images, videos, and calls, keeping your communications secure from interception.</li>
-            <li>Keys change with every message for added protection, and you can verify encryption in chat settings.</li>
-          </ul>
-          <p>This means your private conversations stay private, protected from hackers, governments, or service providers.</p>
-        </div>
-      </div>
-    </div>
-  </main>
+    <div class="chat-header" id="chat-header"></div>
+    <div class="chat-container" id="chat-container"></div>
+    <form class="message-form" id="message-form">
+      <input type="text" class="message-input" id="message-input" placeholder="Type a message..." aria-label="Type a message" />
+      <button type="submit" class="send-button" id="send-button">
+        <svg viewBox="0 0 24 24">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </form>
+  </div>
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, update, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getDatabase, ref, get, push, set, onValue, update } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -579,43 +516,49 @@
       measurementId: "G-V4W97VMSKL"
     };
 
-    // Cloudinary configuration
-    const CLOUDINARY_CLOUD_NAME = 'YOUR_CLOUDINARY_CLOUD_NAME'; // Replace with your Cloudinary cloud name
-    const CLOUDINARY_UPLOAD_PRESET = 'banter_box'; // Use the same preset as the second file
-    const CLOUDINARY_API_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
 
-    let app, auth, db, currentUser, friendId, friendName;
-    const ENCRYPTION_KEY = "my-secret-key-123"; // Same key as the second file
+    const chatHeader = document.getElementById("chat-header");
+    const chatContainer = document.getElementById("chat-container");
+    const messageForm = document.getElementById("message-form");
+    const messageInput = document.getElementById("message-input");
+    const sendButton = document.getElementById("send-button");
+    const attachInput = document.getElementById("attach-input");
+    const alert = document.getElementById("alert");
+    const alertMessage = document.getElementById("alert-message");
+    const loadingOverlay = document.getElementById("loading-overlay");
+    let currentUser = null;
+    let convoId = null;
+    let otherUser = null;
+    let userProfiles = {};
     let isInitialLoad = true;
-    let typingTimeout;
+    const ENCRYPTION_KEY = "my-secret-key-123";
 
-    const showSpinner = () => {
-      console.log('Showing spinner');
-      document.getElementById('spinner-overlay').classList.add('active');
-      document.getElementById('main-content').setAttribute('aria-busy', 'true');
-    };
-
-    const hideSpinner = () => {
-      console.log('Hiding spinner');
-      document.getElementById('spinner-overlay').classList.remove('active');
-      document.getElementById('main-content').setAttribute('aria-busy', 'false');
-    };
-
-    const showAlert = (message, isSuccess = false) => {
-      console.log('Showing alert:', message);
-      const alert = document.getElementById('alert-message');
-      alert.textContent = message;
-      alert.style.background = isSuccess ? 'rgba(29, 161, 242, 0.1)' : 'rgba(255, 0, 0, 0.1)';
-      alert.classList.add('active');
-      setTimeout(() => alert.classList.remove('active'), 3000);
-    };
-
-    function getAvatarInitials(username) {
-      return username ? username.charAt(0).toUpperCase() : 'A';
+    function showLoading() {
+      console.log("Showing loading overlay");
+      loadingOverlay.classList.add("active");
     }
 
-    function formatTimestamp(isoTimestamp) {
-      const timestamp = new Date(isoTimestamp).getTime();
+    function hideLoading() {
+      console.log("Hiding loading overlay");
+      loadingOverlay.classList.remove("active");
+    }
+
+    function showAlert(message, isSuccess) {
+      console.log("Showing alert:", message);
+      alertMessage.textContent = message;
+      alert.style.background = isSuccess ? "rgba(29, 161, 242, 0.1)" : "rgba(255, 0, 0, 0.1)";
+      alert.classList.add("active");
+      setTimeout(() => alert.classList.remove("active"), 3000);
+    }
+
+    function getAvatarInitials(username) {
+      return username ? username.charAt(0).toUpperCase() : "A";
+    }
+
+    function formatTimestamp(timestamp) {
       const now = Date.now();
       const diff = now - timestamp;
       const seconds = Math.floor(diff / 1000);
@@ -637,355 +580,249 @@
         const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY);
         return bytes.toString(CryptoJS.enc.Utf8);
       } catch (error) {
-        console.error('Decryption error:', error);
-        return '';
+        console.error("Decryption error:", error);
+        return "";
       }
     }
 
-    async function uploadToCloudinary(file, type) {
+    async function uploadToCloudinary(file) {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-      formData.append('resource_type', type === 'image' ? 'image' : 'video');
-      formData.append('public_id', `chat_media/${getChatId(currentUser.uid, friendId)}/${Date.now()}_${file.name}`);
+      formData.append('upload_preset', 'banter_box');
+      formData.append('resource_type', 'image');
 
       try {
-        const response = await fetch(CLOUDINARY_API_URL, {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/YOUR_CLOUDINARY_CLOUD_NAME/upload`, {
           method: 'POST',
           body: formData
         });
         const data = await response.json();
         if (data.secure_url) {
-          console.log('Uploaded to Cloudinary:', data.secure_url);
           return data.secure_url;
         } else {
-          throw new Error('Cloudinary upload failed: No secure_url returned');
+          throw new Error('Upload failed');
         }
       } catch (error) {
-        console.error('Cloudinary upload error:', error);
-        showAlert(`Failed to upload ${type}: ${error.message}`, false);
+        console.error("Error uploading to Cloudinary:", error);
+        showAlert("Failed to upload image.", false);
         throw error;
       }
     }
 
     async function deleteMessage(messageId) {
       try {
-        showSpinner();
-        await update(ref(db, `chats/${getChatId(currentUser.uid, friendId)}/messages/${messageId}`), {
+        showLoading();
+        await update(ref(db, `conversations/${convoId}/messages/${messageId}`), {
           deleted: true,
-          content: 'Message was deleted'
+          text: "Message was deleted"
         });
-        showAlert('Message deleted successfully.', true);
+        showAlert("Message deleted successfully.", true);
       } catch (error) {
-        console.error('Error deleting message:', error);
-        showAlert('Failed to delete message: ' + error.message, false);
+        console.error("Error deleting message:", error);
+        showAlert("Failed to delete message: " + error.message, false);
       } finally {
-        hideSpinner();
+        hideLoading();
       }
     }
 
     function scrollToBottom() {
-      console.log('Scrolling to bottom of chat-container');
-      const chatContainer = document.getElementById('chat-container');
+      console.log("Scrolling to bottom of chat-container");
       chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
     }
 
-    function updateTypingStatus(isTyping) {
-      const chatId = getChatId(currentUser.uid, friendId);
-      update(ref(db, `chats/${chatId}/typing/${currentUser.uid}`), { isTyping, timestamp: Date.now() });
-    }
-
-    function handleTyping() {
-      updateTypingStatus(true);
-      clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(() => updateTypingStatus(false), 2000);
-    }
-
-    function openSecurityModal() {
-      document.getElementById('security-modal').classList.add('active');
-    }
-
-    function closeSecurityModal() {
-      document.getElementById('security-modal').classList.remove('active');
-    }
-
-    function initializeFirebase() {
+    async function loadConversation(user) {
+      showLoading();
       try {
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getDatabase(app);
-        onAuthStateChanged(auth, (user) => {
-          if (user) {
-            currentUser = user;
-            loadConversation();
-          } else {
-            showAlert('Please log in to view the conversation.', false);
-            window.location.href = 'signup.html';
-          }
-        }, (error) => {
-          console.error('Auth state error:', error);
-          showAlert('Authentication error. Please try again.', false);
-        });
-      } catch (error) {
-        console.error('Firebase initialization error:', error);
-        showAlert('Failed to initialize Firebase. Please check your connection.', false);
-      }
-    }
+        const urlParams = new URLSearchParams(window.location.search);
+        convoId = urlParams.get("convoId");
+        if (!convoId) {
+          showAlert("Invalid conversation ID.", false);
+          setTimeout(() => { window.location.href = "friends.html"; }, 1500);
+          return;
+        }
 
-    async function loadConversation() {
-      const urlParams = new URLSearchParams(window.location.search);
-      friendId = urlParams.get('friendId');
-      if (!friendId) {
-        showAlert('No friend selected.', false);
-        window.location.href = 'friends.html';
-        return;
-      }
+        const convoRef = ref(db, `conversations/${convoId}`);
+        const convoSnapshot = await get(convoRef);
+        const convo = convoSnapshot.val();
+        if (!convo || !convo.users.includes(user.uid)) {
+          showAlert("Conversation not found or access denied.", false);
+          setTimeout(() => { window.location.href = "friends.html"; }, 1500);
+          return;
+        }
 
-      showSpinner();
-      try {
-        // Load friend data
-        const friendRef = ref(db, `users/${friendId}`);
-        onValue(friendRef, (snapshot) => {
-          const friendData = snapshot.val();
-          if (friendData) {
-            friendName = friendData.displayName || 'Friend';
-            document.getElementById('friend-name').textContent = friendName;
-            const avatar = document.getElementById('friend-avatar');
-            if (friendData.photoURL) {
-              avatar.outerHTML = `<img src="${friendData.photoURL}" class="profile-pic" alt="${friendName}'s profile picture">`;
-            } else {
-              avatar.textContent = getAvatarInitials(friendName);
-            }
-            const lastSeen = friendData.lastSeen;
-            document.getElementById('friend-last-seen').textContent = lastSeen
-              ? `Last seen ${formatLastSeen(lastSeen)}`
-              : 'Last seen unknown';
-            document.getElementById('friend-name-typing').textContent = friendName;
-          }
-        }, { onlyOnce: false });
+        const otherUserId = convo.users.find(uid => uid !== user.uid);
+        const usersRef = ref(db, `users`);
+        const usersSnapshot = await get(usersRef);
+        userProfiles = usersSnapshot.val() || {};
 
-        // Typing indicator listener
-        const typingRef = ref(db, `chats/${getChatId(currentUser.uid, friendId)}/typing/${friendId}`);
-        onValue(typingRef, (snapshot) => {
-          const typingData = snapshot.val();
-          const typingIndicator = document.getElementById('typing-indicator');
-          if (typingData && typingData.isTyping && (Date.now() - typingData.timestamp < 3000)) {
-            typingIndicator.classList.add('active');
-            scrollToBottom();
-          } else {
-            typingIndicator.classList.remove('active');
-          }
-        });
+        otherUser = userProfiles[otherUserId];
+        if (!otherUser) {
+          showAlert("User not found.", false);
+          setTimeout(() => { window.location.href = "friends.html"; }, 1500);
+          return;
+        }
 
-        // Load messages
-        const chatRef = ref(db, `chats/${getChatId(currentUser.uid, friendId)}/messages`);
-        onValue(chatRef, async (snapshot) => {
-          const chatContainer = document.getElementById('chat-container');
+        chatHeader.innerHTML = `
+          <div class="user-avatar">${otherUser.profilePicture ? `<img src="${otherUser.profilePicture}" alt="${otherUser.username}'s profile picture" />` : getAvatarInitials(otherUser.username)}</div>
+          <div class="user-info">
+            <span class="user-username">${otherUser.username || "Anonymous"}</span>
+            <span class="user-handle">${otherUser.handle ? `@${otherUser.handle}` : ""}</span>
+          </div>
+        `;
+
+        onValue(ref(db, `conversations/${convoId}/messages`), (snapshot) => {
           const messages = snapshot.val();
-          if (!messages) {
-            chatContainer.innerHTML = '<div class="message receiver"><div class="content">No messages yet.</div></div>';
-            hideSpinner();
-            return;
-          }
-          const messagesArray = Object.entries(messages)
-            .map(([id, msg]) => ({ id, ...msg }))
-            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-          chatContainer.innerHTML = '';
-          for (const msg of messagesArray) {
-            if (msg.senderId === currentUser.uid && msg.senderId !== friendId) {
-              const div = document.createElement('div');
-              div.className = `message sender ${msg.deleted ? 'message-deleted' : ''}`;
-              const isRead = msg.readBy && msg.readBy[friendId];
-              let content = `
+          chatContainer.innerHTML = "";
+          if (messages) {
+            const sortedMessages = Object.entries(messages)
+              .sort(([, a], [, b]) => a.timestamp - b.timestamp);
+            sortedMessages.forEach(([msgId, msg]) => {
+              const senderProfile = userProfiles[msg.senderId] || { username: "Unknown" };
+              const isSent = msg.senderId === user.uid;
+              const messageDiv = document.createElement("div");
+              messageDiv.className = `message ${isSent ? "sent" : "received"} ${msg.deleted ? "message-deleted" : ""}`;
+              messageDiv.tabIndex = 0;
+              let content = '';
+              if (msg.type === 'text') {
+                content = msg.deleted ? "Message was deleted" : decryptMessage(msg.text);
+              } else if (msg.type === 'image') {
+                content = `<img src="${msg.text}" alt="Image" />`;
+              }
+              messageDiv.innerHTML = `
                 <div class="message-header">
-                  <div class="bubble-avatar">${getAvatarInitials(friendName)}</div>
+                  <div class="user-avatar">${senderProfile.profilePicture ? `<img src="${senderProfile.profilePicture}" alt="${senderProfile.username}'s profile picture" />` : getAvatarInitials(senderProfile.username)}</div>
+                  <div class="user-username">${senderProfile.username}</div>
+                  <span class="message-timestamp">${formatTimestamp(msg.timestamp)}</span>
                 </div>
-                <div class="content">
-                  ${msg.type === 'text' ? (msg.deleted ? 'Message was deleted' : decryptMessage(msg.encrypted || msg.content || '')) : `<${msg.type} src="${msg.content}" ${msg.type === 'video' ? 'controls' : ''}></${msg.type}>`}
-                  <span class="timestamp">${formatTimestamp(msg.timestamp)}</span>
-                  ${msg.type === 'text' ? `<div class="ticks"><svg class="tick-svg tick-sent" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>${isRead ? '<svg class="tick-svg tick-read" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>' : ''}</div>` : ''}
-                </div>
-              `;
-              if (!msg.deleted) {
-                content += `
+                <div class="message-content">${content}</div>
+                ${isSent && !msg.deleted ? `
                   <svg class="delete-icon" viewBox="0 0 24 24" aria-label="Delete message">
                     <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                   </svg>
-                `;
-              }
-              div.innerHTML = content;
-              if (!msg.deleted) {
-                const deleteIcon = div.querySelector('.delete-icon');
-                deleteIcon.addEventListener('click', () => deleteMessage(msg.id));
-              }
-              chatContainer.appendChild(div);
-            } else {
-              const div = document.createElement('div');
-              div.className = `message receiver ${msg.deleted ? 'message-deleted' : ''}`;
-              let content = `
-                <div class="message-header">
-                  <div class="bubble-avatar">${getAvatarInitials(friendName)}</div>
-                </div>
-                <div class="content">
-                  ${msg.type === 'text' ? (msg.deleted ? 'Message was deleted' : decryptMessage(msg.encrypted || msg.content || '')) : `<${msg.type} src="${msg.content}" ${msg.type === 'video' ? 'controls' : ''}></${msg.type}>`}
-                  <span class="timestamp">${formatTimestamp(msg.timestamp)}</span>
-                </div>
+                ` : ""}
               `;
-              div.innerHTML = content;
-              chatContainer.appendChild(div);
-            }
-          }
-          scrollToBottom();
-          if (isInitialLoad) {
-            const updates = {};
-            messagesArray.forEach((msg) => {
-              if (msg.senderId !== currentUser.uid && !msg.deleted && (!msg.readBy || !msg.readBy[currentUser.uid])) {
-                updates[`chats/${getChatId(currentUser.uid, friendId)}/messages/${msg.id}/readBy/${currentUser.uid}`] = true;
+              if (isSent && !msg.deleted) {
+                const deleteIcon = messageDiv.querySelector(".delete-icon");
+                deleteIcon.addEventListener("click", () => deleteMessage(msgId));
               }
+              chatContainer.prepend(messageDiv);
             });
-            if (Object.keys(updates).length > 0) {
-              await update(ref(db), updates);
+            scrollToBottom();
+            if (isInitialLoad) {
+              const updates = {};
+              Object.entries(messages).forEach(([msgId, msg]) => {
+                if (msg.senderId !== user.uid && !msg.deleted && (!msg.readBy || !msg.readBy[user.uid])) {
+                  updates[`conversations/${convoId}/messages/${msgId}/readBy/${user.uid}`] = true;
+                }
+              });
+              if (Object.keys(updates).length > 0) {
+                update(ref(db), updates);
+              }
+              isInitialLoad = false;
             }
-            isInitialLoad = false;
+          } else {
+            chatContainer.innerHTML = '<p class="text-center text-gray-500">No messages yet.</p>';
           }
-          hideSpinner();
-        }, (error) => {
-          console.error('Error loading messages:', error);
-          showAlert('Failed to load messages: ' + (error.message || 'Unknown error'), false);
-          hideSpinner();
         });
       } catch (error) {
-        console.error('Error loading conversation:', error);
-        showAlert('Failed to load conversation: ' + (error.message || 'Unknown error'), false);
-        hideSpinner();
+        console.error("Error loading conversation:", error);
+        showAlert("Failed to load conversation: " + error.message, false);
+      } finally {
+        hideLoading();
       }
     }
 
-    function getChatId(userId1, userId2) {
-      return [userId1, userId2].sort().join('_');
-    }
+    async function sendMessage(event) {
+      event.preventDefault();
+      const text = messageInput.value.trim();
+      if (!text || !convoId) return;
 
-    async function sendMessage(content, type = 'text', file = null) {
-      if (!content && !file) {
-        showAlert('Please enter a message or select a file.', false);
-        return;
-      }
-      if (!currentUser || !friendId) {
-        showAlert('User or friend not found.', false);
-        return;
-      }
-      showSpinner();
+      showLoading();
       try {
-        updateTypingStatus(false); // Stop typing when sending
-        const chatId = getChatId(currentUser.uid, friendId);
-        console.log('Sending message to chat:', chatId);
-        const messagesRef = ref(db, `chats/${chatId}/messages`);
-        let messageData = {
+        const messagesRef = ref(db, `conversations/${convoId}/messages`);
+        const newMessageRef = push(messagesRef);
+        await set(newMessageRef, {
           senderId: currentUser.uid,
-          timestamp: new Date().toISOString(),
-          type,
+          text: encryptMessage(text),
+          type: 'text',
+          timestamp: Date.now(),
           readBy: { [currentUser.uid]: true },
           deleted: false
-        };
-
-        if (type === 'text') {
-          messageData.encrypted = encryptMessage(content);
-        } else if (file) {
-          const fileType = file.type.startsWith('image/') ? 'image' : 'video';
-          messageData.content = await uploadToCloudinary(file, fileType);
-        }
-
-        const newMessageRef = await push(messagesRef);
-        await set(newMessageRef, messageData);
-        console.log('Message sent, ID:', newMessageRef.key);
-
-        // Update last message in friends list for both users
-        const updates = {};
-        updates[`users/${currentUser.uid}/friends/${friendId}/lastMessageEncrypted`] = type === 'text' ? messageData.encrypted : null;
-        updates[`users/${currentUser.uid}/friends/${friendId}/lastMessage`] = type !== 'text' ? 'Media' : '';
-        updates[`users/${currentUser.uid}/friends/${friendId}/lastMessageTime`] = messageData.timestamp;
-        updates[`users/${currentUser.uid}/friends/${friendId}/lastMessageType`] = type;
-        updates[`users/${friendId}/friends/${currentUser.uid}/lastMessageEncrypted`] = type === 'text' ? messageData.encrypted : null;
-        updates[`users/${friendId}/friends/${currentUser.uid}/lastMessage`] = type !== 'text' ? 'Media' : '';
-        updates[`users/${friendId}/friends/${currentUser.uid}/lastMessageTime`] = messageData.timestamp;
-        updates[`users/${friendId}/friends/${currentUser.uid}/lastMessageType`] = type;
-        updates[`users/${friendId}/friends/${currentUser.uid}/unreadCount`] = (currentValue) => (currentValue || 0) + 1;
-        updates[`chats/${chatId}/lastMessageAt`] = Date.now();
-        await update(ref(db), updates);
-        console.log('Updated friend data for both users');
-
-        document.getElementById('message-input').value = '';
-        document.getElementById('file-input').value = '';
-        showAlert(`${type === 'text' ? 'Message' : type} sent!`, true);
+        });
+        await update(ref(db, `conversations/${convoId}`), { lastMessageAt: Date.now() });
+        messageInput.value = "";
+        sendButton.classList.remove("active");
+        sendButton.disabled = true;
+        showAlert("Message sent!", true);
       } catch (error) {
-        console.error('Error sending message:', error);
-        showAlert(`Failed to send ${type === 'text' ? 'message' : type}: ${error.message || 'Unknown error'}`, false);
+        console.error("Error sending message:", error);
+        showAlert("Failed to send message: " + error.message, false);
       } finally {
-        hideSpinner();
+        hideLoading();
       }
     }
 
-    function formatLastSeen(timestamp) {
-      if (!timestamp) return 'Last seen unknown';
-      const date = new Date(timestamp);
-      if (isNaN(date)) return 'Last seen unknown';
-      const now = new Date();
-      const diffMs = now - date;
-      const diffMin = Math.floor(diffMs / 1000 / 60);
-      const diffHr = Math.floor(diffMin / 60);
-      const diffDay = Math.floor(diffHr / 24);
+    async function handleAttachment() {
+      const file = attachInput.files[0];
+      if (!file) return;
 
-      if (diffMin < 1) return 'just now';
-      if (diffDay === 0) {
-        return `today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      showLoading();
+      try {
+        const url = await uploadToCloudinary(file);
+        const messagesRef = ref(db, `conversations/${convoId}/messages`);
+        const newMessageRef = push(messagesRef);
+        await set(newMessageRef, {
+          senderId: currentUser.uid,
+          text: url,
+          type: 'image',
+          timestamp: Date.now(),
+          readBy: { [currentUser.uid]: true },
+          deleted: false
+        });
+        await update(ref(db, `conversations/${convoId}`), { lastMessageAt: Date.now() });
+        attachInput.value = '';
+        showAlert("Image sent!", true);
+      } catch (error) {
+        console.error("Error sending image:", error);
+        showAlert("Failed to send image: " + error.message, false);
+      } finally {
+        hideLoading();
       }
-      if (diffDay === 1) {
-        return `yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-      }
-      return date.toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
 
-    document.getElementById('send-button').addEventListener('click', () => {
-      const content = document.getElementById('message-input').value.trim();
-      if (content) {
-        sendMessage(content, 'text');
+    function toggleTheme() {
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      const newTheme = isDark ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", newTheme);
+      localStorage.setItem("theme", newTheme);
+      console.log("Toggled theme to:", newTheme);
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        console.log("No user authenticated, redirecting to signup");
+        document.body.classList.add("fade-out");
+        setTimeout(() => {
+          window.location.href = "signup.html";
+        }, 1500);
+        return;
       }
+
+      currentUser = user;
+      loadConversation(user);
     });
 
-    document.getElementById('message-input').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        const content = e.target.value.trim();
-        if (content) {
-          sendMessage(content, 'text');
-        }
-      } else {
-        handleTyping();
-      }
+    messageForm.addEventListener("submit", sendMessage);
+    messageInput.addEventListener("input", () => {
+      console.log("Input event triggered, text:", messageInput.value);
+      sendButton.disabled = !messageInput.value.trim();
+      sendButton.classList.toggle("active", messageInput.value.trim());
     });
+    attachInput.addEventListener("change", handleAttachment);
 
-    document.getElementById('message-input').addEventListener('input', handleTyping);
-
-    document.getElementById('message-input').addEventListener('blur', () => {
-      clearTimeout(typingTimeout);
-      updateTypingStatus(false);
-    });
-
-    document.getElementById('file-input').addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const type = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : null;
-        if (type) {
-          sendMessage(null, type, file);
-        } else {
-          showAlert('Unsupported file type. Please select an image or video.', false);
-        }
-      }
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log('Initializing Firebase');
-      initializeFirebase();
+    document.querySelector(".custom-alert .close-btn").addEventListener("click", () => {
+      console.log("Close alert clicked");
+      alert.classList.remove("active");
     });
   </script>
 </body>
