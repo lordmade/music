@@ -145,7 +145,7 @@
     }
 
     .media-item {
-      position: relative;
+      position: to relative;
       aspect-ratio: 1 / 1;
       overflow: hidden;
       cursor: pointer;
@@ -207,16 +207,6 @@
 
     .media-overlay .reel-action.delete svg {
       stroke: var(--badge-bg);
-    }
-
-    .play-overlay {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 2rem;
-      opacity: 0.8;
     }
 
     /* Media Modal */
@@ -905,8 +895,7 @@
               const isVideo = reel.mediaType === 'video';
               div.innerHTML = `
                 ${isVideo
-                  ? `<video src="${reel.mediaURL}" class="reel-media" muted></video>
-                     <div class="play-overlay">▶</div>`
+                  ? `<video src="${reel.mediaURL}" class="reel-media" muted autoplay loop playsinline></video>`
                   : `<img src="${reel.mediaURL}" class="reel-media" alt="Reel image">`}
                 <div class="media-overlay">
                   <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
@@ -944,6 +933,9 @@
               if (isVideo) {
                 const video = div.querySelector('.reel-media');
                 video.addEventListener('click', (e) => e.stopPropagation());
+                video.play().catch(() => {
+                  console.log('Autoplay prevented for video:', reel.mediaURL);
+                });
               }
             }, { onlyOnce: true });
           }
@@ -972,6 +964,8 @@
     function closeMediaModal() {
       const modal = document.getElementById('media-modal');
       const modalContent = document.getElementById('media-modal-content');
+      const video = modalContent.querySelector('video');
+      if (video) video.pause();
       modal.classList.remove('active');
       modalContent.innerHTML = '';
       document.getElementById('media-caption').textContent = '';
