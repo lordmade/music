@@ -146,11 +146,11 @@
     }
 
     .chat-container {
-      margin-top: 6rem; /* Adjusted for bio */
+      margin-top: 6rem;
       margin-bottom: 5rem;
       padding: 1rem;
       overflow-y: auto;
-      max-height: calc(100vh - 11rem); /* Adjusted for bio */
+      max-height: calc(100vh - 11rem);
       background: var(--bg);
     }
 
@@ -219,6 +219,31 @@
 
     .message.sent .timestamp {
       text-align: right;
+    }
+
+    .delete-icon {
+      display: none;
+      background: var(--alert-error);
+      border: none;
+      border-radius: 50%;
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-top: 0.25rem;
+      box-shadow: var(--shadow);
+    }
+
+    .delete-icon.active {
+      display: flex;
+    }
+
+    .delete-icon svg {
+      width: 1rem;
+      height: 1rem;
+      stroke: white;
     }
 
     .reactions {
@@ -320,7 +345,10 @@
     }
 
     .emoji-picker {
-      position: absolute;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       background: var(--glass-bg);
       backdrop-filter: var(--glass-blur);
       border: 1px solid var(--border);
@@ -332,6 +360,7 @@
       z-index: 30;
       box-shadow: var(--shadow);
       display: none;
+      max-width: 90%;
     }
 
     .emoji-picker.active {
@@ -479,77 +508,6 @@
       to { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
 
-    .delete-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 50;
-      backdrop-filter: blur(5px);
-    }
-
-    .delete-modal.active {
-      display: flex;
-    }
-
-    .modal-content {
-      background: var(--glass-bg);
-      backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--border);
-      border-radius: 1rem;
-      padding: 1.5rem;
-      max-width: 90%;
-      width: 300px;
-      text-align: center;
-      box-shadow: var(--shadow);
-    }
-
-    .modal-content h3 {
-      margin: 0 0 1rem;
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
-
-    .modal-content p {
-      margin: 0 0 1.5rem;
-      font-size: 1rem;
-      color: var(--text-secondary);
-    }
-
-    .modal-actions {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-    }
-
-    .modal-button {
-      padding: 0.5rem 1.5rem;
-      border: none;
-      border-radius: 9999px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background 0.2s;
-    }
-
-    .modal-button.confirm {
-      background: var(--alert-error);
-      color: white;
-    }
-
-    .modal-button.cancel {
-      background: var(--highlight);
-      color: white;
-    }
-
-    .modal-button:hover {
-      opacity: 0.9;
-    }
-
     .reply-message {
       background: var(--card-bg);
       border-left: 3px solid var(--highlight);
@@ -631,16 +589,6 @@
       <div class="spinner"></div>
     </div>
     <div id="alert-message" class="alert" role="alert" aria-live="assertive"></div>
-    <div id="delete-modal" class="delete-modal" role="dialog" aria-labelledby="delete-modal-title">
-      <div class="modal-content">
-        <h3 id="delete-modal-title">Delete Message</h3>
-        <p>Are you sure you want to delete this message?</p>
-        <div class="modal-actions">
-          <button id="delete-confirm" class="modal-button confirm">Yes</button>
-          <button id="delete-cancel" class="modal-button cancel">No</button>
-        </div>
-      </div>
-    </div>
   </main>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -661,6 +609,7 @@
 
     let app, auth, db, storage, currentUser, friendId, messagesRef, userRef, typingTimeout;
     let replyingTo = null;
+    let activeDeleteIcon = null;
 
     const emojis = ['😀', '😂', '❤️', '👍', '👎', '😢', '😡', '😎', '🤔', '🙌'];
 
@@ -712,7 +661,7 @@
         .catch(error => showAlert(`Failed to update typing status: ${error.message}`, 'error'));
     }
 
-    function renderEmojiPicker(messageBubble, messageId) {
+    function renderEmojiPicker(messageId) {
       let picker = document.querySelector('.emoji-picker');
       if (!picker) {
         picker = document.createElement('div');
@@ -735,20 +684,6 @@
         document.body.appendChild(picker);
       }
       picker.classList.add('active');
-      const rect = messageBubble.getBoundingClientRect();
-      const pickerHeight = 160;
-      const pickerWidth = 200;
-      let top = rect.top - pickerHeight - 10;
-      let left = rect.left + (rect.width / 2) - (pickerWidth / 2);
-
-      const viewportHeight = window.innerHeight;
-      const viewportWidth = window.innerWidth;
-      if (top < 10) top = rect.bottom + 10;
-      if (left < 10) left = 10;
-      if (left + pickerWidth > viewportWidth - 10) left = viewportWidth - pickerWidth - 10;
-
-      picker.style.top = `${top}px`;
-      picker.style.left = `${left}px`;
       picker.dataset.target = messageId;
       picker.querySelector('.emoji').focus();
     }
@@ -837,36 +772,39 @@
 
     function deleteMessage(messageId) {
       const chatId = getChatId(currentUser.uid, friendId);
-      const modal = document.getElementById('delete-modal');
-      const confirmBtn = document.getElementById('delete-confirm');
-      const cancelBtn = document.getElementById('delete-cancel');
+      set(ref(db, `messages/${chatId}/${messageId}`), null)
+        .then(() => {
+          showAlert('Message deleted!', 'success');
+          hideDeleteIcon();
+        })
+        .catch(error => {
+          showAlert(`Failed to delete: ${error.message}`, 'error');
+          hideDeleteIcon();
+        });
+    }
 
-      modal.classList.add('active');
+    function showDeleteIcon(messageEl, messageId) {
+      hideDeleteIcon(); // Hide any existing delete icon
+      let deleteIcon = messageEl.querySelector('.delete-icon');
+      if (!deleteIcon) {
+        deleteIcon = document.createElement('button');
+        deleteIcon.className = 'delete-icon';
+        deleteIcon.innerHTML = `
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+          </svg>`;
+        deleteIcon.onclick = () => deleteMessage(messageId);
+        messageEl.querySelector('.message').appendChild(deleteIcon);
+      }
+      deleteIcon.classList.add('active');
+      activeDeleteIcon = deleteIcon;
+    }
 
-      const handleConfirm = () => {
-        set(ref(db, `messages/${chatId}/${messageId}`), null)
-          .then(() => {
-            showAlert('Message deleted!', 'success');
-            modal.classList.remove('active');
-            confirmBtn.removeEventListener('click', handleConfirm);
-            cancelBtn.removeEventListener('click', handleCancel);
-          })
-          .catch(error => {
-            showAlert(`Failed to delete: ${error.message}`, 'error');
-            modal.classList.remove('active');
-            confirmBtn.removeEventListener('click', handleConfirm);
-            cancelBtn.removeEventListener('click', handleCancel);
-          });
-      };
-
-      const handleCancel = () => {
-        modal.classList.remove('active');
-        confirmBtn.removeEventListener('click', handleConfirm);
-        cancelBtn.removeEventListener('click', handleCancel);
-      };
-
-      confirmBtn.addEventListener('click', handleConfirm);
-      cancelBtn.addEventListener('click', handleCancel);
+    function hideDeleteIcon() {
+      if (activeDeleteIcon) {
+        activeDeleteIcon.classList.remove('active');
+        activeDeleteIcon = null;
+      }
     }
 
     function setupMessageGestures(messageEl, messageId, messageContent) {
@@ -883,7 +821,8 @@
         longPressTimer = setTimeout(() => {
           isLongPress = true;
           hideReplyContainer();
-          renderEmojiPicker(messageEl.querySelector('.message-bubble'), messageId);
+          hideDeleteIcon();
+          renderEmojiPicker(messageId);
         }, 500);
       };
 
@@ -912,9 +851,10 @@
         if (Math.abs(deltaX) > 50 && deltaY < 30) {
           if (deltaX > 0) {
             showReplyContainer(messageId, messageContent);
-          } else {
-            deleteMessage(messageId);
+            hideDeleteIcon();
           }
+        } else if (deltaY < 30) {
+          showDeleteIcon(messageEl, messageId);
         }
       };
 
@@ -929,7 +869,8 @@
         currentX = startX;
         currentY = startY;
         longPressTimer = setTimeout(() => {
-          renderEmojiPicker(messageEl.querySelector('.message-bubble'), messageId);
+          hideDeleteIcon();
+          renderEmojiPicker(messageId);
         }, 500);
         isMouseDown = true;
       });
@@ -942,8 +883,7 @@
         if (Math.abs(deltaX) > 50) {
           if (deltaX > 0) {
             showReplyContainer(messageId, messageContent);
-          } else {
-            deleteMessage(messageId);
+            hideDeleteIcon();
           }
           isMouseDown = false;
         }
@@ -951,6 +891,9 @@
 
       messageEl.addEventListener('mouseup', () => {
         if (longPressTimer) clearTimeout(longPressTimer);
+        if (isMouseDown) {
+          showDeleteIcon(messageEl, messageId);
+        }
         isMouseDown = false;
       });
 
@@ -1187,6 +1130,9 @@
                 const picker = document.querySelector('.emoji-picker');
                 if (picker && picker.classList.contains('active') && !e.target.closest('.emoji-picker') && !e.target.closest('.message-bubble')) {
                   hideEmojiPicker();
+                }
+                if (!e.target.closest('.message-bubble') && !e.target.closest('.delete-icon')) {
+                  hideDeleteIcon();
                 }
               });
             } else {
