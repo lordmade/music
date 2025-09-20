@@ -125,17 +125,6 @@
       color: white;
     }
 
-    .profile-actions .btn.follow {
-      background: var(--highlight);
-      color: white;
-    }
-
-    .profile-actions .btn.following {
-      background: var(--text-secondary);
-      color: white;
-    }
-
-    /* Grid View for Media */
     .media-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -199,7 +188,6 @@
       stroke: var(--badge-bg);
     }
 
-    /* Media Modal */
     .media-modal {
       position: fixed;
       top: 0;
@@ -252,7 +240,6 @@
       font-size: 0.875rem;
     }
 
-    /* Delete Confirmation Modal */
     .delete-modal {
       position: fixed;
       top: 0;
@@ -623,7 +610,6 @@
       </div>
       <div class="profile-actions" id="profile-actions">
         <!-- Edit Profile button added dynamically for owner -->
-        <!-- Follow button added dynamically for non-owner -->
         <button id="settings-btn" class="btn secondary">Settings</button>
       </div>
     </div>
@@ -668,15 +654,15 @@
       </button>
     </nav>
 
-    <div class="bottom-sheet" id="edit-sheet">
-      <button class="close-sheet" onclick="closeEditSheet(event)">
+    <div class="bottom-sheet" id="edit-sheet" role="dialog" aria-labelledby="edit-sheet-title" aria-modal="true">
+      <button class="close-sheet" onclick="closeEditSheet(event)" aria-label="Close edit profile">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M6 18L18 6M6 6l12 12"/>
         </svg>
       </button>
       <div class="bottom-sheet-content">
-        <h2>Edit Profile</h2>
-        <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
+        <h2 id="edit-sheet-title">Edit Profile</h2>
+        <input type="file" id="avatar-upload" accept="image/*">
         <label for="avatar-upload" class="btn">Change Avatar</label>
         <input type="text" id="edit-name" placeholder="Display Name">
         <textarea id="edit-bio" placeholder="Bio (optional)" rows="3"></textarea>
@@ -695,7 +681,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, update, query, orderByChild, equalTo, remove, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, update, query, orderByChild, equalTo, remove, set } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -741,18 +727,32 @@
             userId = new URLSearchParams(window.location.search).get('uid') || user.uid;
             isOwner = userId === user.uid;
             const profileActions = document.getElementById('profile-actions');
+            profileActions.innerHTML = ''; // Clear existing buttons
             if (isOwner) {
               const editButton = document.createElement('button');
               editButton.id = 'edit-profile-btn';
               editButton.className = 'btn';
               editButton.textContent = 'Edit Profile';
-              profileActions.insertBefore(editButton, document.getElementById('settings-btn'));
+              editButton.setAttribute('aria-label', 'Edit Profile');
+              profileActions.appendChild(editButton);
+              profileActions.appendChild(document.createElement('div')); // Spacer
+              const settingsButton = document.createElement('button');
+              settingsButton.id = 'settings-btn';
+              settingsButton.className = 'btn secondary';
+              settingsButton.textContent = 'Settings';
+              profileActions.appendChild(settingsButton);
             } else {
               const followButton = document.createElement('button');
               followButton.id = 'follow-btn';
               followButton.className = 'btn follow';
               followButton.textContent = 'Follow';
-              profileActions.insertBefore(followButton, document.getElementById('settings-btn'));
+              profileActions.appendChild(followButton);
+              profileActions.appendChild(document.createElement('div')); // Spacer
+              const settingsButton = document.createElement('button');
+              settingsButton.id = 'settings-btn';
+              settingsButton.className = 'btn secondary';
+              settingsButton.textContent = 'Settings';
+              profileActions.appendChild(settingsButton);
               checkFollowStatus();
             }
             update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() });
@@ -885,46 +885,41 @@
 
           for (const reel of reelsArray) {
             if (renderedReels.has(reel.reelId)) continue;
-            const userRef = ref(db, `users/${reel.userId}`);
-            onValue(userRef, async (userSnapshot) => {
-              const userData = userSnapshot.val();
-              const caption = reel.caption || '';
-              const div = document.createElement('div');
-              div.className = 'media-item';
-              div.dataset.reelId = reel.reelId;
-              const isVideo = reel.mediaType === 'video';
-              div.innerHTML = `
-                ${isVideo
-                  ? `<video src="${reel.mediaURL}" class="reel-media" muted autoplay loop playsinline></video>`
-                  : `<img src="${reel.mediaURL}" class="reel-media" alt="Reel image">`}
-                <div class="media-overlay">
-                  ${reel.userId === currentUser.uid ? `
-                    <button class="reel-action btn delete" onclick="openDeleteModal('${reel.reelId}')">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
-                      </svg>
-                    </button>
-                  ` : ''}
-                </div>
-              `;
-              mediaGrid.appendChild(div);
-              renderedReels.add(reel.reelId);
-              div.addEventListener('click', (e) => {
-                if (e.target.closest('.reel-action')) return;
-                if (reel.userId === currentUser.uid) {
-                  openDeleteModal(reel.reelId);
-                } else {
-                  openMediaModal(reel.reelId, reel.mediaURL, reel.mediaType, caption);
-                }
-              });
-              if (isVideo) {
-                const video = div.querySelector('.reel-media');
-                video.addEventListener('click', (e) => e.stopPropagation());
-                video.play().catch(() => {
-                  console.log('Autoplay prevented for video:', reel.mediaURL);
-                });
+            const div = document.createElement('div');
+            div.className = 'media-item';
+            div.dataset.reelId = reel.reelId;
+            const isVideo = reel.mediaType === 'video';
+            div.innerHTML = `
+              ${isVideo
+                ? `<video src="${reel.mediaURL}" class="reel-media" muted autoplay loop playsinline></video>`
+                : `<img src="${reel.mediaURL}" class="reel-media" alt="Reel image">`}
+              <div class="media-overlay">
+                ${reel.userId === currentUser.uid ? `
+                  <button class="reel-action btn delete" onclick="openDeleteModal('${reel.reelId}')" aria-label="Delete reel">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
+                    </svg>
+                  </button>
+                ` : ''}
+              </div>
+            `;
+            mediaGrid.appendChild(div);
+            renderedReels.add(reel.reelId);
+            div.addEventListener('click', (e) => {
+              if (e.target.closest('.reel-action')) return;
+              if (reel.userId === currentUser.uid) {
+                openDeleteModal(reel.reelId);
+              } else {
+                openMediaModal(reel.reelId, reel.mediaURL, reel.mediaType, reel.caption || '');
               }
-            }, { onlyOnce: true });
+            });
+            if (isVideo) {
+              const video = div.querySelector('.reel-media');
+              video.addEventListener('click', (e) => e.stopPropagation());
+              video.play().catch(() => {
+                console.log('Autoplay prevented for video:', reel.mediaURL);
+              });
+            }
           }
           hideSpinner();
         }, (error) => {
@@ -987,7 +982,8 @@
           document.getElementById('media-grid').innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">No reels yet.</p>';
         }
       } catch (error) {
-        showAlert('Failed to delete reel. Please try again.');
+        showAlert('Failed to delete reel: ' + error.message);
+        console.error('Delete error:', error);
       } finally {
         hideSpinner();
       }
@@ -1002,6 +998,7 @@
       nameInput.value = currentName;
       bioInput.value = currentBio;
       sheet.classList.add('active');
+      console.log('Edit sheet opened'); // Debug
     }
 
     function closeEditSheet(event) {
@@ -1010,135 +1007,147 @@
       sheet.classList.remove('active');
       document.getElementById('edit-name').value = '';
       document.getElementById('edit-bio').value = '';
+      document.getElementById('avatar-upload').value = ''; // Reset file input
     }
 
-    document.addEventListener('click', (e) => {
-      if (e.target.id === 'edit-profile-btn') {
-        e.stopPropagation();
-        openEditSheet();
-      } else if (e.target.id === 'follow-btn') {
-        e.stopPropagation();
-        toggleFollow();
-      } else if (e.target.id === 'confirm-delete') {
-        e.stopPropagation();
-        const modal = document.getElementById('delete-modal');
-        const reelId = modal.dataset.reelId;
-        if (reelId) {
-          deleteReel(reelId);
+    // Initialize event listeners
+    function setupEventListeners() {
+      // Edit Profile button
+      document.getElementById('profile-actions').addEventListener('click', (e) => {
+        if (e.target.id === 'edit-profile-btn') {
+          e.stopPropagation();
+          console.log('Edit Profile button clicked'); // Debug
+          openEditSheet();
+        } else if (e.target.id === 'follow-btn') {
+          e.stopPropagation();
+          toggleFollow();
+        } else if (e.target.id === 'settings-btn') {
+          e.stopPropagation();
+          showAlert('Settings coming soon!');
+        }
+      });
+
+      // Delete modal buttons
+      document.getElementById('delete-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'confirm-delete') {
+          e.stopPropagation();
+          const modal = document.getElementById('delete-modal');
+          const reelId = modal.dataset.reelId;
+          if (reelId) {
+            deleteReel(reelId);
+            closeDeleteModal();
+          }
+        } else if (e.target.id === 'cancel-delete') {
+          e.stopPropagation();
           closeDeleteModal();
         }
-      } else if (e.target.id === 'cancel-delete') {
+      });
+
+      // Edit sheet buttons
+      document.getElementById('cancel-edit').addEventListener('click', closeEditSheet);
+
+      document.getElementById('save-profile').addEventListener('click', async (e) => {
         e.stopPropagation();
-        closeDeleteModal();
-      }
-    });
-
-    document.getElementById('cancel-edit').addEventListener('click', closeEditSheet);
-
-    document.getElementById('avatar-upload').addEventListener('change', async (e) => {
-      e.stopPropagation();
-      const file = e.target.files[0];
-      if (!file) return;
-      if (!file.type.startsWith('image/')) {
-        showAlert('Please select an image file.');
-        return;
-      }
-      showSpinner();
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-          method: 'POST',
-          body: formData
-        });
-        const data = await response.json();
-        if (data.secure_url) {
-          await update(ref(db, `users/${currentUser.uid}`), { photoURL: data.secure_url });
-          showAlert('Avatar updated successfully.');
-        } else {
-          showAlert('Failed to upload avatar.');
+        const name = document.getElementById('edit-name').value.trim();
+        const bio = document.getElementById('edit-bio').value.trim();
+        if (!name) {
+          showAlert('Name is required.');
+          return;
         }
-      } catch (error) {
-        showAlert('Failed to upload avatar. Please try again.');
-      } finally {
-        hideSpinner();
-      }
-    });
+        showSpinner();
+        try {
+          await update(ref(db, `users/${currentUser.uid}`), { 
+            displayName: name,
+            bio: bio || null 
+          });
+          showAlert('Profile updated successfully.');
+          closeEditSheet();
+          loadProfile();
+        } catch (error) {
+          showAlert('Failed to update profile: ' + error.message);
+          console.error('Profile update error:', error);
+        } finally {
+          hideSpinner();
+        }
+      });
 
-    document.getElementById('save-profile').addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const name = document.getElementById('edit-name').value.trim();
-      const bio = document.getElementById('edit-bio').value.trim();
-      if (!name) {
-        showAlert('Name is required.');
-        return;
-      }
-      showSpinner();
-      try {
-        await update(ref(db, `users/${currentUser.uid}`), { 
-          displayName: name,
-          bio: bio || null 
-        });
-        showAlert('Profile updated successfully.');
-        closeEditSheet();
-        loadProfile();
-      } catch (error) {
-        showAlert('Failed to update profile. Please try again.');
-      } finally {
-        hideSpinner();
-      }
-    });
+      document.getElementById('avatar-upload').addEventListener('change', async (e) => {
+        e.stopPropagation();
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+          showAlert('Please select an image file.');
+          return;
+        }
+        showSpinner();
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+          const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+            method: 'POST',
+            body: formData
+          });
+          const data = await response.json();
+          if (data.secure_url) {
+            await update(ref(db, `users/${currentUser.uid}`), { photoURL: data.secure_url });
+            showAlert('Avatar updated successfully.');
+            loadProfile();
+          } else {
+            showAlert('Failed to upload avatar.');
+          }
+        } catch (error) {
+          showAlert('Failed to upload avatar: ' + error.message);
+          console.error('Avatar upload error:', error);
+        } finally {
+          hideSpinner();
+        }
+      });
 
-    document.getElementById('settings-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      showAlert('Settings coming soon!');
-    });
+      // Navigation buttons
+      document.getElementById('home-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.location.href = 'index.html';
+      });
 
-    document.getElementById('home-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      window.location.href = 'index.html';
-    });
+      document.getElementById('home-btn-mobile').addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.location.href = 'index.html';
+      });
 
-    document.getElementById('home-btn-mobile').addEventListener('click', (e) => {
-      e.stopPropagation();
-      window.location.href = 'index.html';
-    });
+      document.getElementById('friends-nav-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.location.href = 'friends.html';
+      });
 
-    document.getElementById('friends-nav-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      window.location.href = 'friends.html';
-    });
+      document.getElementById('friends-nav-btn-mobile').addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.location.href = 'friends.html';
+      });
 
-    document.getElementById('friends-nav-btn-mobile').addEventListener('click', (e) => {
-      e.stopPropagation();
-      window.location.href = 'friends.html';
-    });
+      // Close modals/sheets on outside click
+      document.addEventListener('click', (e) => {
+        const editSheet = document.getElementById('edit-sheet');
+        const deleteModal = document.getElementById('delete-modal');
+        const mediaModal = document.getElementById('media-modal');
+        const navItems = document.querySelectorAll('.nav-item');
+        const isNavClick = Array.from(navItems).some(item => item.contains(e.target));
+        if ((editSheet.classList.contains('active') || deleteModal.classList.contains('active') || mediaModal.classList.contains('active')) &&
+            !editSheet.contains(e.target) && !deleteModal.contains(e.target) && !mediaModal.contains(e.target) && !isNavClick) {
+          closeEditSheet();
+          closeDeleteModal();
+          closeMediaModal();
+        }
+      });
+    }
 
-    document.getElementById('edit-sheet').addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
-
-    document.addEventListener('click', (e) => {
-      const editSheet = document.getElementById('edit-sheet');
-      const deleteModal = document.getElementById('delete-modal');
-      const mediaModal = document.getElementById('media-modal');
-      const navItems = document.querySelectorAll('.nav-item');
-      const isNavClick = Array.from(navItems).some(item => item.contains(e.target));
-      if ((editSheet.classList.contains('active') || deleteModal.classList.contains('active') || mediaModal.classList.contains('active')) &&
-          !editSheet.contains(e.target) && !deleteModal.contains(e.target) && !mediaModal.contains(e.target) && !isNavClick) {
-        closeEditSheet();
-        closeDeleteModal();
-        closeMediaModal();
-      }
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeFirebase();
+      setupEventListeners();
     });
 
     document.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-      initializeFirebase();
     });
 
     window.deleteReel = deleteReel;
