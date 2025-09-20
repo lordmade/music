@@ -158,6 +158,57 @@
       object-fit: cover;
     }
 
+    .media-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .media-item:hover .media-overlay {
+      opacity: 1;
+    }
+
+    .media-overlay .reel-action {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .media-overlay .reel-action svg {
+      width: 24px;
+      height: 24px;
+      stroke: white;
+      stroke-width: 1.5;
+    }
+
+    .media-overlay .reel-action.liked svg {
+      fill: var(--badge-bg);
+      stroke: var(--badge-bg);
+    }
+
+    .media-overlay .reel-action.bookmarked svg {
+      fill: white;
+      stroke: white;
+    }
+
+    .media-overlay .reel-action.delete svg {
+      stroke: var(--badge-bg);
+    }
+
     /* Media Modal */
     .media-modal {
       position: fixed;
@@ -180,48 +231,82 @@
       position: relative;
       max-width: 90%;
       max-height: 90%;
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 16px;
-      text-align: center;
     }
 
     .media-modal-content video, .media-modal-content img {
       width: 100%;
-      max-height: 60vh;
+      height: 100%;
       object-fit: contain;
-      border-radius: 8px;
     }
 
-    .media-modal-actions {
-      margin-top: 16px;
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-    }
-
-    .media-modal-actions .btn {
-      background: var(--highlight);
+    .media-modal-close {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      background: none;
+      border: none;
       color: white;
-      font-weight: 600;
-    }
-
-    .media-modal-actions .btn.delete {
-      background: var(--badge-bg);
-    }
-
-    .media-modal-actions .btn.cancel {
-      background: var(--text-secondary);
-    }
-
-    .media-modal-actions .btn:hover {
-      opacity: 0.8;
+      font-size: 2rem;
+      cursor: pointer;
     }
 
     .media-caption {
-      color: var(--text-primary);
-      padding: 8px 0;
+      position: absolute;
+      bottom: -40px;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 0.5rem;
+      text-align: center;
       font-size: 0.875rem;
+    }
+
+    /* Delete Confirmation Modal */
+    .delete-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1001;
+    }
+
+    .delete-modal.active {
+      display: flex;
+    }
+
+    .delete-modal-content {
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      max-width: 90%;
+      width: 400px;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+
+    .delete-modal-content h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .delete-modal-content p {
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+      font-size: 1rem;
+    }
+
+    .delete-modal-content .btn {
+      margin: 0 0.5rem;
     }
 
     .bottom-nav {
@@ -377,6 +462,25 @@
     .bottom-sheet button.secondary {
       background: var(--border);
       color: var(--text-secondary);
+    }
+
+    .love-animation {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      color: var(--badge-bg);
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0;
+      animation: loveFloat 0.6s ease-out forwards;
+    }
+
+    @keyframes loveFloat {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(0deg); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(180deg); }
+      100% { opacity: 0; transform: translate(-50%, -50%) translateY(-100px) scale(1) rotate(360deg); }
     }
 
     .alert {
@@ -558,12 +662,17 @@
     </div>
 
     <div class="media-modal" id="media-modal">
-      <div class="media-modal-content">
-        <div id="media-modal-preview"></div>
-        <div class="media-caption" id="media-caption"></div>
-        <div class="media-modal-actions">
-          <button class="btn cancel" onclick="closeMediaModal()">Cancel</button>
-        </div>
+      <button class="media-modal-close" onclick="closeMediaModal()">✕</button>
+      <div class="media-modal-content" id="media-modal-content"></div>
+      <div class="media-caption" id="media-caption"></div>
+    </div>
+
+    <div class="delete-modal" id="delete-modal" role="dialog" aria-labelledby="delete-modal-title" aria-modal="true">
+      <div class="delete-modal-content">
+        <h2 id="delete-modal-title">Delete Reel</h2>
+        <p>Are you sure you want to delete this reel? This action cannot be undone.</p>
+        <button id="confirm-delete" class="btn">Delete</button>
+        <button id="cancel-delete" class="btn secondary">Cancel</button>
       </div>
     </div>
 
@@ -605,6 +714,19 @@
       </div>
     </div>
 
+    <div class="bottom-sheet" id="comment-sheet">
+      <button class="close-sheet" onclick="closeBottomSheet(event)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+      <div class="bottom-sheet-content" id="comment-sheet-content">
+        <div class="comment-list" id="comment-list"></div>
+        <textarea id="comment-input" placeholder="Add a comment..." rows="2"></textarea>
+        <button class="btn" id="submit-comment">Post</button>
+      </div>
+    </div>
+
     <div id="spinner-overlay" class="spinner-overlay">
       <div class="spinner"></div>
     </div>
@@ -615,7 +737,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, update, query, orderByChild, equalTo, remove, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, update, query, orderByChild, equalTo, push, remove, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -632,6 +754,11 @@
     const CLOUDINARY_UPLOAD_PRESET = 'banter_box';
 
     let app, auth, db, currentUser, userId, isOwner;
+    let activeCommentReelId = null;
+    let commentListeners = new Map();
+    let commentsLoaded = 0;
+    let lastCommentTimestamp = 0;
+    const COMMENTS_PER_PAGE = 10;
 
     const showSpinner = () => {
       document.getElementById('spinner-overlay').classList.add('active');
@@ -648,6 +775,14 @@
       alert.textContent = message;
       alert.classList.add('active');
       setTimeout(() => alert.classList.remove('active'), 3000);
+    };
+
+    const showLoveAnimation = (element) => {
+      const heart = document.createElement('div');
+      heart.innerHTML = '❤️';
+      heart.className = 'love-animation';
+      element.appendChild(heart);
+      setTimeout(() => heart.remove(), 600);
     };
 
     function initializeFirebase() {
@@ -809,6 +944,7 @@
             onValue(userRef, async (userSnapshot) => {
               const userData = userSnapshot.val();
               const caption = reel.caption || '';
+              await trackImpression(reel.reelId);
               const div = document.createElement('div');
               div.className = 'media-item';
               div.dataset.reelId = reel.reelId;
@@ -817,11 +953,42 @@
                 ${isVideo
                   ? `<video src="${reel.mediaURL}" class="reel-media" muted autoplay loop playsinline></video>`
                   : `<img src="${reel.mediaURL}" class="reel-media" alt="Reel image">`}
+                <div class="media-overlay">
+                  <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                    </svg>
+                    <span>${Object.keys(reel.likedBy || {}).length}</span>
+                  </button>
+                  <button class="reel-action btn" onclick="openBottomSheet('comment', '${reel.reelId}')">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                    <span>${Object.keys(reel.comments || {}).length}</span>
+                  </button>
+                  <button class="reel-action btn ${reel.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reel.reelId}', this)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
+                    </svg>
+                  </button>
+                  ${reel.userId === currentUser.uid ? `
+                    <button class="reel-action btn delete" onclick="openDeleteModal('${reel.reelId}')">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
+                      </svg>
+                    </button>
+                  ` : ''}
+                </div>
               `;
               mediaGrid.appendChild(div);
               renderedReels.add(reel.reelId);
-              div.addEventListener('click', () => {
-                openMediaModal(reel.reelId, reel.mediaURL, reel.mediaType, caption, reel.userId);
+              div.addEventListener('click', (e) => {
+                if (e.target.closest('.reel-action')) return;
+                if (reel.userId === currentUser.uid) {
+                  openDeleteModal(reel.reelId);
+                } else {
+                  openMediaModal(reel.reelId, reel.mediaURL, reel.mediaType, caption);
+                }
               });
               if (isVideo) {
                 const video = div.querySelector('.reel-media');
@@ -843,31 +1010,37 @@
       }
     }
 
-    function openMediaModal(reelId, mediaURL, mediaType, caption, reelOwnerId) {
+    function openMediaModal(reelId, mediaURL, mediaType, caption) {
       const modal = document.getElementById('media-modal');
-      const modalPreview = document.getElementById('media-modal-preview');
+      const modalContent = document.getElementById('media-modal-content');
       const modalCaption = document.getElementById('media-caption');
-      const modalActions = document.querySelector('.media-modal-actions');
-      modalPreview.innerHTML = mediaType === 'video'
+      modalContent.innerHTML = mediaType === 'video'
         ? `<video src="${mediaURL}" controls autoplay playsinline></video>`
         : `<img src="${mediaURL}" alt="Reel image">`;
       modalCaption.textContent = caption;
-      modalActions.innerHTML = `
-        ${reelOwnerId === currentUser?.uid ? `<button class="btn delete" onclick="deleteReel('${reelId}')">Delete</button>` : ''}
-        <button class="btn cancel" onclick="closeMediaModal()">Cancel</button>
-      `;
       modal.classList.add('active');
     }
 
     function closeMediaModal() {
       const modal = document.getElementById('media-modal');
-      const modalPreview = document.getElementById('media-modal-preview');
-      const video = modalPreview.querySelector('video');
+      const modalContent = document.getElementById('media-modal-content');
+      const video = modalContent.querySelector('video');
       if (video) video.pause();
       modal.classList.remove('active');
-      modalPreview.innerHTML = '';
+      modalContent.innerHTML = '';
       document.getElementById('media-caption').textContent = '';
-      document.querySelector('.media-modal-actions').innerHTML = '<button class="btn cancel" onclick="closeMediaModal()">Cancel</button>';
+    }
+
+    function openDeleteModal(reelId) {
+      const modal = document.getElementById('delete-modal');
+      modal.dataset.reelId = reelId;
+      modal.classList.add('active');
+    }
+
+    function closeDeleteModal() {
+      const modal = document.getElementById('delete-modal');
+      modal.classList.remove('active');
+      delete modal.dataset.reelId;
     }
 
     async function deleteReel(reelId) {
@@ -879,7 +1052,6 @@
       try {
         await remove(ref(db, `reels/${reelId}`));
         showAlert('Reel deleted successfully.');
-        closeMediaModal();
         const reelDiv = document.querySelector(`.media-item[data-reel-id="${reelId}"]`);
         if (reelDiv) reelDiv.remove();
         const reelsCount = parseInt(document.getElementById('reels-count').textContent) || 0;
@@ -894,37 +1066,283 @@
       }
     }
 
-    async function loadProfile() {
-      if (!userId) return;
-      showSpinner();
-      const userRef = ref(db, `users/${userId}`);
+    async function trackImpression(reelId, button = null) {
+      if (!currentUser) return;
       try {
-        onValue(userRef, (snapshot) => {
-          const userData = snapshot.val();
-          if (!userData) {
-            showAlert('User not found.');
-            hideSpinner();
+        const reelRef = ref(db, `reels/${reelId}/impressions/${currentUser.uid}`);
+        onValue(reelRef, async (snapshot) => {
+          if (!snapshot.exists()) {
+            await update(ref(db, `reels/${reelId}/impressions`), { [currentUser.uid]: true });
+            if (button) {
+              const countSpan = button.querySelector('span');
+              const currentCount = parseInt(countSpan.textContent) || 0;
+              countSpan.textContent = currentCount + 1;
+            }
+          }
+        }, { onlyOnce: true });
+      } catch (error) {
+        showAlert('Failed to track impression.');
+      }
+    }
+
+    async function toggleLike(reelId, button) {
+      if (!currentUser) {
+        showAlert('Please log in to like reels.');
+        return;
+      }
+      try {
+        const isLiked = button.classList.contains('liked');
+        const countSpan = button.querySelector('span');
+        const currentCount = parseInt(countSpan.textContent) || 0;
+        await update(ref(db, `reels/${reelId}/likedBy`), { [currentUser.uid]: isLiked ? null : true });
+        button.classList.toggle('liked');
+        countSpan.textContent = isLiked ? currentCount - 1 : currentCount + 1;
+        if (!isLiked) showLoveAnimation(button.closest('.media-item'));
+      } catch (error) {
+        showAlert('Failed to like reel. Please try again.');
+      }
+    }
+
+    async function toggleBookmark(reelId, button) {
+      if (!currentUser) {
+        showAlert('Please log in to bookmark reels.');
+        return;
+      }
+      try {
+        const isBookmarked = button.classList.contains('bookmarked');
+        await update(ref(db, `reels/${reelId}/bookmarkedBy`), { [currentUser.uid]: isBookmarked ? null : true });
+        button.classList.toggle('bookmarked');
+        showAlert(isBookmarked ? 'Removed from bookmarks' : 'Saved to bookmarks');
+      } catch (error) {
+        showAlert('Failed to bookmark reel. Please try again.');
+      }
+    }
+
+    async function loadComments(reelId) {
+      const commentList = document.getElementById('comment-list');
+      commentList.innerHTML = '';
+      const commentsRef = query(ref(db, `reels/${reelId}/comments`), limitToLast(COMMENTS_PER_PAGE));
+      try {
+        if (commentListeners.has(reelId)) {
+          commentListeners.get(reelId)();
+          commentListeners.delete(reelId);
+        }
+        const unsubscribe = onValue(commentsRef, async (snapshot) => {
+          commentList.innerHTML = '';
+          const comments = snapshot.val();
+          if (!comments) {
+            commentList.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No comments yet.</p>';
             return;
           }
-          document.getElementById('profile-name').textContent = userData.displayName || 'User';
-          document.getElementById('profile-bio').textContent = userData.bio || '';
-          const avatar = document.getElementById('profile-avatar');
-          const defaultAvatar = document.getElementById('default-avatar');
-          const avatarInitial = document.getElementById('avatar-initial');
-          if (userData.photoURL) {
-            avatar.src = userData.photoURL;
-            avatar.style.display = 'block';
-            defaultAvatar.style.display = 'none';
-          } else {
-            avatarInitial.textContent = (userData.displayName || 'U')[0].toUpperCase();
-            avatar.style.display = 'none';
-            defaultAvatar.style.display = 'block';
+          const commentArray = Object.entries(comments)
+            .map(([commentId, commentData]) => ({ commentId, ...commentData }))
+            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          commentsLoaded = commentArray.length;
+          for (const comment of commentArray) {
+            const userRef = ref(db, `users/${comment.userId}`);
+            onValue(userRef, async (userSnapshot) => {
+              const userData = userSnapshot.val();
+              const commentText = comment.comment;
+              const replyCount = Object.keys(comment.replies || {}).length;
+              const isOwnComment = currentUser && comment.userId === currentUser.uid;
+              const commentDiv = document.createElement('div');
+              commentDiv.className = `comment-item ${comment.parentId ? 'reply' : ''}`;
+              commentDiv.innerHTML = `
+                <div class="comment-header">
+                  ${userData?.photoURL
+                    ? `<img src="${userData.photoURL}" class="comment-profile-pic" alt="${userData.displayName}'s profile picture">`
+                    : `<div class="comment-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+                  <div class="comment-username">${userData?.displayName || 'User'}</div>
+                  <div class="comment-timestamp">${formatTimestamp(comment.timestamp)}</div>
+                  ${isOwnComment ? `
+                    <button class="delete-comment" onclick="deleteComment('${reelId}', '${comment.commentId}')">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
+                      </svg>
+                    </button>
+                  ` : ''}
+                </div>
+                <div class="comment-text">${commentText}</div>
+                <div class="reply-link" onclick="showReplyInput('${comment.commentId}')">Reply${replyCount > 0 ? ` (${replyCount})` : ''}</div>
+                <div class="reply-input" id="reply-input-${comment.commentId}">
+                  <textarea placeholder="Add a reply..." rows="2"></textarea>
+                  <button class="btn" onclick="submitReply('${reelId}', '${comment.commentId}')">Post</button>
+                  <button class="btn cancel-reply" onclick="showReplyInput('${comment.commentId}')">Cancel</button>
+                </div>
+                <div class="replies" id="replies-${comment.commentId}"></div>
+              `;
+              commentList.appendChild(commentDiv);
+              if (comment.replies) {
+                const repliesDiv = commentDiv.querySelector(`#replies-${comment.commentId}`);
+                const replyArray = Object.entries(comment.replies)
+                  .map(([replyId, replyData]) => ({ replyId, ...replyData }))
+                  .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                for (const reply of replyArray) {
+                  const replyUserRef = ref(db, `users/${reply.userId}`);
+                  onValue(replyUserRef, async (replyUserSnapshot) => {
+                    const replyUserData = replyUserSnapshot.val();
+                    const replyText = reply.comment;
+                    const isOwnReply = currentUser && reply.userId === currentUser.uid;
+                    const replyDiv = document.createElement('div');
+                    replyDiv.className = 'comment-item reply';
+                    replyDiv.innerHTML = `
+                      <div class="comment-header">
+                        ${replyUserData?.photoURL
+                          ? `<img src="${replyUserData.photoURL}" class="comment-profile-pic" alt="${replyUserData.displayName}'s profile picture">`
+                          : `<div class="comment-avatar">${replyUserData?.displayName ? replyUserData.displayName[0].toUpperCase() : 'U'}</div>`}
+                        <div class="comment-username">${replyUserData?.displayName || 'User'}</div>
+                        <div class="comment-timestamp">${formatTimestamp(reply.timestamp)}</div>
+                        ${isOwnReply ? `
+                          <button class="delete-comment" onclick="deleteComment('${reelId}', '${reply.replyId}', '${comment.commentId}')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
+                            </svg>
+                          </button>
+                        ` : ''}
+                      </div>
+                      <div class="comment-text">${replyText}</div>
+                      <div class="reply-link" onclick="showReplyInput('${reply.replyId}')">Reply</div>
+                      <div class="reply-input" id="reply-input-${reply.replyId}">
+                        <textarea placeholder="Add a reply..." rows="2"></textarea>
+                        <button class="btn" onclick="submitReply('${reelId}', '${reply.replyId}')">Post</button>
+                        <button class="btn cancel-reply" onclick="showReplyInput('${reply.replyId}')">Cancel</button>
+                      </div>
+                    `;
+                    repliesDiv.appendChild(replyDiv);
+                  }, { onlyOnce: true });
+                }
+              }
+            }, { onlyOnce: true });
           }
-          hideSpinner();
+          if (commentsLoaded >= COMMENTS_PER_PAGE) {
+            const loadMoreBtn = document.createElement('button');
+            loadMoreBtn.className = 'load-more btn';
+            loadMoreBtn.textContent = 'Load more comments';
+            loadMoreBtn.onclick = () => loadMoreComments(reelId);
+            commentList.appendChild(loadMoreBtn);
+          }
         }, { onlyOnce: false });
+        commentListeners.set(reelId, unsubscribe);
       } catch (error) {
-        showAlert('Failed to load profile. Please try again.');
-        hideSpinner();
+        showAlert('Failed to load comments. Please try again.');
+      }
+    }
+
+    async function loadMoreComments(reelId) {
+      const commentsRef = query(ref(db, `reels/${reelId}/comments`), limitToLast(commentsLoaded + COMMENTS_PER_PAGE));
+      try {
+        onValue(commentsRef, () => {
+          loadComments(reelId);
+        }, { onlyOnce: true });
+      } catch (error) {
+        showAlert('Failed to load more comments. Please try again.');
+      }
+    }
+
+    function formatTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHr = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHr / 24);
+      const diffWeek = Math.floor(diffDay / 7);
+      const diffMonth = Math.floor(diffDay / 30);
+      const diffYear = Math.floor(diffDay / 365);
+      if (diffSec < 60) return `${diffSec} second${diffSec === 1 ? '' : 's'} ago`;
+      if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+      if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
+      if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
+      if (diffWeek < 4) return `${diffWeek} week${diffWeek === 1 ? '' : 's'} ago`;
+      if (diffMonth < 12) return `${diffMonth} month${diffMonth === 1 ? '' : 's'} ago`;
+      return `${diffYear} year${diffYear === 1 ? '' : 's'} ago`;
+    }
+
+    async function deleteComment(reelId, commentId, parentId = null) {
+      if (!currentUser) {
+        showAlert('Please log in to delete comments.');
+        return;
+      }
+      try {
+        const path = parentId ? `reels/${reelId}/comments/${parentId}/replies/${commentId}` : `reels/${reelId}/comments/${commentId}`;
+        await remove(ref(db, path));
+        showAlert('Comment deleted successfully.');
+        loadComments(reelId);
+      } catch (error) {
+        showAlert('Failed to delete comment. Please try again.');
+      }
+    }
+
+    function showReplyInput(commentId) {
+      const replyInput = document.getElementById(`reply-input-${commentId}`);
+      replyInput.classList.toggle('active');
+      if (!replyInput.classList.contains('active')) {
+        replyInput.querySelector('textarea').value = '';
+      }
+    }
+
+    async function submitReply(reelId, parentId) {
+      if (!currentUser) {
+        showAlert('Please log in to comment.');
+        return;
+      }
+      const now = Date.now();
+      if (now - lastCommentTimestamp < 3000) {
+        showAlert('Please wait a few seconds before posting another reply.');
+        return;
+      }
+      const replyInput = document.getElementById(`reply-input-${parentId}`).querySelector('textarea');
+      const replyText = replyInput.value.trim();
+      if (!replyText) {
+        showAlert('Please enter a reply.');
+        return;
+      }
+      try {
+        await push(ref(db, `reels/${reelId}/comments/${parentId}/replies`), {
+          userId: currentUser.uid,
+          comment: replyText,
+          timestamp: new Date().toISOString(),
+          parentId
+        });
+        lastCommentTimestamp = now;
+        replyInput.value = '';
+        document.getElementById(`reply-input-${parentId}`).classList.remove('active');
+        loadComments(reelId);
+      } catch (error) {
+        showAlert('Failed to add reply. Please try again.');
+      }
+    }
+
+    async function submitComment(reelId) {
+      if (!currentUser) {
+        showAlert('Please log in to comment.');
+        return;
+      }
+      const now = Date.now();
+      if (now - lastCommentTimestamp < 3000) {
+        showAlert('Please wait a few seconds before posting another comment.');
+        return;
+      }
+      const commentInput = document.getElementById('comment-input');
+      const commentText = commentInput.value.trim();
+      if (!commentText) {
+        showAlert('Please enter a comment.');
+        return;
+      }
+      try {
+        const commentsRef = ref(db, `reels/${reelId}/comments`);
+        await push(commentsRef, {
+          userId: currentUser.uid,
+          comment: commentText,
+          timestamp: new Date().toISOString(),
+          parentId: null
+        });
+        lastCommentTimestamp = now;
+        commentInput.value = '';
+        loadComments(reelId);
+      } catch (error) {
+        showAlert('Failed to add comment. Please try again.');
       }
     }
 
@@ -947,6 +1365,26 @@
       document.getElementById('edit-bio').value = '';
     }
 
+    function openBottomSheet(type, reelId = null, event = null) {
+      if (event) event.stopPropagation();
+      if (type === 'comment') {
+        document.getElementById('comment-sheet').classList.add('active');
+        activeCommentReelId = reelId;
+        loadComments(reelId);
+      }
+    }
+
+    function closeBottomSheet(event) {
+      if (event) event.stopPropagation();
+      document.getElementById('comment-sheet').classList.remove('active');
+      document.getElementById('comment-input').value = '';
+      document.getElementById('comment-list').innerHTML = '';
+      activeCommentReelId = null;
+      commentListeners.forEach((unsubscribe) => unsubscribe());
+      commentListeners.clear();
+      commentsLoaded = 0;
+    }
+
     document.addEventListener('click', (e) => {
       if (e.target.id === 'edit-profile-btn') {
         e.stopPropagation();
@@ -954,6 +1392,17 @@
       } else if (e.target.id === 'follow-btn') {
         e.stopPropagation();
         toggleFollow();
+      } else if (e.target.id === 'confirm-delete') {
+        e.stopPropagation();
+        const modal = document.getElementById('delete-modal');
+        const reelId = modal.dataset.reelId;
+        if (reelId) {
+          deleteReel(reelId);
+          closeDeleteModal();
+        }
+      } else if (e.target.id === 'cancel-delete') {
+        e.stopPropagation();
+        closeDeleteModal();
       }
     });
 
@@ -1043,14 +1492,29 @@
       e.stopPropagation();
     });
 
+    document.getElementById('comment-sheet-content').addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    document.getElementById('submit-comment').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (activeCommentReelId) {
+        submitComment(activeCommentReelId);
+      }
+    });
+
     document.addEventListener('click', (e) => {
       const editSheet = document.getElementById('edit-sheet');
+      const commentSheet = document.getElementById('comment-sheet');
+      const deleteModal = document.getElementById('delete-modal');
       const mediaModal = document.getElementById('media-modal');
       const navItems = document.querySelectorAll('.nav-item');
       const isNavClick = Array.from(navItems).some(item => item.contains(e.target));
-      if ((editSheet.classList.contains('active') || mediaModal.classList.contains('active')) &&
-          !editSheet.contains(e.target) && !mediaModal.contains(e.target) && !isNavClick) {
+      if ((editSheet.classList.contains('active') || commentSheet.classList.contains('active') || deleteModal.classList.contains('active') || mediaModal.classList.contains('active')) &&
+          !editSheet.contains(e.target) && !commentSheet.contains(e.target) && !deleteModal.contains(e.target) && !mediaModal.contains(e.target) && !isNavClick) {
         closeEditSheet();
+        closeBottomSheet();
+        closeDeleteModal();
         closeMediaModal();
       }
     });
@@ -1063,10 +1527,20 @@
       initializeFirebase();
     });
 
+    window.toggleLike = toggleLike;
+    window.toggleBookmark = toggleBookmark;
+    window.trackImpression = trackImpression;
+    window.showReplyInput = showReplyInput;
+    window.submitReply = submitReply;
+    window.deleteComment = deleteComment;
     window.deleteReel = deleteReel;
+    window.openBottomSheet = openBottomSheet;
+    window.closeBottomSheet = closeBottomSheet;
+    window.closeEditSheet = closeEditSheet;
     window.openMediaModal = openMediaModal;
     window.closeMediaModal = closeMediaModal;
-    window.closeEditSheet = closeEditSheet;
+    window.openDeleteModal = openDeleteModal;
+    window.closeDeleteModal = closeDeleteModal;
   </script>
 </body>
 </html>
