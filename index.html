@@ -1043,14 +1043,27 @@ function reportReel(reelId) {
       return array;
     }
 
-    async function loadReels() {
-  console.log('Loading reels');
+    // Replace the loadReels function in the <script type="module"> section
+
+async function loadReels() {
+  console.log('Loading reels and ads');
   showSpinner();
   const reelsRef = ref(db, 'reels');
+  const adsRef = ref(db, 'ads');
   const renderedReels = new Set();
   const urlParams = new URLSearchParams(window.location.search);
   const targetReelId = urlParams.get('reelId');
   try {
+    let adsArray = [];
+    onValue(adsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        adsArray = Object.entries(snapshot.val())
+          .map(([adId, adData]) => ({ adId, ...adData, isAd: true }))
+          .filter(ad => ad.mediaType === 'image' || ad.mediaType === 'video');
+        console.log('Fetched', adsArray.length, 'ads');
+      }
+    }, { onlyOnce: true });
+
     onValue(reelsRef, async (snapshot) => {
       console.log('Reels snapshot received:', snapshot.exists());
       const reelsContainer = document.getElementById('reels-container');
@@ -1066,96 +1079,111 @@ function reportReel(reelId) {
       const reelsArray = Object.entries(reels)
         .map(([reelId, reelData]) => ({ reelId, ...reelData }));
       const randomizedReels = shuffleArray(reelsArray);
+      
+      // Insert ads every 3 reels
+      const combinedArray = [];
+      for (let i = 0; i < randomizedReels.length; i++) {
+        combinedArray.push(randomizedReels[i]);
+        if ((i + 1) % 3 === 0 && adsArray.length > 0) {
+          const randomAd = adsArray[Math.floor(Math.random() * adsArray.length)];
+          combinedArray.push(randomAd);
+        }
+      }
 
-      if (reelsContainer.children.length !== randomizedReels.length) {
+      if (reelsContainer.children.length !== combinedArray.length) {
         reelsContainer.innerHTML = '';
         renderedReels.clear();
         pauseAllVideos();
       }
 
-      for (const reel of randomizedReels) {
-        if (renderedReels.has(reel.reelId)) continue;
-        const userRef = ref(db, `users/${reel.userId}`);
+      for (const item of combinedArray) {
+        if (renderedReels.has(item.reelId || item.adId)) continue;
+        const userRef = ref(db, `users/${item.userId}`);
         try {
           onValue(userRef, async (userSnapshot) => {
             const userData = userSnapshot.val();
-            console.log('User data for reel', reel.reelId, ':', userData);
-            const caption = reel.caption || '';
-            const isFollowing = await checkFollowingStatus(currentUser.uid, reel.userId);
-            await trackImpression(reel.reelId);
+            console.log('User data for', item.isAd ? 'ad' : 'reel', item.reelId || item.adId, ':', userData);
+            const caption = item.caption || '';
+            const isFollowing = item.isAd ? false : await checkFollowingStatus(currentUser.uid, item.userId);
+            await trackImpression(item.reelId || item.adId);
             const div = document.createElement('div');
             div.className = 'reel';
-            div.dataset.reelId = reel.reelId;
-            const isVideo = reel.mediaType === 'video';
+            div.dataset.reelId = item.reelId || item.adId;
+            const isVideo = item.mediaType === 'video';
             div.innerHTML = `
               ${isVideo
-                ? `<video class="reel-media" src="${reel.mediaURL}" playsinline loop></video>
+                ? `<video class="reel-media" src="${item.mediaURL}" playsinline loop></video>
                    <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                      <path d="M5 3l14 9-14 9V3z"/>
                    </svg>
-                   <div class="progress-bar" id="progress-${reel.reelId}"></div>`
-                : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
+                   <div class="progress-bar" id="progress-${item.reelId || item.adId}"></div>`
+                : `<img class="reel-media" src="${item.mediaURL}" alt="${item.isAd ? 'Sponsored content' : 'Reel image'}">`}
               <div class="reel-top-actions">
-                <div class="reel-header" onclick="goToProfile('${reel.userId}')">
+                <div class="reel-header" ${item.isAd ? '' : `onclick="goToProfile('${item.userId}')"`}>
                   <div class="reel-header-info">
                     ${userData?.photoURL
                       ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
                       : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
                     <div>
                       <div class="reel-username">${userData?.displayName || 'User'}</div>
-                      <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
+                      <div class="reel-timestamp">· ${item.timestamp ? formatTimestamp(item.timestamp) : ''}</div>
                     </div>
                   </div>
                   <div class="reel-header-buttons">
-                    ${currentUser && reel.userId === currentUser.uid
-                      ? `<button class="delete-reel-btn btn" style="background: var(--badge-bg); color: var(--text-primary); font-size: 12px; font-weight: 600;" onclick="deleteReel('${reel.reelId}', this)">Delete</button>`
+                    ${item.isAd ? '' : currentUser && item.userId === currentUser.uid
+                      ? `<button class="delete-reel-btn btn" style="background: var(--badge-bg); color: var(--text-primary); font-size: 12px; font-weight: 600;" onclick="deleteReel('${item.reelId}', this)">Delete</button>`
                       : ''}
-                    <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
-                    <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>
-                    <button class="kebab-menu-btn btn" onclick="toggleKebabMenu('${reel.reelId}', event)">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M12 5v.01M12 12v.01M12 19v.01"/>
-                      </svg>
-                    </button>
+                    ${item.isAd ? '' : `
+                      <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${item.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
+                      <button class="kebab-menu-btn btn" onclick="toggleKebabMenu('${item.reelId}', event)">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                          <path d="M12 5v.01M12 12v.01M12 19v.01"/>
+                        </svg>
+                      </button>
+                    `}
+                    <button class="comments-btn btn" onclick="openBottomSheet('comment', '${item.reelId || item.adId}', event)">Comments (${Object.keys(item.comments || {}).length})</button>
                   </div>
                 </div>
-                <div class="reel-caption">${caption}</div>
-                <div class="kebab-menu" id="kebab-menu-${reel.reelId}" style="display: none; position: absolute; top: 100%; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
-                  <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="openSettings('${reel.reelId}')">Settings</button>
-                  <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="goToProfile('${reel.userId}')">View Profile</button>
-                  <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="reportReel('${reel.reelId}')">Report</button>
-                </div>
+                ${item.isAd
+                  ? `<div class="reel-caption" style="font-size: 12px; color: var(--text-secondary); text-align: left;">Sponsored by ${userData?.displayName || 'User'}</div>`
+                  : `<div class="reel-caption">${caption}</div>
+                     <div class="kebab-menu" id="kebab-menu-${item.reelId}" style="display: none; position: absolute; top: 100%; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
+                       <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="openSettings('${item.reelId}')">Settings</button>
+                       <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="goToProfile('${item.userId}')">View Profile</button>
+                       <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="reportReel('${item.reelId}')">Report</button>
+                     </div>`}
               </div>
-              <div class="reel-actions">
-                <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-                  </svg>
-                  <span>${Object.keys(reel.likedBy || {}).length}</span>
-                </button>
-                <button class="reel-action btn" onclick="trackImpression('${reel.reelId}', this)">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
-                  </svg>
-                  <span>${Object.keys(reel.impressions || {}).length}</span>
-                </button>
-                <button class="reel-action btn ${reel.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reel.reelId}', this)">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
-                  </svg>
-                </button>
-              </div>
+              ${item.isAd ? '' : `
+                <div class="reel-actions">
+                  <button class="reel-action btn ${item.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${item.reelId}', this)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                    </svg>
+                    <span>${Object.keys(item.likedBy || {}).length}</span>
+                  </button>
+                  <button class="reel-action btn" onclick="trackImpression('${item.reelId}', this)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
+                    </svg>
+                    <span>${Object.keys(item.impressions || {}).length}</span>
+                  </button>
+                  <button class="reel-action btn ${item.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${item.reelId}', this)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
+                    </svg>
+                  </button>
+                </div>`}
             `;
             reelsContainer.appendChild(div);
-            renderedReels.add(reel.reelId);
+            renderedReels.add(item.reelId || item.adId);
             if (isVideo) {
               const video = div.querySelector('.reel-media');
-              const progressBar = div.querySelector(`#progress-${reel.reelId}`);
+              const progressBar = div.querySelector(`#progress-${item.reelId || item.adId}`);
               const playIcon = div.querySelector('.play-icon');
               video.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (video.paused) {
-                  pauseAllVideos(reel.reelId);
+                  pauseAllVideos(item.reelId || item.adId);
                   currentPlayingVideo = video;
                   video.play().catch(err => console.error('Error playing video:', err));
                   if (playIcon) playIcon.classList.add('hidden');
@@ -1164,7 +1192,7 @@ function reportReel(reelId) {
                   currentPlayingVideo = null;
                   if (playIcon) playIcon.classList.remove('hidden');
                 }
-                console.log(`Video ${video.paused ? 'paused' : 'playing'} for reel ${reel.reelId}`);
+                console.log(`Video ${video.paused ? 'paused' : 'playing'} for ${item.isAd ? 'ad' : 'reel'} ${item.reelId || item.adId}`);
               });
               video.addEventListener('play', () => {
                 if (playIcon) playIcon.classList.add('hidden');
@@ -1189,7 +1217,7 @@ function reportReel(reelId) {
                 if (playIcon) playIcon.classList.add('hidden');
               });
               video.addEventListener('error', () => {
-                console.log('Video error for URL:', reel.mediaURL);
+                console.log('Video error for URL:', item.mediaURL);
                 showSpinner();
                 showAlert('Failed to load video. Please check your network.');
                 if (playIcon) playIcon.classList.remove('hidden');
@@ -1199,7 +1227,7 @@ function reportReel(reelId) {
             div.addEventListener('touchstart', (e) => {
               e.stopPropagation();
               pressTimer = setTimeout(() => {
-                openBottomSheet('comment', reel.reelId);
+                openBottomSheet('comment', item.reelId || item.adId);
               }, 500);
             }, { passive: true });
             div.addEventListener('touchmove', (e) => {
@@ -1208,11 +1236,11 @@ function reportReel(reelId) {
             div.addEventListener('touchend', (e) => {
               clearTimeout(pressTimer);
             }, { passive: true });
-            if (targetReelId && reel.reelId === targetReelId) {
+            if (targetReelId && (item.reelId === targetReelId || item.adId === targetReelId)) {
               div.scrollIntoView({ behavior: 'smooth' });
               if (isVideo) {
                 const video = div.querySelector('.reel-media');
-                pauseAllVideos(reel.reelId);
+                pauseAllVideos(item.reelId || item.adId);
                 currentPlayingVideo = video;
                 video.play().catch(err => console.error('Error playing video:', err));
                 if (playIcon) playIcon.classList.add('hidden');
@@ -1220,7 +1248,7 @@ function reportReel(reelId) {
             }
           }, { onlyOnce: true });
         } catch (error) {
-          console.error('Error fetching user data for reel', reel.reelId, ':', error);
+          console.error('Error fetching user data for', item.isAd ? 'ad' : 'reel', item.reelId || item.adId, ':', error);
         }
       }
       hideSpinner();
