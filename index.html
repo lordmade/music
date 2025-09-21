@@ -643,83 +643,6 @@
       animation: slideIn 0.3s ease-out;
     }
 
-    .modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.7);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 103;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-
-    .modal.active {
-      display: flex;
-    }
-
-    .modal-content {
-      background: var(--glass-bg);
-      -webkit-backdrop-filter: var(--glass-blur);
-      backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      width: 300px;
-      max-width: 90%;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-      position: relative;
-    }
-
-    .close-modal {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      background: rgba(255,255,255,0.1);
-      border: none;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: var(--text-primary);
-    }
-
-    .close-modal:hover {
-      background: rgba(255,255,255,0.2);
-    }
-
-    .modal-options {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .modal-option {
-      background: none;
-      border: none;
-      color: var(--text-primary);
-      font-size: 16px;
-      text-align: left;
-      padding: 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s ease;
-    }
-
-    .modal-option:hover {
-      background: rgba(255,255,孔子0
-
-    .modal-option.destructive {
-      color: var(--badge-bg);
-    }
-
     body, .reel, .reel-actions, .reel-action, .bottom-sheet, .nav-item {
       -webkit-user-select: none;
       user-select: none;
@@ -814,6 +737,34 @@
         border-top-left-radius: 0;
       }
     }
+
+.delete-reel-btn {
+  background: var(--badge-bg);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  border-radius: 9999px;
+  padding: 6px 12px;
+}
+
+.kebab-menu-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 6px;
+}
+
+.kebab-menu {
+  min-width: 150px;
+}
+
+.kebab-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+    
   </style>
 </head>
 <body>
@@ -887,17 +838,6 @@
         <div class="comment-list" id="comment-list"></div>
         <textarea id="comment-input" placeholder="Add a comment..." rows="2"></textarea>
         <button class="btn" id="submit-comment">Post</button>
-      </div>
-    </div>
-
-    <div class="modal" id="reel-options-modal">
-      <div class="modal-content">
-        <button class="close-modal" onclick="closeModal()">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <path d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-        <div class="modal-options" id="modal-options"></div>
       </div>
     </div>
 
@@ -999,83 +939,50 @@
       window.location.href = `profile.html?uid=${userId}`;
     }
 
-    async function confirmDeleteReel(reelId) {
-      if (!currentUser) {
-        showAlert('Please log in to delete reels.');
-        return;
-      }
-      const confirmDelete = confirm('Are you sure you want to delete this reel?');
-      if (confirmDelete) {
-        try {
-          await remove(ref(db, `reels/${reelId}`));
-          console.log(`Deleted reel ${reelId}`);
-          showAlert('Reel deleted successfully.');
-          loadReels();
-        } catch (error) {
-          console.error('Error deleting reel:', error);
-          showAlert('Failed to delete reel. Please try again.');
-        }
-      }
+
+async function deleteReel(reelId, button) {
+  if (!currentUser) {
+    showAlert('Please log in to delete reels.');
+    return;
+  }
+  try {
+    const reelRef = ref(db, `reels/${reelId}`);
+    await remove(reelRef);
+    console.log(`Deleted reel ${reelId}`);
+    showAlert('Reel deleted successfully.');
+    const reelDiv = button.closest('.reel');
+    if (reelDiv) {
+      reelDiv.remove();
     }
+    pauseAllVideos();
+  } catch (error) {
+    console.error('Error deleting reel:', error);
+    showAlert('Failed to delete reel. Please try again.');
+  }
+}
 
-    function openReelOptionsModal(reelId, userId) {
-      console.log(`Opening options modal for reel ${reelId}`);
-      const modal = document.getElementById('reel-options-modal');
-      const optionsContainer = document.getElementById('modal-options');
-      optionsContainer.innerHTML = '';
-      const isOwner = currentUser && userId === currentUser.uid;
+function toggleKebabMenu(reelId, event) {
+  event.stopPropagation();
+  const menu = document.getElementById(`kebab-menu-${reelId}`);
+  const isVisible = menu.style.display === 'block';
+  document.querySelectorAll('.kebab-menu').forEach(m => m.style.display = 'none');
+  menu.style.display = isVisible ? 'none' : 'block';
+  console.log(`Toggled kebab menu for reel ${reelId}: ${isVisible ? 'Hidden' : 'Shown'}`);
+}
 
-      const options = [
-        { label: 'Settings', action: `goToSettings()`, class: '' },
-        { label: 'Edit Post', action: `editPost('${reelId}')`, class: isOwner ? '' : 'hidden' },
-        { label: 'View Profile', action: `goToProfile('${userId}')`, class: '' },
-        { label: 'Delete Post', action: `confirmDeleteReel('${reelId}')`, class: isOwner ? 'destructive' : 'hidden' },
-        { label: 'Report', action: `reportPost('${reelId}')`, class: '' },
-        { label: 'Share', action: `sharePost('${reelId}')`, class: '' }
-      ];
+function openSettings(reelId) {
+  console.log(`Opening settings for reel ${reelId}`);
+  showAlert('Settings functionality not implemented yet.');
+  document.getElementById(`kebab-menu-${reelId}`).style.display = 'none';
+}
 
-      options.forEach(option => {
-        if (!option.class.includes('hidden')) {
-          const button = document.createElement('button');
-          button.className = `modal-option ${option.class}`;
-          button.textContent = option.label;
-          button.setAttribute('onclick', option.action);
-          optionsContainer.appendChild(button);
-        }
-      });
+function reportReel(reelId) {
+  console.log(`Reporting reel ${reelId}`);
+  showAlert('Report submitted. Thank you for your feedback.');
+  document.getElementById(`kebab-menu-${reelId}`).style.display = 'none';
+}
 
-      modal.classList.add('active');
-    }
-
-    function closeModal() {
-      console.log('Closing options modal');
-      document.getElementById('reel-options-modal').classList.remove('active');
-    }
-
-    function goToSettings() {
-      console.log('Redirecting to settings');
-      window.location.href = 'settings.html';
-    }
-
-    function editPost(reelId) {
-      console.log(`Editing reel ${reelId}`);
-      window.location.href = `edit-reel.html?reelId=${reelId}`;
-    }
-
-    function reportPost(reelId) {
-      console.log(`Reporting reel ${reelId}`);
-      showAlert('Report submitted. Thank you for your feedback.');
-    }
-
-    function sharePost(reelId) {
-      console.log(`Sharing reel ${reelId}`);
-      const shareURL = `${window.location.origin}/reel.html?reelId=${reelId}`;
-      navigator.clipboard.writeText(shareURL).then(() => {
-        showAlert('Link copied to clipboard.');
-      }).catch(() => {
-        showAlert('Failed to copy link.');
-      });
-    }
+    
 
     function initializeFirebase() {
       console.log('Initializing Firebase');
@@ -1175,59 +1082,69 @@
                 div.className = 'reel';
                 div.dataset.reelId = reel.reelId;
                 const isVideo = reel.mediaType === 'video';
+
                 div.innerHTML = `
-                  ${isVideo
-                    ? `<video class="reel-media" src="${reel.mediaURL}" playsinline loop></video>
-                       <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                         <path d="M5 3l14 9-14 9V3z"/>
-                       </svg>
-                       <div class="progress-bar" id="progress-${reel.reelId}"></div>`
-                    : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
-                  <div class="reel-top-actions">
-                    <div class="reel-header" onclick="goToProfile('${reel.userId}')">
-                      <div class="reel-header-info">
-                        ${userData?.photoURL
-                          ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
-                          : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
-                        <div>
-                          <div class="reel-username">${userData?.displayName || 'User'}</div>
-                          <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
-                        </div>
-                      </div>
-                      <div class="reel-header-buttons">
-                        <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
-                        <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>
-                      </div>
-                    </div>
-                    <div class="reel-caption">${caption}</div>
-                  </div>
-                  <div class="reel-actions">
-                    <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-                      </svg>
-                      <span>${Object.keys(reel.likedBy || {}).length}</span>
-                    </button>
-                    <button class="reel-action btn" onclick="trackImpression('${reel.reelId}', this)">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
-                      </svg>
-                      <span>${Object.keys(reel.impressions || {}).length}</span>
-                    </button>
-                    <button class="reel-action btn ${reel.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reel.reelId}', this)">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
-                      </svg>
-                    </button>
-                    ${reel.userId === currentUser?.uid ? `
-                      <button class="reel-action btn" onclick="confirmDeleteReel('${reel.reelId}')">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
-                        </svg>
-                      </button>
-                    ` : ''}
-                  </div>
-                `;
+  ${isVideo
+    ? `<video class="reel-media" src="${reel.mediaURL}" playsinline loop></video>
+       <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+         <path d="M5 3l14 9-14 9V3z"/>
+       </svg>
+       <div class="progress-bar" id="progress-${reel.reelId}"></div>`
+    : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
+  <div class="reel-top-actions">
+    <div class="reel-header" onclick="goToProfile('${reel.userId}')">
+      <div class="reel-header-info">
+        ${userData?.photoURL
+          ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
+          : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+        <div>
+          <div class="reel-username">${userData?.displayName || 'User'}</div>
+          <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
+        </div>
+      </div>
+      <div class="reel-header-buttons">
+        ${currentUser && reel.userId === currentUser.uid
+          ? `<button class="delete-reel-btn btn" style="background: var(--badge-bg); color: var(--text-primary); font-size: 12px; font-weight: 600;" onclick="deleteReel('${reel.reelId}', this)">Delete</button>`
+          : ''}
+        <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
+        <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>
+        <button class="kebab-menu-btn btn" onclick="toggleKebabMenu('${reel.reelId}', event)">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path d="M12 5v.01M12 12v.01M12 19v.01"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="reel-caption">${caption}</div>
+    <div class="kebab-menu" id="kebab-menu-${reel.reelId}" style="display: none; position: absolute; top: 100%; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
+      <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="openSettings('${reel.reelId}')">Settings</button>
+      <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="goToProfile('${reel.userId}')">View Profile</button>
+      <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="reportReel('${reel.reelId}')">Report</button>
+    </div>
+  </div>
+  <div class="reel-actions">
+    <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+      </svg>
+      <span>${Object.keys(reel.likedBy || {}).length}</span>
+    </button>
+    <button class="reel-action btn" onclick="trackImpression('${reel.reelId}', this)">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
+      </svg>
+      <span>${Object.keys(reel.impressions || {}).length}</span>
+    </button>
+    <button class="reel-action btn ${reel.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reel.reelId}', this)">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
+      </svg>
+    </button>
+  </div>
+`;
+
+
+                
                 reelsContainer.appendChild(div);
                 renderedReels.add(reel.reelId);
                 if (isVideo) {
@@ -1281,7 +1198,7 @@
                 div.addEventListener('touchstart', (e) => {
                   e.stopPropagation();
                   pressTimer = setTimeout(() => {
-                    openReelOptionsModal(reel.reelId, reel.userId);
+                    openBottomSheet('comment', reel.reelId);
                   }, 500);
                 }, { passive: true });
                 div.addEventListener('touchmove', (e) => {
@@ -1808,122 +1725,122 @@
       reels.forEach(reel => observer.observe(reel));
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('reels-container').addEventListener('scroll', handleScroll);
+    document.getElementById('reels-container').addEventListener('scroll', handleScroll);
 
-      document.getElementById('upload-nav-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openBottomSheet('upload');
-        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-      });
+    document.getElementById('upload-nav-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openBottomSheet('upload');
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+    });
 
-      document.getElementById('upload-nav-btn-mobile').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openBottomSheet('upload');
-        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-      });
+    document.getElementById('upload-nav-btn-mobile').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openBottomSheet('upload');
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+    });
 
-      document.getElementById('friends-nav-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        console.log('Redirecting to friends.html');
-        window.location.href = 'friends.html';
-      });
+    document.getElementById('friends-nav-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      console.log('Redirecting to friends.html');
+      window.location.href = 'friends.html';
+    });
 
-      document.getElementById('friends-nav-btn-mobile').addEventListener('click', (e) => {
-        e.stopPropagation();
-        console.log('Redirecting to friends.html');
-        window.location.href = 'friends.html';
-      });
+    document.getElementById('friends-nav-btn-mobile').addEventListener('click', (e) => {
+      e.stopPropagation();
+      console.log('Redirecting to friends.html');
+      window.location.href = 'friends.html';
+    });
 
-      document.getElementById('home-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        console.log('Home button clicked, ensuring reels are loaded');
-        loadReels(); // Reload reels to ensure the feed is up-to-date
-      });
+    document.getElementById('home-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      loadReels();
+    });
 
-      document.getElementById('home-btn-mobile').addEventListener('click', (e) => {
-        e.stopPropagation();
-        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        console.log('Mobile home button clicked, ensuring reels are loaded');
-        loadReels(); // Reload reels to ensure the feed is up-to-date
-      });
+    document.getElementById('home-btn-mobile').addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      loadReels();
+    });
 
-      document.getElementById('media-upload').addEventListener('change', (e) => {
-        console.log('Media files selected:', e.target.files.length);
-        showPreviews(e.target.files);
-      });
+    document.getElementById('media-upload').addEventListener('change', (e) => {
+      e.stopPropagation();
+      showPreviews(e.target.files);
+    });
 
-      document.getElementById('submit-upload').addEventListener('click', async (e) => {
-        e.stopPropagation();
+    document.getElementById('submit-upload').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const button = e.currentTarget;
+      button.disabled = true;
+      try {
         const files = document.getElementById('media-upload').files;
         const caption = document.getElementById('caption-input').value.trim();
         await uploadMedia(files, caption);
-      });
+      } finally {
+        button.disabled = false;
+      }
+    });
 
-      document.getElementById('submit-comment').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        if (activeCommentReelId) {
-          await submitComment(activeCommentReelId);
-        }
-      });
+    document.getElementById('submit-comment').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (activeCommentReelId) {
+        submitComment(activeCommentReelId);
+      }
+    });
 
-      // Handle double-tap to like
-      const reelsContainer = document.getElementById('reels-container');
-      let lastTap = 0;
-      reelsContainer.addEventListener('click', (e) => {
-        const now = Date.now();
-        const reel = e.target.closest('.reel');
-        if (!reel) return;
-        if (now - lastTap < 300 && e.target.classList.contains('reel-media')) {
-          const likeButton = reel.querySelector('.reel-action');
-          if (!likeButton.classList.contains('liked')) {
-            toggleLike(reel.dataset.reelId, likeButton);
-            showLoveAnimation(reel);
-          }
-        }
-        lastTap = now;
-      });
+    document.getElementById('bottom-sheet-content').addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
 
-      // Prevent context menu on long press for reels
-      reelsContainer.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-      });
+    document.getElementById('comment-sheet-content').addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
 
-      // Initialize Firebase and load reels
+    document.addEventListener('click', (e) => {
+  const uploadSheet = document.getElementById('upload-sheet');
+  const commentSheet = document.getElementById('comment-sheet');
+  const navItems = document.querySelectorAll('.nav-item');
+  const kebabMenus = document.querySelectorAll('.kebab-menu');
+  const isNavClick = Array.from(navItems).some(item => item.contains(e.target));
+  const isKebabMenuClick = Array.from(kebabMenus).some(menu => menu.contains(e.target));
+  const isKebabButtonClick = Array.from(document.querySelectorAll('.kebab-menu-btn')).some(btn => btn.contains(e.target));
+  if ((uploadSheet.classList.contains('active') || commentSheet.classList.contains('active')) &&
+      !uploadSheet.contains(e.target) && !commentSheet.contains(e.target) && !isNavClick) {
+    console.log('Click outside, closing all bottom sheets');
+    closeBottomSheet(e);
+  }
+  if (!isKebabMenuClick && !isKebabButtonClick) {
+    kebabMenus.forEach(menu => menu.style.display = 'none');
+  }
+});
+
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM loaded, initializing Firebase and observers');
       initializeFirebase();
     });
 
-    // Ensure modals and sheets close when clicking outside
-    document.addEventListener('click', (e) => {
-      const modal = document.getElementById('reel-options-modal');
-      const uploadSheet = document.getElementById('upload-sheet');
-      const commentSheet = document.getElementById('comment-sheet');
-      if (modal.classList.contains('active') && !e.target.closest('.modal-content')) {
-        closeModal();
-      }
-      if (uploadSheet.classList.contains('active') && !e.target.closest('.bottom-sheet-content') && !e.target.closest('.nav-item')) {
-        closeBottomSheet();
-      }
-      if (commentSheet.classList.contains('active') && !e.target.closest('.bottom-sheet-content') && !e.target.closest('.comments-btn')) {
-        closeBottomSheet();
-      }
-    });
-
-    // Prevent default scrolling behavior for touch devices to ensure smooth snap scrolling
-    document.getElementById('reels-container').addEventListener('touchmove', (e) => {
-      const reel = e.target.closest('.reel');
-      if (!reel) return;
-      // Allow scrolling within reels container but prevent overscroll
-      if (e.target.closest('.reels-container')) {
-        e.stopPropagation();
-      }
-    }, { passive: true });
+    window.toggleLike = toggleLike;
+    window.toggleBookmark = toggleBookmark;
+    window.trackImpression = trackImpression;
+    window.toggleFollow = toggleFollow;
+    window.showReplyInput = showReplyInput;
+    window.submitReply = submitReply;
+    window.deleteComment = deleteComment;
+    window.goToProfile = goToProfile;
+    window.closeBottomSheet = closeBottomSheet;
+    window.openBottomSheet = openBottomSheet;
+    window.deleteReel = deleteReel;
+window.toggleKebabMenu = toggleKebabMenu;
+window.openSettings = openSettings;
+window.reportReel = reportReel;
   </script>
 </body>
 </html>
-        
