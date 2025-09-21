@@ -764,7 +764,44 @@
 .kebab-menu-item:hover {
   background: rgba(255, 255, 255, 0.1);
 }
-    
+    .search-bar {
+  transition: background 0.2s ease;
+}
+
+.search-bar:focus {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.search-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.search-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.search-dropdown-item img,
+.search-dropdown-item .search-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.search-dropdown-item .search-avatar {
+  background: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
   </style>
 </head>
 <body>
@@ -794,24 +831,28 @@
     </div>
 
     <nav class="bottom-nav">
-      <button class="nav-item btn active" id="home-btn-mobile" aria-label="AI Feed">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 18c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm-4-12h8v2H8v-2zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
-        </svg>
-        <span>Auto Play</span>
-      </button>
-      <button class="nav-item upload-btn" id="upload-nav-btn-mobile" aria-label="Upload">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M12 4v8m0 0v8m8-8H4"/>
-        </svg>
-      </button>
-      <button class="nav-item btn" id="friends-nav-btn-mobile" aria-label="Friends">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-        </svg>
-        <span>Friends</span>
-      </button>
-    </nav>
+  <div class="search-container" style="width: 100%; padding: 0 16px; margin-bottom: 8px;">
+    <input type="text" id="search-bar-mobile" placeholder="Search reels..." class="search-bar" style="width: 100%; padding: 8px 16px; border-radius: 9999px; border: 1px solid var(--border); background: var(--glass-bg); color: var(--text-primary); font-size: 14px; outline: none;">
+    <div class="search-dropdown" id="search-dropdown-mobile" style="display: none; position: absolute; top: 100%; left: 16px; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.3);"></div>
+  </div>
+  <button class="nav-item btn active" id="home-btn-mobile" aria-label="AI Feed">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+      <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 18c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm-4-12h8v2H8v-2zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
+    </svg>
+    <span>AI Feed</span>
+  </button>
+  <button class="nav-item upload-btn" id="upload-nav-btn-mobile" aria-label="Upload">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+      <path d="M12 4v8m0 0v8m8-8H4"/>
+    </svg>
+  </button>
+  <button class="nav-item btn" id="friends-nav-btn-mobile" aria-label="Friends">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+    </svg>
+    <span>Friends</span>
+  </button>
+</nav>
 
     <div class="bottom-sheet" id="upload-sheet">
       <button class="close-sheet" onclick="closeBottomSheet(event)">
@@ -982,7 +1023,80 @@ function reportReel(reelId) {
   document.getElementById(`kebab-menu-${reelId}`).style.display = 'none';
 }
 
+    async function searchReels(query, dropdownId) {
+  console.log('Searching reels for query:', query);
+  const dropdown = document.getElementById(dropdownId);
+  dropdown.innerHTML = '';
+  if (!query.trim()) {
+    dropdown.style.display = 'none';
+    return;
+  }
+  try {
+    const reelsRef = ref(db, 'reels');
+    const snapshot = await new Promise(resolve => onValue(reelsRef, resolve, { onlyOnce: true }));
+    const reels = snapshot.val();
+    if (!reels) {
+      dropdown.style.display = 'none';
+      return;
+    }
+    const usersRef = ref(db, 'users');
+    const userSnapshot = await new Promise(resolve => onValue(usersRef, resolve, { onlyOnce: true }));
+    const users = userSnapshot.val();
     
+    const matchingReels = Object.entries(reels)
+      .map(([reelId, reelData]) => ({ reelId, ...reelData }))
+      .filter(reel => {
+        const user = users[reel.userId];
+        const usernameMatch = user?.displayName?.toLowerCase().includes(query.toLowerCase());
+        const captionMatch = reel.caption?.toLowerCase().includes(query.toLowerCase());
+        return usernameMatch || captionMatch;
+      })
+      .slice(0, 5); // Limit to 5 suggestions
+    
+    if (matchingReels.length === 0) {
+      dropdown.innerHTML = '<div style="padding: 8px 16px; font-size: 14px; color: var(--text-secondary);">No results found</div>';
+      dropdown.style.display = 'block';
+      return;
+    }
+    
+    matchingReels.forEach(reel => {
+      const user = users[reel.reelId];
+      const div = document.createElement('div');
+      div.className = 'search-dropdown-item';
+      div.innerHTML = `
+        ${user?.photoURL
+          ? `<img src="${user.photoURL}" alt="${user.displayName}'s profile picture">`
+          : `<div class="search-avatar">${user?.displayName ? user.displayName[0].toUpperCase() : 'U'}</div>`}
+        <span>${user?.displayName || 'User'}${reel.caption ? ': ' + reel.caption.slice(0, 30) + (reel.caption.length > 30 ? '...' : '') : ''}</span>
+      `;
+      div.onclick = () => {
+        scrollToReel(reel.reelId);
+        dropdown.style.display = 'none';
+        document.getElementById('search-bar').value = '';
+        document.getElementById('search-bar-mobile').value = '';
+      };
+      dropdown.appendChild(div);
+    });
+    dropdown.style.display = 'block';
+  } catch (error) {
+    console.error('Error searching reels:', error);
+    showAlert('Failed to search reels. Please try again.');
+    dropdown.style.display = 'none';
+  }
+}
+
+function scrollToReel(reelId) {
+  console.log('Scrolling to reel:', reelId);
+  const reel = document.querySelector(`.reel[data-reel-id="${reelId}"]`);
+  if (reel) {
+    reel.scrollIntoView({ behavior: 'smooth' });
+    const video = reel.querySelector('.reel-media');
+    if (video && video.tagName === 'VIDEO') {
+      pauseAllVideos(reelId);
+      video.play().catch(err => console.error('Error playing video:', err));
+    }
+  }
+}
 
     function initializeFirebase() {
       console.log('Initializing Firebase');
@@ -1805,9 +1919,13 @@ function reportReel(reelId) {
   const commentSheet = document.getElementById('comment-sheet');
   const navItems = document.querySelectorAll('.nav-item');
   const kebabMenus = document.querySelectorAll('.kebab-menu');
+  const searchBars = document.querySelectorAll('.search-bar');
+  const searchDropdowns = document.querySelectorAll('.search-dropdown');
   const isNavClick = Array.from(navItems).some(item => item.contains(e.target));
   const isKebabMenuClick = Array.from(kebabMenus).some(menu => menu.contains(e.target));
   const isKebabButtonClick = Array.from(document.querySelectorAll('.kebab-menu-btn')).some(btn => btn.contains(e.target));
+  const isSearchBarClick = Array.from(searchBars).some(bar => bar.contains(e.target));
+  const isSearchDropdownClick = Array.from(searchDropdowns).some(dropdown => dropdown.contains(e.target));
   if ((uploadSheet.classList.contains('active') || commentSheet.classList.contains('active')) &&
       !uploadSheet.contains(e.target) && !commentSheet.contains(e.target) && !isNavClick) {
     console.log('Click outside, closing all bottom sheets');
@@ -1815,6 +1933,9 @@ function reportReel(reelId) {
   }
   if (!isKebabMenuClick && !isKebabButtonClick) {
     kebabMenus.forEach(menu => menu.style.display = 'none');
+  }
+  if (!isSearchBarClick && !isSearchDropdownClick) {
+    searchDropdowns.forEach(dropdown => dropdown.style.display = 'none');
   }
 });
 
@@ -1826,6 +1947,17 @@ function reportReel(reelId) {
       console.log('DOM loaded, initializing Firebase and observers');
       initializeFirebase();
     });
+
+document.getElementById('search-bar').addEventListener('input', (e) => {
+  e.stopPropagation();
+  searchReels(e.target.value, 'search-dropdown');
+});
+
+document.getElementById('search-bar-mobile').addEventListener('input', (e) => {
+  e.stopPropagation();
+  searchReels(e.target.value, 'search-dropdown-mobile');
+});
+    
 
     window.toggleLike = toggleLike;
     window.toggleBookmark = toggleBookmark;
@@ -1841,6 +1973,8 @@ function reportReel(reelId) {
 window.toggleKebabMenu = toggleKebabMenu;
 window.openSettings = openSettings;
 window.reportReel = reportReel;
+    window.searchReels = searchReels;
+window.scrollToReel = scrollToReel;
   </script>
 </body>
 </html>
