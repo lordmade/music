@@ -831,10 +831,12 @@
     </div>
 
     <nav class="bottom-nav">
-  <div class="search-container" style="width: 100%; padding: 0 16px; margin-bottom: 8px;">
-    <input type="text" id="search-bar-mobile" placeholder="Search reels..." class="search-bar" style="width: 100%; padding: 8px 16px; border-radius: 9999px; border: 1px solid var(--border); background: var(--glass-bg); color: var(--text-primary); font-size: 14px; outline: none;">
-    <div class="search-dropdown" id="search-dropdown-mobile" style="display: none; position: absolute; top: 100%; left: 16px; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.3);"></div>
-  </div>
+  <button class="nav-item btn" id="search-nav-btn-mobile" aria-label="Search">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+      <path d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+    </svg>
+    <span>Search</span>
+  </button>
   <button class="nav-item btn active" id="home-btn-mobile" aria-label="AI Feed">
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
       <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 18c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm-4-12h8v2H8v-2zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
@@ -1956,6 +1958,21 @@ document.getElementById('search-bar').addEventListener('input', (e) => {
 document.getElementById('search-bar-mobile').addEventListener('input', (e) => {
   e.stopPropagation();
   searchReels(e.target.value, 'search-dropdown-mobile');
+});
+    document.getElementById('search-nav-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  console.log('Redirecting to search.html');
+  window.location.href = 'search.html';
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+});
+
+document.getElementById('search-nav-btn-mobile').addEventListener('click', (e) => {
+  e.stopPropagation();
+  console.log('Redirecting to search.html');
+  window.location.href = 'search.html';
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  e.currentTarget.classList.add('active');
 });
     
 
