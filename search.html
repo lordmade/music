@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vynix AI - Search Reels</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #000000;
+      --card-bg: rgba(0, 0, 0, 0.2);
+      --text-primary: #FFFFFF;
+      --text-secondary: #8E8E8E;
+      --border: rgba(255, 255, 255, 0.1);
+      --highlight: #0095F6;
+      --badge-bg: #FA3E5F;
+      --glass-bg: rgba(0, 0, 0, 0.2);
+      --glass-blur: blur(10px);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .btn {
+      border-radius: 9999px;
+      padding: 8px 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .search-container {
+      width: 100%;
+      max-width: 600px;
+      margin: 16px auto;
+      padding: 0 16px;
+    }
+
+    .search-bar {
+      width: 100%;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      border: 1px solid var(--border);
+      background: var(--glass-bg);
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+      transition: background 0.2s ease;
+    }
+
+    .search-bar:focus {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .search-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 16px;
+      right: 16px;
+      max-width: 600px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 50;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+
+    .search-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      font-size: 14px;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .search-dropdown-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .search-dropdown-item img,
+    .search-dropdown-item .search-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+    }
+
+    .search-dropdown-item .search-avatar {
+      background: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .reels-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    .reel {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+    }
+
+    .reel-media {
+      width: 100%;
+      aspect-ratio: 9/16;
+      object-fit: cover;
+      background: var(--bg);
+    }
+
+    .reel-top-actions {
+      padding: 12px;
+      color: var(--text-primary);
+    }
+
+    .reel-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: space-between;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+
+    .reel-header-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .reel-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .reel-profile-pic {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--text-primary);
+    }
+
+    .reel-username {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .reel-timestamp {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-left: 8px;
+    }
+
+    .reel-caption {
+      font-size: 14px;
+      line-height: 1.4;
+      margin-top: 8px;
+    }
+
+    .alert {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      color: var(--text-primary);
+      padding: 12px 24px;
+      border-radius: 9999px;
+      border: 1px solid var(--border);
+      z-index: 60;
+      display: none;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .alert.active {
+      display: block;
+      animation: slideInAlert 0.3s ease-out;
+    }
+
+    @keyframes slideInAlert {
+      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    .spinner-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 45;
+    }
+
+    .spinner-overlay.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--highlight);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .search-container, .reels-container {
+        padding: 0 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="flex flex-col min-h-screen" id="main-content">
+    <div class="search-container">
+      <input type="text" id="search-bar" placeholder="Search reels..." class="search-bar">
+      <div class="search-dropdown" id="search-dropdown"></div>
+    </div>
+    <div class="reels-container" id="reels-container">
+      <p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">Loading reels...</p>
+    </div>
+    <div id="spinner-overlay" class="spinner-overlay">
+      <div class="spinner"></div>
+    </div>
+    <div id="alert-message" class="alert"></div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
+      authDomain: "fire-b-a8878.firebaseapp.com",
+      databaseURL: "https://fire-b-a8878.firebaseio.com",
+      projectId: "fire-b-a8878",
+      storageBucket: "fire-b-a8878.firebasestorage.app",
+      messagingSenderId: "658673187627",
+      appId: "1:658673187627:web:6e4c29af661785f0afa36e",
+      measurementId: "G-V4W97VMSKL"
+    };
+
+    let app, auth, db, currentUser;
+
+    const showSpinner = () => {
+      console.log('Showing spinner');
+      document.getElementById('spinner-overlay').classList.add('active');
+      document.getElementById('main-content').setAttribute('aria-busy', 'true');
+    };
+
+    const hideSpinner = () => {
+      console.log('Hiding spinner');
+      document.getElementById('spinner-overlay').classList.remove('active');
+      document.getElementById('main-content').setAttribute('aria-busy', 'false');
+    };
+
+    const showAlert = (message) => {
+      console.log('Showing alert:', message);
+      const alert = document.getElementById('alert-message');
+      alert.textContent = message;
+      alert.classList.add('active');
+      setTimeout(() => alert.classList.remove('active'), 3000);
+    };
+
+    function goToProfile(userId) {
+      console.log('Navigating to profile for user:', userId);
+      window.location.href = `profile.html?uid=${userId}`;
+    }
+
+    function goToReel(reelId) {
+      console.log('Navigating to reel:', reelId);
+      window.location.href = `index.html?reelId=${reelId}`;
+    }
+
+    function initializeFirebase() {
+      console.log('Initializing Firebase');
+      try {
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getDatabase(app);
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            console.log('User authenticated:', user.uid);
+            currentUser = user;
+            update(ref(db, `users/${user.uid}`), { lastSeen: new Date().toISOString() })
+              .then(() => console.log('User lastSeen updated'))
+              .catch(err => console.error('Error updating lastSeen:', err));
+            loadReels();
+          } else {
+            console.log('No user logged in, redirecting to signup.html');
+            showAlert('Please log in to search reels.');
+            window.location.href = 'signup.html';
+          }
+        }, (error) => {
+          console.error('Auth state error:', error);
+          showAlert('Authentication error. Please try again.');
+        });
+      } catch (error) {
+        console.error('Firebase initialization error:', error);
+        showAlert('Failed to initialize Firebase. Please check your connection.');
+      }
+    }
+
+    async function searchReels(query) {
+      console.log('Searching reels for query:', query);
+      const dropdown = document.getElementById('search-dropdown');
+      dropdown.innerHTML = '';
+      if (!query.trim()) {
+        dropdown.style.display = 'none';
+        loadReels();
+        return;
+      }
+      showSpinner();
+      try {
+        const reelsRef = ref(db, 'reels');
+        const snapshot = await new Promise(resolve => onValue(reelsRef, resolve, { onlyOnce: true }));
+        const reels = snapshot.val();
+        if (!reels) {
+          dropdown.innerHTML = '<div style="padding: 8px 16px; font-size: 14px; color: var(--text-secondary);">No results found</div>';
+          dropdown.style.display = 'block';
+          loadReels([]);
+          hideSpinner();
+          return;
+        }
+        const usersRef = ref(db, 'users');
+        const userSnapshot = await new Promise(resolve => onValue(usersRef, resolve, { onlyOnce: true }));
+        const users = userSnapshot.val();
+        
+        const matchingReels = Object.entries(reels)
+          .map(([reelId, reelData]) => ({ reelId, ...reelData }))
+          .filter(reel => {
+            const user = users[reel.userId];
+            const usernameMatch = user?.displayName?.toLowerCase().includes(query.toLowerCase());
+            const captionMatch = reel.caption?.toLowerCase().includes(query.toLowerCase());
+            return usernameMatch || captionMatch;
+          });
+        
+        matchingReels.slice(0, 5).forEach(reel => {
+          const user = users[reel.userId];
+          const div = document.createElement('div');
+          div.className = 'search-dropdown-item';
+          div.innerHTML = `
+            ${user?.photoURL
+              ? `<img src="${user.photoURL}" alt="${user.displayName}'s profile picture">`
+              : `<div class="search-avatar">${user?.displayName ? user.displayName[0].toUpperCase() : 'U'}</div>`}
+            <span>${user?.displayName || 'User'}${reel.caption ? ': ' + reel.caption.slice(0, 30) + (reel.caption.length > 30 ? '...' : '') : ''}</span>
+          `;
+          div.onclick = () => {
+            goToReel(reel.reelId);
+            dropdown.style.display = 'none';
+            document.getElementById('search-bar').value = '';
+          };
+          dropdown.appendChild(div);
+        });
+        dropdown.style.display = matchingReels.length > 0 ? 'block' : 'none';
+        loadReels(matchingReels);
+      } catch (error) {
+        console.error('Error searching reels:', error);
+        showAlert('Failed to search reels. Please try again.');
+        dropdown.style.display = 'none';
+      } finally {
+        hideSpinner();
+      }
+    }
+
+    async function loadReels(filteredReels = null) {
+      console.log('Loading reels');
+      showSpinner();
+      const reelsContainer = document.getElementById('reels-container');
+      reelsContainer.innerHTML = '';
+      try {
+        let reels = filteredReels;
+        if (!reels) {
+          const reelsRef = ref(db, 'reels');
+          const snapshot = await new Promise(resolve => onValue(reelsRef, resolve, { onlyOnce: true }));
+          reels = snapshot.val() ? Object.entries(snapshot.val()).map(([reelId, reelData]) => ({ reelId, ...reelData })) : [];
+        }
+        if (reels.length === 0) {
+          reelsContainer.innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">No reels found.</p>';
+          hideSpinner();
+          return;
+        }
+        for (const reel of reels) {
+          const userRef = ref(db, `users/${reel.userId}`);
+          const userSnapshot = await new Promise(resolve => onValue(userRef, resolve, { onlyOnce: true }));
+          const userData = userSnapshot.val();
+          const caption = reel.caption || '';
+          const div = document.createElement('div');
+          div.className = 'reel';
+          div.dataset.reelId = reel.reelId;
+          const isVideo = reel.mediaType === 'video';
+          div.innerHTML = `
+            ${isVideo
+              ? `<video class="reel-media" src="${reel.mediaURL}" playsinline></video>`
+              : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
+            <div class="reel-top-actions">
+              <div class="reel-header" onclick="goToProfile('${reel.userId}')">
+                <div class="reel-header-info">
+                  ${userData?.photoURL
+                    ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
+                    : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+                  <div>
+                    <div class="reel-username">${userData?.displayName || 'User'}</div>
+                    <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="reel-caption">${caption}</div>
+            </div>
+          `;
+          reelsContainer.appendChild(div);
+          if (isVideo) {
+            const video = div.querySelector('.reel-media');
+            video.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (video.paused) {
+                video.play().catch(err => console.error('Error playing video:', err));
+              } else {
+                video.pause();
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading reels:', error);
+        showAlert('Failed to load reels. Please try again.');
+      } finally {
+        hideSpinner();
+      }
+    }
+
+    function formatTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHr = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHr / 24);
+      const diffWeek = Math.floor(diffDay / 7);
+      const diffMonth = Math.floor(diffDay / 30);
+      const diffYear = Math.floor(diffDay / 365);
+
+      if (diffSec < 60) return `${diffSec} second${diffSec === 1 ? '' : 's'} ago`;
+      if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+      if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
+      if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
+      if (diffWeek < 4) return `${diffWeek} week${diffWeek === 1 ? '' : 's'} ago`;
+      if (diffMonth < 12) return `${diffMonth} month${diffMonth === 1 ? '' : 's'} ago`;
+      return `${diffYear} year${diffYear === 1 ? '' : 's'} ago`;
+    }
+
+    document.getElementById('search-bar').addEventListener('input', (e) => {
+      e.stopPropagation();
+      searchReels(e.target.value);
+    });
+
+    document.addEventListener('click', (e) => {
+      const searchBar = document.getElementById('search-bar');
+      const searchDropdown = document.getElementById('search-dropdown');
+      if (!searchBar.contains(e.target) && !searchDropdown.contains(e.target)) {
+        searchDropdown.style.display = 'none';
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM loaded, initializing Firebase');
+      initializeFirebase();
+    });
+
+    window.goToProfile = goToProfile;
+    window.goToReel = goToReel;
+  </script>
+</body>
+</html>
