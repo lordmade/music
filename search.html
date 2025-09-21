@@ -98,9 +98,8 @@
     .reel-item {
       position: relative;
       aspect-ratio: 9/16;
-      border-radius: 12px;
+      border-radius: 8px;
       overflow: hidden;
-      border: 1px solid var(--border);
       cursor: pointer;
       background: var(--card-bg);
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -166,23 +165,6 @@
       text-overflow: ellipsis;
     }
 
-    .play-icon {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 32px;
-      height: 32px;
-      color: var(--text-primary);
-      opacity: 0.8;
-      transition: opacity 0.3s ease;
-      z-index: 20;
-    }
-
-    .play-icon.hidden {
-      opacity: 0;
-    }
-
     .spinner-overlay {
       position: fixed;
       top: 0;
@@ -244,7 +226,7 @@
 
     @media (max-width: 768px) {
       .reels-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr;
         gap: 8px;
         padding: 64px 8px 8px;
         height: calc(100vh - 64px);
@@ -396,7 +378,8 @@
           const reels = snapshot.val();
           allReels = Object.entries(reels)
             .map(([reelId, reelData]) => ({ reelId, ...reelData }))
-            .filter(reel => reel.mediaType === 'video'); // Only show videos
+            .filter(reel => reel.mediaType === 'video') // Only show videos
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Sort by newest first
           console.log('Fetched', allReels.length, 'video reels');
           renderReels(allReels);
           hideSpinner();
@@ -427,11 +410,8 @@
             const thumbnailURL = reel.mediaURL.replace('/upload/', '/upload/so_0/'); // Use Cloudinary to get first frame as thumbnail
             div.innerHTML = `
               ${networkIssue
-                ? `<img src="${thumbnailURL}" alt="Reel thumbnail">`
-                : `<video src="${reel.mediaURL}" muted loop playsinline></video>
-                   <svg class="play-icon hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                     <path d="M5 3l14 9-14 9V3z"/>
-                   </svg>`}
+                ? `<img src="${thumbnailURL}" alt="Reel thumbnail" class="reel-media">`
+                : `<video src="${reel.mediaURL}" class="reel-media" muted autoplay loop playsinline></video>`}
               <div class="reel-profile">
                 ${userData?.photoURL
                   ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
@@ -443,7 +423,7 @@
             `;
             reelsGrid.appendChild(div);
             if (!networkIssue) {
-              const video = div.querySelector('video');
+              const video = div.querySelector('.reel-media');
               video.addEventListener('click', (e) => {
                 e.stopPropagation();
                 console.log('Redirecting to index.html for reel:', reel.reelId);
@@ -457,6 +437,12 @@
               video.addEventListener('waiting', () => showSpinner());
               video.addEventListener('playing', () => hideSpinner());
               video.addEventListener('canplay', () => hideSpinner());
+              // Attempt to play video immediately
+              video.play().catch((err) => {
+                console.log('Autoplay prevented for video:', reel.mediaURL, err);
+                networkIssue = true;
+                renderReels(allReels); // Re-render as images if autoplay fails
+              });
             } else {
               div.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -469,8 +455,6 @@
           console.error('Error fetching user data for reel', reel.reelId, ':', error);
         }
       }
-      // Trigger visibility observation after rendering
-      observeVideos();
     }
 
     function searchReels(query) {
@@ -502,32 +486,6 @@
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
       };
-    }
-
-    // Intersection Observer to play videos when they enter the viewport
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        const video = entry.target.querySelector('video');
-        if (!video) return;
-        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-          video.play().catch(err => {
-            console.error('Error playing video:', err);
-            networkIssue = true;
-            renderReels(allReels); // Re-render as images on network issue
-          });
-          console.log(`Playing video for reel ${entry.target.dataset.reelId}`);
-        } else {
-          video.pause();
-          video.currentTime = 0;
-          console.log(`Paused video for reel ${entry.target.dataset.reelId}`);
-        }
-      });
-    }, { threshold: 0.5 });
-
-    function observeVideos() {
-      console.log('Observing videos for visibility');
-      const reelItems = document.querySelectorAll('.reel-item');
-      reelItems.forEach(item => observer.observe(item));
     }
 
     document.getElementById('search-input').addEventListener('input', debounce((e) => {
