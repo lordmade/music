@@ -85,27 +85,62 @@
 
     .reels-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
       padding: 80px 16px 16px;
       max-width: 1200px;
       margin: 0 auto;
+      height: calc(100vh - 80px);
+      overflow-y: auto;
+      scroll-behavior: smooth;
     }
 
     .reel-item {
       position: relative;
       aspect-ratio: 9/16;
-      border-radius: 8px;
+      border-radius: 12px;
       overflow: hidden;
       border: 1px solid var(--border);
       cursor: pointer;
       background: var(--card-bg);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .reel-item:hover {
+      transform: scale(1.02);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
     }
 
     .reel-item video,
     .reel-item img {
       width: 100%;
       height: 100%;
+      object-fit: cover;
+    }
+
+    .reel-profile {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 16px;
+      border: 2px solid var(--text-primary);
+      z-index: 10;
+    }
+
+    .reel-profile-pic {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
       object-fit: cover;
     }
 
@@ -121,27 +156,6 @@
       display: flex;
       align-items: center;
       gap: 8px;
-    }
-
-    .reel-avatar {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--text-secondary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-primary);
-      font-weight: 600;
-      font-size: 12px;
-    }
-
-    .reel-profile-pic {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 1px solid var(--text-primary);
     }
 
     .reel-username {
@@ -230,8 +244,16 @@
 
     @media (max-width: 768px) {
       .reels-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
         padding: 64px 8px 8px;
+        height: calc(100vh - 64px);
+      }
+
+      .reel-profile {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
       }
 
       .search-bar {
@@ -244,9 +266,9 @@
       }
     }
 
-    @media (min-width: 769px) {
+    @media (min-width: 769px) and (max-width: 1024px) {
       .reels-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        grid-template-columns: repeat(3, 1fr);
       }
     }
   </style>
@@ -407,36 +429,25 @@
               ${networkIssue
                 ? `<img src="${thumbnailURL}" alt="Reel thumbnail">`
                 : `<video src="${reel.mediaURL}" muted loop playsinline></video>
-                   <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                   <svg class="play-icon hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                      <path d="M5 3l14 9-14 9V3z"/>
                    </svg>`}
-              <div class="reel-overlay">
+              <div class="reel-profile">
                 ${userData?.photoURL
                   ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
                   : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+              </div>
+              <div class="reel-overlay">
                 <div class="reel-username">${userData?.displayName || 'User'}</div>
               </div>
             `;
             reelsGrid.appendChild(div);
             if (!networkIssue) {
               const video = div.querySelector('video');
-              const playIcon = div.querySelector('.play-icon');
               video.addEventListener('click', (e) => {
                 e.stopPropagation();
+                console.log('Redirecting to index.html for reel:', reel.reelId);
                 window.location.href = `index.html?reelId=${reel.reelId}`;
-              });
-              video.addEventListener('mouseenter', () => {
-                video.play().catch(err => {
-                  console.error('Error playing video:', err);
-                  networkIssue = true;
-                  renderReels(allReels); // Re-render as images on network issue
-                });
-                if (playIcon) playIcon.classList.add('hidden');
-              });
-              video.addEventListener('mouseleave', () => {
-                video.pause();
-                video.currentTime = 0;
-                if (playIcon) playIcon.classList.remove('hidden');
               });
               video.addEventListener('error', (e) => {
                 console.error('Video error for reel', reel.reelId, ':', e);
@@ -449,6 +460,7 @@
             } else {
               div.addEventListener('click', (e) => {
                 e.stopPropagation();
+                console.log('Redirecting to index.html for reel:', reel.reelId);
                 window.location.href = `index.html?reelId=${reel.reelId}`;
               });
             }
@@ -457,6 +469,8 @@
           console.error('Error fetching user data for reel', reel.reelId, ':', error);
         }
       }
+      // Trigger visibility observation after rendering
+      observeVideos();
     }
 
     function searchReels(query) {
@@ -488,6 +502,32 @@
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
       };
+    }
+
+    // Intersection Observer to play videos when they enter the viewport
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const video = entry.target.querySelector('video');
+        if (!video) return;
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+          video.play().catch(err => {
+            console.error('Error playing video:', err);
+            networkIssue = true;
+            renderReels(allReels); // Re-render as images on network issue
+          });
+          console.log(`Playing video for reel ${entry.target.dataset.reelId}`);
+        } else {
+          video.pause();
+          video.currentTime = 0;
+          console.log(`Paused video for reel ${entry.target.dataset.reelId}`);
+        }
+      });
+    }, { threshold: 0.5 });
+
+    function observeVideos() {
+      console.log('Observing videos for visibility');
+      const reelItems = document.querySelectorAll('.reel-item');
+      reelItems.forEach(item => observer.observe(item));
     }
 
     document.getElementById('search-input').addEventListener('input', debounce((e) => {
