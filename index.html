@@ -164,17 +164,18 @@
     }
 
     .reel-caption {
-  font-size: 14px;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  max-width: 80%;
-  margin-top: 8px;
-  position: relative;
-  padding-right: 80px;
-}
+      font-size: 14px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      max-width: 80%;
+      margin-top: 8px;
+      position: relative;
+      padding-right: 80px;
+    }
+
     .reel-actions {
       position: absolute;
       right: 12px;
@@ -738,7 +739,6 @@
         border-top-left-radius: 0;
       }
     }
-    
   </style>
 </head>
 <body>
@@ -772,7 +772,7 @@
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 18c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm-4-12h8v2H8v-2zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
         </svg>
-        <span>Auto Play</span>
+        <span>AI Feed</span>
       </button>
       <button class="nav-item upload-btn" id="upload-nav-btn-mobile" aria-label="Upload">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -969,33 +969,30 @@
       return array;
     }
 
-
-
-async function deleteReel(reelId, event) {
-  event.stopPropagation();
-  if (!currentUser) {
-    showAlert('Please log in to delete reels.');
-    return;
-  }
-  try {
-    const reelRef = ref(db, `reels/${reelId}`);
-    const snapshot = await onValue(reelRef, (snap) => snap, { onlyOnce: true });
-    const reel = snapshot.val();
-    if (reel.userId !== currentUser.uid) {
-      showAlert('You can only delete your own reels.');
-      return;
+    async function deleteReel(reelId, event) {
+      event.stopPropagation();
+      if (!currentUser) {
+        showAlert('Please log in to delete reels.');
+        return;
+      }
+      try {
+        const reelRef = ref(db, `reels/${reelId}`);
+        const snapshot = await onValue(reelRef, (snap) => snap, { onlyOnce: true });
+        const reel = snapshot.val();
+        if (reel.userId !== currentUser.uid) {
+          showAlert('You can only delete your own reels.');
+          return;
+        }
+        await remove(reelRef);
+        console.log(`Deleted reel ${reelId}`);
+        showAlert('Reel deleted successfully.');
+        loadReels();
+      } catch (error) {
+        console.error('Error deleting reel:', error);
+        showAlert('Failed to delete reel. Please try again.');
+      }
     }
-    await remove(reelRef);
-    console.log(`Deleted reel ${reelId}`);
-    showAlert('Reel deleted successfully.');
-    loadReels();
-  } catch (error) {
-    console.error('Error deleting reel:', error);
-    showAlert('Failed to delete reel. Please try again.');
-  }
-}
 
-    
     async function loadReels() {
       console.log('Loading reels');
       showSpinner();
@@ -1034,6 +1031,7 @@ async function deleteReel(reelId, event) {
                 const caption = reel.caption || '';
                 const isFollowing = await checkFollowingStatus(currentUser.uid, reel.userId);
                 await trackImpression(reel.reelId);
+                const isOwnReel = currentUser && reel.userId === currentUser.uid;
                 const div = document.createElement('div');
                 div.className = 'reel';
                 div.dataset.reelId = reel.reelId;
@@ -1062,10 +1060,9 @@ async function deleteReel(reelId, event) {
                         <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>
                       </div>
                     </div>
-                    <div class="reel-caption">${caption}.</div>
-                    <button class="delete-reel btn" onclick="deleteReel('${reel.reelId}', event)" style="position: absolute; right: 10px; bottom: 10px; padding: 5px 15px; border-radius: 15px; background-color: #ff4d4d; color: white; border: none; cursor: pointer;">Delete</button>
+                    <div class="reel-caption">${caption}</div>
+                    ${isOwnReel ? `<button class="delete-reel btn" onclick="deleteReel('${reel.reelId}', event)" style="position: absolute; right: 10px; bottom: 10px; padding: 5px 15px; border-radius: 15px; background-color: #ff4d4d; color: white; border: none; cursor: pointer;">Delete</button>` : ''}
                   </div>
-                  
                   <div class="reel-actions">
                     <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -1769,10 +1766,10 @@ async function deleteReel(reelId, event) {
     window.showReplyInput = showReplyInput;
     window.submitReply = submitReply;
     window.deleteComment = deleteComment;
+    window.deleteReel = deleteReel;
     window.goToProfile = goToProfile;
     window.closeBottomSheet = closeBottomSheet;
     window.openBottomSheet = openBottomSheet;
-    window.deleteReel = deleteReel;
   </script>
 </body>
 </html>
