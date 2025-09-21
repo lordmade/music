@@ -226,7 +226,7 @@
 
     @media (max-width: 768px) {
       .reels-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(3, 1fr);
         gap: 8px;
         padding: 64px 8px 8px;
         height: calc(100vh - 64px);
@@ -245,12 +245,6 @@
 
       .alert {
         top: 64px;
-      }
-    }
-
-    @media (min-width: 769px) and (max-width: 1024px) {
-      .reels-grid {
-        grid-template-columns: repeat(3, 1fr);
       }
     }
   </style>
