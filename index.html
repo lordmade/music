@@ -1062,9 +1062,10 @@ async function deleteReel(reelId, event) {
                         <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>
                       </div>
                     </div>
-                    <div class="reel-caption">${caption}</div>
+                    <div class="reel-caption">${caption}.</div>
                     <button class="delete-reel btn" onclick="deleteReel('${reel.reelId}', event)" style="position: absolute; right: 10px; bottom: 10px; padding: 5px 15px; border-radius: 15px; background-color: #ff4d4d; color: white; border: none; cursor: pointer;">Delete</button>
                   </div>
+                  
                   <div class="reel-actions">
                     <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
                       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
