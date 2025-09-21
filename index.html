@@ -793,24 +793,30 @@
     </div>
 
     <nav class="bottom-nav">
-      <button class="nav-item btn active" id="home-btn-mobile" aria-label="AI Feed">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 18c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm-4-12h8v2H8v-2zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
-        </svg>
-        <span>AI Feed</span>
-      </button>
-      <button class="nav-item upload-btn" id="upload-nav-btn-mobile" aria-label="Upload">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M12 4v8m0 0v8m8-8H4"/>
-        </svg>
-      </button>
-      <button class="nav-item btn" id="friends-nav-btn-mobile" aria-label="Friends">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-        </svg>
-        <span>Friends</span>
-      </button>
-    </nav>
+  <button class="nav-item btn" id="search-nav-btn-mobile" aria-label="Search">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+      <path d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+    </svg>
+    <span>Search</span>
+  </button>
+  <button class="nav-item btn active" id="home-btn-mobile" aria-label="AI Feed">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+      <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 18c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm-4-12h8v2H8v-2zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
+    </svg>
+    <span>AI Feed</span>
+  </button>
+  <button class="nav-item upload-btn" id="upload-nav-btn-mobile" aria-label="Upload">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+      <path d="M12 4v8m0 0v8m8-8H4"/>
+    </svg>
+  </button>
+  <button class="nav-item btn" id="friends-nav-btn-mobile" aria-label="Friends">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+    </svg>
+    <span>Friends</span>
+  </button>
+</nav>
 
     <div class="bottom-sheet" id="upload-sheet">
       <button class="close-sheet" onclick="closeBottomSheet(event)">
@@ -1038,188 +1044,204 @@ function reportReel(reelId) {
     }
 
     async function loadReels() {
-      console.log('Loading reels');
-      showSpinner();
-      const reelsRef = ref(db, 'reels');
-      const renderedReels = new Set();
-      try {
-        onValue(reelsRef, async (snapshot) => {
-          console.log('Reels snapshot received:', snapshot.exists());
-          const reelsContainer = document.getElementById('reels-container');
-          if (!snapshot.exists()) {
-            console.log('No reels data found');
-            reelsContainer.innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">No reels available.</p>';
-            pauseAllVideos();
-            hideSpinner();
-            return;
-          }
-          const reels = snapshot.val();
-          console.log('Data fetched:', Object.keys(reels).length, 'reels');
-          const reelsArray = Object.entries(reels)
-            .map(([reelId, reelData]) => ({ reelId, ...reelData }));
-          const randomizedReels = shuffleArray(reelsArray);
-
-          if (reelsContainer.children.length !== randomizedReels.length) {
-            reelsContainer.innerHTML = '';
-            renderedReels.clear();
-            pauseAllVideos();
-          }
-
-          for (const reel of randomizedReels) {
-            if (renderedReels.has(reel.reelId)) continue;
-            const userRef = ref(db, `users/${reel.userId}`);
-            try {
-              onValue(userRef, async (userSnapshot) => {
-                const userData = userSnapshot.val();
-                console.log('User data for reel', reel.reelId, ':', userData);
-                const caption = reel.caption || '';
-                const isFollowing = await checkFollowingStatus(currentUser.uid, reel.userId);
-                await trackImpression(reel.reelId);
-                const div = document.createElement('div');
-                div.className = 'reel';
-                div.dataset.reelId = reel.reelId;
-                const isVideo = reel.mediaType === 'video';
-                div.innerHTML = `
-  ${isVideo
-    ? `<video class="reel-media" src="${reel.mediaURL}" playsinline loop></video>
-       <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-         <path d="M5 3l14 9-14 9V3z"/>
-       </svg>
-       <div class="progress-bar" id="progress-${reel.reelId}"></div>`
-    : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
-  <div class="reel-top-actions">
-    <div class="reel-header" onclick="goToProfile('${reel.userId}')">
-      <div class="reel-header-info">
-        ${userData?.photoURL
-          ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
-          : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
-        <div>
-          <div class="reel-username">${userData?.displayName || 'User'}</div>
-          <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
-        </div>
-      </div>
-      <div class="reel-header-buttons">
-        ${currentUser && reel.userId === currentUser.uid
-          ? `<button class="delete-reel-btn btn" style="background: var(--badge-bg); color: var(--text-primary); font-size: 12px; font-weight: 600;" onclick="deleteReel('${reel.reelId}', this)">Delete</button>`
-          : ''}
-        <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
-        <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>
-        <button class="kebab-menu-btn btn" onclick="toggleKebabMenu('${reel.reelId}', event)">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <path d="M12 5v.01M12 12v.01M12 19v.01"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-    <div class="reel-caption">${caption}</div>
-    <div class="kebab-menu" id="kebab-menu-${reel.reelId}" style="display: none; position: absolute; top: 100%; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
-      <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="openSettings('${reel.reelId}')">Settings</button>
-      <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="goToProfile('${reel.userId}')">View Profile</button>
-      <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="reportReel('${reel.reelId}')">Report</button>
-    </div>
-  </div>
-  <div class="reel-actions">
-    <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-      </svg>
-      <span>${Object.keys(reel.likedBy || {}).length}</span>
-    </button>
-    <button class="reel-action btn" onclick="trackImpression('${reel.reelId}', this)">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-        <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
-      </svg>
-      <span>${Object.keys(reel.impressions || {}).length}</span>
-    </button>
-    <button class="reel-action btn ${reel.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reel.reelId}', this)">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-        <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
-      </svg>
-    </button>
-  </div>
-`;
-                reelsContainer.appendChild(div);
-                renderedReels.add(reel.reelId);
-                if (isVideo) {
-                  const video = div.querySelector('.reel-media');
-                  const progressBar = div.querySelector(`#progress-${reel.reelId}`);
-                  const playIcon = div.querySelector('.play-icon');
-                  video.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (video.paused) {
-                      pauseAllVideos(reel.reelId);
-                      currentPlayingVideo = video;
-                      video.play().catch(err => console.error('Error playing video:', err));
-                      if (playIcon) playIcon.classList.add('hidden');
-                    } else {
-                      video.pause();
-                      currentPlayingVideo = null;
-                      if (playIcon) playIcon.classList.remove('hidden');
-                    }
-                    console.log(`Video ${video.paused ? 'paused' : 'playing'} for reel ${reel.reelId}`);
-                  });
-                  video.addEventListener('play', () => {
-                    if (playIcon) playIcon.classList.add('hidden');
-                  });
-                  video.addEventListener('pause', () => {
-                    if (playIcon) playIcon.classList.remove('hidden');
-                  });
-                  video.addEventListener('timeupdate', () => {
-                    if (!video.paused) {
-                      const progress = (video.currentTime / video.duration) * 100;
-                      progressBar.style.width = `${progress}%`;
-                    }
-                  });
-                  video.addEventListener('waiting', () => showSpinner());
-                  video.addEventListener('stalled', () => showSpinner());
-                  video.addEventListener('playing', () => hideSpinner());
-                  video.addEventListener('canplay', () => hideSpinner());
-                  video.addEventListener('ended', () => {
-                    progressBar.style.width = '0%';
-                    video.currentTime = 0;
-                    video.play().catch(err => console.error('Error replaying video:', err));
-                    if (playIcon) playIcon.classList.add('hidden');
-                  });
-                  video.addEventListener('error', () => {
-                    console.log('Video error for URL:', reel.mediaURL);
-                    showSpinner();
-                    showAlert('Failed to load video. Please check your network.');
-                    if (playIcon) playIcon.classList.remove('hidden');
-                  });
-                }
-                let pressTimer;
-                div.addEventListener('touchstart', (e) => {
-                  e.stopPropagation();
-                  pressTimer = setTimeout(() => {
-                    openBottomSheet('comment', reel.reelId);
-                  }, 500);
-                }, { passive: true });
-                div.addEventListener('touchmove', (e) => {
-                  clearTimeout(pressTimer);
-                }, { passive: true });
-                div.addEventListener('touchend', (e) => {
-                  clearTimeout(pressTimer);
-                }, { passive: true });
-              }, { onlyOnce: true });
-            } catch (error) {
-              console.error('Error fetching user data for reel', reel.reelId, ':', error);
-            }
-          }
-          hideSpinner();
-          observeReels();
-        }, (error) => {
-          console.error('Error in reels onValue:', error);
-          showAlert('Failed to fetch reels. Please try again.');
-          pauseAllVideos();
-          hideSpinner();
-        });
-      } catch (error) {
-        console.error('Error loading reels:', error);
-        showAlert('Failed to load reels. Please check your connection.');
+  console.log('Loading reels');
+  showSpinner();
+  const reelsRef = ref(db, 'reels');
+  const renderedReels = new Set();
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetReelId = urlParams.get('reelId');
+  try {
+    onValue(reelsRef, async (snapshot) => {
+      console.log('Reels snapshot received:', snapshot.exists());
+      const reelsContainer = document.getElementById('reels-container');
+      if (!snapshot.exists()) {
+        console.log('No reels data found');
+        reelsContainer.innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">No reels available.</p>';
         pauseAllVideos();
         hideSpinner();
+        return;
       }
-    }
+      const reels = snapshot.val();
+      console.log('Data fetched:', Object.keys(reels).length, 'reels');
+      const reelsArray = Object.entries(reels)
+        .map(([reelId, reelData]) => ({ reelId, ...reelData }));
+      const randomizedReels = shuffleArray(reelsArray);
+
+      if (reelsContainer.children.length !== randomizedReels.length) {
+        reelsContainer.innerHTML = '';
+        renderedReels.clear();
+        pauseAllVideos();
+      }
+
+      for (const reel of randomizedReels) {
+        if (renderedReels.has(reel.reelId)) continue;
+        const userRef = ref(db, `users/${reel.userId}`);
+        try {
+          onValue(userRef, async (userSnapshot) => {
+            const userData = userSnapshot.val();
+            console.log('User data for reel', reel.reelId, ':', userData);
+            const caption = reel.caption || '';
+            const isFollowing = await checkFollowingStatus(currentUser.uid, reel.userId);
+            await trackImpression(reel.reelId);
+            const div = document.createElement('div');
+            div.className = 'reel';
+            div.dataset.reelId = reel.reelId;
+            const isVideo = reel.mediaType === 'video';
+            div.innerHTML = `
+              ${isVideo
+                ? `<video class="reel-media" src="${reel.mediaURL}" playsinline loop></video>
+                   <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                     <path d="M5 3l14 9-14 9V3z"/>
+                   </svg>
+                   <div class="progress-bar" id="progress-${reel.reelId}"></div>`
+                : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
+              <div class="reel-top-actions">
+                <div class="reel-header" onclick="goToProfile('${reel.userId}')">
+                  <div class="reel-header-info">
+                    ${userData?.photoURL
+                      ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
+                      : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+                    <div>
+                      <div class="reel-username">${userData?.displayName || 'User'}</div>
+                      <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
+                    </div>
+                  </div>
+                  <div class="reel-header-buttons">
+                    ${currentUser && reel.userId === currentUser.uid
+                      ? `<button class="delete-reel-btn btn" style="background: var(--badge-bg); color: var(--text-primary); font-size: 12px; font-weight: 600;" onclick="deleteReel('${reel.reelId}', this)">Delete</button>`
+                      : ''}
+                    <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
+                    <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>
+                    <button class="kebab-menu-btn btn" onclick="toggleKebabMenu('${reel.reelId}', event)">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path d="M12 5v.01M12 12v.01M12 19v.01"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="reel-caption">${caption}</div>
+                <div class="kebab-menu" id="kebab-menu-${reel.reelId}" style="display: none; position: absolute; top: 100%; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
+                  <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="openSettings('${reel.reelId}')">Settings</button>
+                  <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="goToProfile('${reel.userId}')">View Profile</button>
+                  <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="reportReel('${reel.reelId}')">Report</button>
+                </div>
+              </div>
+              <div class="reel-actions">
+                <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                  </svg>
+                  <span>${Object.keys(reel.likedBy || {}).length}</span>
+                </button>
+                <button class="reel-action btn" onclick="trackImpression('${reel.reelId}', this)">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
+                  </svg>
+                  <span>${Object.keys(reel.impressions || {}).length}</span>
+                </button>
+                <button class="reel-action btn ${reel.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reel.reelId}', this)">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
+                  </svg>
+                </button>
+              </div>
+            `;
+            reelsContainer.appendChild(div);
+            renderedReels.add(reel.reelId);
+            if (isVideo) {
+              const video = div.querySelector('.reel-media');
+              const progressBar = div.querySelector(`#progress-${reel.reelId}`);
+              const playIcon = div.querySelector('.play-icon');
+              video.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (video.paused) {
+                  pauseAllVideos(reel.reelId);
+                  currentPlayingVideo = video;
+                  video.play().catch(err => console.error('Error playing video:', err));
+                  if (playIcon) playIcon.classList.add('hidden');
+                } else {
+                  video.pause();
+                  currentPlayingVideo = null;
+                  if (playIcon) playIcon.classList.remove('hidden');
+                }
+                console.log(`Video ${video.paused ? 'paused' : 'playing'} for reel ${reel.reelId}`);
+              });
+              video.addEventListener('play', () => {
+                if (playIcon) playIcon.classList.add('hidden');
+              });
+              video.addEventListener('pause', () => {
+                if (playIcon) playIcon.classList.remove('hidden');
+              });
+              video.addEventListener('timeupdate', () => {
+                if (!video.paused) {
+                  const progress = (video.currentTime / video.duration) * 100;
+                  progressBar.style.width = `${progress}%`;
+                }
+              });
+              video.addEventListener('waiting', () => showSpinner());
+              video.addEventListener('stalled', () => showSpinner());
+              video.addEventListener('playing', () => hideSpinner());
+              video.addEventListener('canplay', () => hideSpinner());
+              video.addEventListener('ended', () => {
+                progressBar.style.width = '0%';
+                video.currentTime = 0;
+                video.play().catch(err => console.error('Error replaying video:', err));
+                if (playIcon) playIcon.classList.add('hidden');
+              });
+              video.addEventListener('error', () => {
+                console.log('Video error for URL:', reel.mediaURL);
+                showSpinner();
+                showAlert('Failed to load video. Please check your network.');
+                if (playIcon) playIcon.classList.remove('hidden');
+              });
+            }
+            let pressTimer;
+            div.addEventListener('touchstart', (e) => {
+              e.stopPropagation();
+              pressTimer = setTimeout(() => {
+                openBottomSheet('comment', reel.reelId);
+              }, 500);
+            }, { passive: true });
+            div.addEventListener('touchmove', (e) => {
+              clearTimeout(pressTimer);
+            }, { passive: true });
+            div.addEventListener('touchend', (e) => {
+              clearTimeout(pressTimer);
+            }, { passive: true });
+            if (targetReelId && reel.reelId === targetReelId) {
+              div.scrollIntoView({ behavior: 'smooth' });
+              if (isVideo) {
+                const video = div.querySelector('.reel-media');
+                pauseAllVideos(reel.reelId);
+                currentPlayingVideo = video;
+                video.play().catch(err => console.error('Error playing video:', err));
+                if (playIcon) playIcon.classList.add('hidden');
+              }
+            }
+          }, { onlyOnce: true });
+        } catch (error) {
+          console.error('Error fetching user data for reel', reel.reelId, ':', error);
+        }
+      }
+      hideSpinner();
+      observeReels();
+      if (targetReelId && !renderedReels.has(targetReelId)) {
+        console.log('Target reel not found:', targetReelId);
+        showAlert('Reel not found.');
+      }
+    }, (error) => {
+      console.error('Error in reels onValue:', error);
+      showAlert('Failed to fetch reels. Please try again.');
+      pauseAllVideos();
+      hideSpinner();
+    });
+  } catch (error) {
+    console.error('Error loading reels:', error);
+    showAlert('Failed to load reels. Please check your connection.');
+    pauseAllVideos();
+    hideSpinner();
+  }
+}
 
     async function trackImpression(reelId, button = null) {
       if (!currentUser) return;
@@ -1792,6 +1814,14 @@ function reportReel(reelId) {
     document.getElementById('comment-sheet-content').addEventListener('click', (e) => {
       e.stopPropagation();
     });
+    
+    document.getElementById('search-nav-btn-mobile').addEventListener('click', (e) => {
+  e.stopPropagation();
+  console.log('Redirecting to search.html');
+  window.location.href = 'search.html';
+  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+});
 
     document.addEventListener('click', (e) => {
   const uploadSheet = document.getElementById('upload-sheet');
