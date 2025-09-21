@@ -649,56 +649,6 @@
       -webkit-touch-callout: none;
     }
 
-    .delete-reel-btn {
-      background: var(--badge-bg);
-      color: var(--text-primary);
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      border-radius: 9999px;
-      padding: 6px 12px;
-    }
-
-    .kebab-menu-btn {
-      background: none;
-      border: none;
-      color: var(--text-primary);
-      cursor: pointer;
-      padding: 6px;
-    }
-
-    .kebab-menu {
-      min-width: 150px;
-      position: absolute;
-      top: 100%;
-      right: 16px;
-      background: var(--glass-bg);
-      -webkit-backdrop-filter: var(--glass-blur);
-      backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 0;
-      z-index: 50;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-    }
-
-    .kebab-menu-item {
-      display: block;
-      width: 100%;
-      text-align: left;
-      padding: 8px 16px;
-      font-size: 14px;
-      color: var(--text-primary);
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
-
-    .kebab-menu-item:hover {
-      background: rgba(255, 255, 255, 0.1);
-    }
-
     @media (max-width: 768px) {
       .reel-top-actions {
         padding: 12px;
@@ -787,17 +737,38 @@
         border-top-left-radius: 0;
       }
     }
+
+    .delete-reel-btn {
+  background: var(--badge-bg);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  border-radius: 9999px;
+  padding: 6px 12px;
+}
+
+.kebab-menu-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 6px;
+}
+
+.kebab-menu {
+  min-width: 150px;
+}
+
+.kebab-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
   </style>
 </head>
 <body>
   <main class="flex flex-col h-screen" id="main-content">
     <nav class="sidebar">
-      <button class="nav-item btn" id="search-nav-btn" aria-label="Search">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
-        </svg>
-        <span>Search</span>
-      </button>
       <button class="nav-item btn active" id="home-btn" aria-label="AI Feed">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 18c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm-4-12h8v2H8v-2zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
@@ -822,12 +793,6 @@
     </div>
 
     <nav class="bottom-nav">
-      <button class="nav-item btn" id="search-nav-btn-mobile" aria-label="Search">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
-        </svg>
-        <span>Search</span>
-      </button>
       <button class="nav-item btn active" id="home-btn-mobile" aria-label="AI Feed">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 18c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm-4-12h8v2H8v-2zm0 4h8v2H8v-2zm0 4h8v2H8v-2z"/>
@@ -973,47 +938,48 @@
       window.location.href = `profile.html?uid=${userId}`;
     }
 
-    async function deleteReel(reelId, button) {
-      if (!currentUser) {
-        showAlert('Please log in to delete reels.');
-        return;
-      }
-      try {
-        const reelRef = ref(db, `reels/${reelId}`);
-        await remove(reelRef);
-        console.log(`Deleted reel ${reelId}`);
-        showAlert('Reel deleted successfully.');
-        const reelDiv = button.closest('.reel');
-        if (reelDiv) {
-          reelDiv.remove();
-        }
-        pauseAllVideos();
-      } catch (error) {
-        console.error('Error deleting reel:', error);
-        showAlert('Failed to delete reel. Please try again.');
-      }
+async function deleteReel(reelId, button) {
+  if (!currentUser) {
+    showAlert('Please log in to delete reels.');
+    return;
+  }
+  try {
+    const reelRef = ref(db, `reels/${reelId}`);
+    await remove(reelRef);
+    console.log(`Deleted reel ${reelId}`);
+    showAlert('Reel deleted successfully.');
+    const reelDiv = button.closest('.reel');
+    if (reelDiv) {
+      reelDiv.remove();
     }
+    pauseAllVideos();
+  } catch (error) {
+    console.error('Error deleting reel:', error);
+    showAlert('Failed to delete reel. Please try again.');
+  }
+}
 
-    function toggleKebabMenu(reelId, event) {
-      event.stopPropagation();
-      const menu = document.getElementById(`kebab-menu-${reelId}`);
-      const isVisible = menu.style.display === 'block';
-      document.querySelectorAll('.kebab-menu').forEach(m => m.style.display = 'none');
-      menu.style.display = isVisible ? 'none' : 'block';
-      console.log(`Toggled kebab menu for reel ${reelId}: ${isVisible ? 'Hidden' : 'Shown'}`);
-    }
+function toggleKebabMenu(reelId, event) {
+  event.stopPropagation();
+  const menu = document.getElementById(`kebab-menu-${reelId}`);
+  const isVisible = menu.style.display === 'block';
+  document.querySelectorAll('.kebab-menu').forEach(m => m.style.display = 'none');
+  menu.style.display = isVisible ? 'none' : 'block';
+  console.log(`Toggled kebab menu for reel ${reelId}: ${isVisible ? 'Hidden' : 'Shown'}`);
+}
 
-    function openSettings(reelId) {
-      console.log(`Opening settings for reel ${reelId}`);
-      showAlert('Settings functionality not implemented yet.');
-      document.getElementById(`kebab-menu-${reelId}`).style.display = 'none';
-    }
+function openSettings(reelId) {
+  console.log(`Opening settings for reel ${reelId}`);
+  showAlert('Settings functionality not implemented yet.');
+  document.getElementById(`kebab-menu-${reelId}`).style.display = 'none';
+}
 
-    function reportReel(reelId) {
-      console.log(`Reporting reel ${reelId}`);
-      showAlert('Report submitted. Thank you for your feedback.');
-      document.getElementById(`kebab-menu-${reelId}`).style.display = 'none';
-    }
+function reportReel(reelId) {
+  console.log(`Reporting reel ${reelId}`);
+  showAlert('Report submitted. Thank you for your feedback.');
+  document.getElementById(`kebab-menu-${reelId}`).style.display = 'none';
+}
+          
 
     function initializeFirebase() {
       console.log('Initializing Firebase');
@@ -1076,8 +1042,6 @@
       showSpinner();
       const reelsRef = ref(db, 'reels');
       const renderedReels = new Set();
-      const urlParams = new URLSearchParams(window.location.search);
-      const targetReelId = urlParams.get('reelId');
       try {
         onValue(reelsRef, async (snapshot) => {
           console.log('Reels snapshot received:', snapshot.exists());
@@ -1116,64 +1080,64 @@
                 div.dataset.reelId = reel.reelId;
                 const isVideo = reel.mediaType === 'video';
                 div.innerHTML = `
-                  ${isVideo
-                    ? `<video class="reel-media" src="${reel.mediaURL}" playsinline loop></video>
-                       <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                         <path d="M5 3l14 9-14 9V3z"/>
-                       </svg>
-                       <div class="progress-bar" id="progress-${reel.reelId}"></div>`
-                    : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
-                  <div class="reel-top-actions">
-                    <div class="reel-header" onclick="goToProfile('${reel.userId}')">
-                      <div class="reel-header-info">
-                        ${userData?.photoURL
-                          ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
-                          : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
-                        <div>
-                          <div class="reel-username">${userData?.displayName || 'User'}</div>
-                          <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
-                        </div>
-                      </div>
-                      <div class="reel-header-buttons">
-                        ${currentUser && reel.userId === currentUser.uid
-                          ? `<button class="delete-reel-btn btn" onclick="deleteReel('${reel.reelId}', this)">Delete</button>`
-                          : ''}
-                        <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
-                        <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>
-                        <button class="kebab-menu-btn btn" onclick="toggleKebabMenu('${reel.reelId}', event)">
-                          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                            <path d="M12 5v.01M12 12v.01M12 19v.01"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                    <div class="reel-caption">${caption}</div>
-                    <div class="kebab-menu" id="kebab-menu-${reel.reelId}" style="display: none;">
-                      <button class="kebab-menu-item btn" onclick="openSettings('${reel.reelId}')">Settings</button>
-                      <button class="kebab-menu-item btn" onclick="goToProfile('${reel.userId}')">View Profile</button>
-                      <button class="kebab-menu-item btn" onclick="reportReel('${reel.reelId}')">Report</button>
-                    </div>
-                  </div>
-                  <div class="reel-actions">
-                    <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-                      </svg>
-                      <span>${Object.keys(reel.likedBy || {}).length}</span>
-                    </button>
-                    <button class="reel-action btn" onclick="trackImpression('${reel.reelId}', this)">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
-                      </svg>
-                      <span>${Object.keys(reel.impressions || {}).length}</span>
-                    </button>
-                    <button class="reel-action btn ${reel.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reel.reelId}', this)">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
-                      </svg>
-                    </button>
-                  </div>
-                `;
+  ${isVideo
+    ? `<video class="reel-media" src="${reel.mediaURL}" playsinline loop></video>
+       <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+         <path d="M5 3l14 9-14 9V3z"/>
+       </svg>
+       <div class="progress-bar" id="progress-${reel.reelId}"></div>`
+    : `<img class="reel-media" src="${reel.mediaURL}" alt="Reel image">`}
+  <div class="reel-top-actions">
+    <div class="reel-header" onclick="goToProfile('${reel.userId}')">
+      <div class="reel-header-info">
+        ${userData?.photoURL
+          ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
+          : `<div class="reel-avatar">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+        <div>
+          <div class="reel-username">${userData?.displayName || 'User'}</div>
+          <div class="reel-timestamp">· ${reel.timestamp ? formatTimestamp(reel.timestamp) : ''}</div>
+        </div>
+      </div>
+      <div class="reel-header-buttons">
+        ${currentUser && reel.userId === currentUser.uid
+          ? `<button class="delete-reel-btn btn" style="background: var(--badge-bg); color: var(--text-primary); font-size: 12px; font-weight: 600;" onclick="deleteReel('${reel.reelId}', this)">Delete</button>`
+          : ''}
+        <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reel.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
+        <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reel.reelId}', event)">Comments (${Object.keys(reel.comments || {}).length})</button>
+        <button class="kebab-menu-btn btn" onclick="toggleKebabMenu('${reel.reelId}', event)">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path d="M12 5v.01M12 12v.01M12 19v.01"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="reel-caption">${caption}</div>
+    <div class="kebab-menu" id="kebab-menu-${reel.reelId}" style="display: none; position: absolute; top: 100%; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
+      <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="openSettings('${reel.reelId}')">Settings</button>
+      <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="goToProfile('${reel.userId}')">View Profile</button>
+      <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="reportReel('${reel.reelId}')">Report</button>
+    </div>
+  </div>
+  <div class="reel-actions">
+    <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+      </svg>
+      <span>${Object.keys(reel.likedBy || {}).length}</span>
+    </button>
+    <button class="reel-action btn" onclick="trackImpression('${reel.reelId}', this)">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
+      </svg>
+      <span>${Object.keys(reel.impressions || {}).length}</span>
+    </button>
+    <button class="reel-action btn ${reel.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reel.reelId}', this)">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
+      </svg>
+    </button>
+  </div>
+`;
                 reelsContainer.appendChild(div);
                 renderedReels.add(reel.reelId);
                 if (isVideo) {
@@ -1222,13 +1186,6 @@
                     showAlert('Failed to load video. Please check your network.');
                     if (playIcon) playIcon.classList.remove('hidden');
                   });
-                  if (targetReelId && reel.reelId === targetReelId) {
-                    div.scrollIntoView({ behavior: 'smooth' });
-                    pauseAllVideos(reel.reelId);
-                    currentPlayingVideo = video;
-                    video.play().catch(err => console.error('Error playing video:', err));
-                    if (playIcon) playIcon.classList.add('hidden');
-                  }
                 }
                 let pressTimer;
                 div.addEventListener('touchstart', (e) => {
@@ -1250,10 +1207,6 @@
           }
           hideSpinner();
           observeReels();
-          if (targetReelId && !renderedReels.has(targetReelId)) {
-            console.log('Target reel not found:', targetReelId);
-            showAlert('Reel not found.');
-          }
         }, (error) => {
           console.error('Error in reels onValue:', error);
           showAlert('Failed to fetch reels. Please try again.');
@@ -1299,13 +1252,14 @@
         const isLiked = button.classList.contains('liked');
         const countSpan = button.querySelector('span');
         const currentCount = parseInt(countSpan.textContent) || 0;
+
         await update(ref(db, `reels/${reelId}/likedBy`), {
           [currentUser.uid]: isLiked ? null : true
         });
+
         button.classList.toggle('liked');
         countSpan.textContent = isLiked ? currentCount - 1 : currentCount + 1;
         console.log(`Toggled like for reel ${reelId}: ${isLiked ? 'Unliked' : 'Liked'}`);
-        if (!isLiked) showLoveAnimation(button.closest('.reel'));
       } catch (error) {
         console.error('Error toggling like:', error);
         showAlert('Failed to like reel. Please try again.');
@@ -1524,6 +1478,7 @@
       const diffWeek = Math.floor(diffDay / 7);
       const diffMonth = Math.floor(diffDay / 30);
       const diffYear = Math.floor(diffDay / 365);
+
       if (diffSec < 60) return `${diffSec} second${diffSec === 1 ? '' : 's'} ago`;
       if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
       if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
@@ -1610,6 +1565,41 @@
       }
     }
 
+    function showPreviews(files) {
+      console.log('Showing previews for', files.length, 'files');
+      const previewContainer = document.getElementById('preview-container');
+      previewContainer.innerHTML = '';
+      Array.from(files).forEach((file, index) => {
+        const isVideo = file.type.startsWith('video');
+        const url = URL.createObjectURL(file);
+        const previewItem = document.createElement('div');
+        previewItem.className = 'preview-item';
+        previewItem.innerHTML = `
+          ${isVideo
+            ? `<video src="${url}" muted></video>`
+            : `<img src="${url}" alt="Preview ${index + 1}">`}
+          <button class="remove-preview" data-index="${index}">&times;</button>
+        `;
+        previewContainer.appendChild(previewItem);
+      });
+
+      const removeButtons = previewContainer.querySelectorAll('.remove-preview');
+      removeButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const index = parseInt(button.dataset.index);
+          const input = document.getElementById('media-upload');
+          const dt = new DataTransfer();
+          Array.from(input.files)
+            .filter((_, i) => i !== index)
+            .forEach(file => dt.items.add(file));
+          input.files = dt.files;
+          showPreviews(input.files);
+          console.log('Removed preview at index', index);
+        });
+      });
+    }
+
     async function uploadMedia(files, caption) {
       console.log('Uploading', files.length, 'files with caption:', caption);
       if (!currentUser) {
@@ -1630,6 +1620,7 @@
           const formData = new FormData();
           formData.append('file', file);
           formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
           const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${file.type.startsWith('video') ? 'video' : 'image'}/upload`, {
             method: 'POST',
             body: formData
@@ -1662,40 +1653,6 @@
       } finally {
         hideSpinner();
       }
-    }
-
-    function showPreviews(files) {
-      console.log('Showing previews for', files.length, 'files');
-      const previewContainer = document.getElementById('preview-container');
-      previewContainer.innerHTML = '';
-      Array.from(files).forEach((file, index) => {
-        const isVideo = file.type.startsWith('video');
-        const url = URL.createObjectURL(file);
-        const previewItem = document.createElement('div');
-        previewItem.className = 'preview-item';
-        previewItem.innerHTML = `
-          ${isVideo
-            ? `<video src="${url}" muted></video>`
-            : `<img src="${url}" alt="Preview ${index + 1}">`}
-          <button class="remove-preview" data-index="${index}">&times;</button>
-        `;
-        previewContainer.appendChild(previewItem);
-      });
-      const removeButtons = previewContainer.querySelectorAll('.remove-preview');
-      removeButtons.forEach(button => {
-        button.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const index = parseInt(button.dataset.index);
-          const input = document.getElementById('media-upload');
-          const dt = new DataTransfer();
-          Array.from(input.files)
-            .filter((_, i) => i !== index)
-            .forEach(file => dt.items.add(file));
-          input.files = dt.files;
-          showPreviews(input.files);
-          console.log('Removed preview at index', index);
-        });
-      });
     }
 
     let observer = new IntersectionObserver((entries) => {
@@ -1790,97 +1747,93 @@
     });
 
     document.getElementById('home-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-  e.currentTarget.classList.add('active');
-  console.log('Home button clicked, staying on index.html');
-  // No redirect needed as we're already on the home page
-});
+      e.stopPropagation();
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      loadReels();
+    });
 
-document.getElementById('home-btn-mobile').addEventListener('click', (e) => {
-  e.stopPropagation();
-  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-  e.currentTarget.classList.add('active');
-  console.log('Home button (mobile) clicked, staying on index.html');
-  // No redirect needed as we're already on the home page
-});
+    document.getElementById('home-btn-mobile').addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      loadReels();
+    });
 
-document.getElementById('search-nav-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-  e.currentTarget.classList.add('active');
-  console.log('Redirecting to search.html from sidebar');
-  window.location.href = 'search.html';
-});
+    document.getElementById('media-upload').addEventListener('change', (e) => {
+      e.stopPropagation();
+      showPreviews(e.target.files);
+    });
 
-document.getElementById('search-nav-btn-mobile').addEventListener('click', (e) => {
-  e.stopPropagation();
-  document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-  e.currentTarget.classList.add('active');
-  console.log('Redirecting to search.html from bottom-nav');
-  window.location.href = 'search.html';
-});
+    document.getElementById('submit-upload').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const button = e.currentTarget;
+      button.disabled = true;
+      try {
+        const files = document.getElementById('media-upload').files;
+        const caption = document.getElementById('caption-input').value.trim();
+        await uploadMedia(files, caption);
+      } finally {
+        button.disabled = false;
+      }
+    });
 
-document.getElementById('media-upload').addEventListener('change', (e) => {
-  e.stopPropagation();
-  console.log('Media files selected:', e.target.files.length);
-  showPreviews(e.target.files);
-});
+    document.getElementById('submit-comment').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (activeCommentReelId) {
+        submitComment(activeCommentReelId);
+      }
+    });
 
-document.getElementById('submit-upload').addEventListener('click', (e) => {
-  e.stopPropagation();
-  const files = document.getElementById('media-upload').files;
-  const caption = document.getElementById('caption-input').value.trim();
-  uploadMedia(files, caption);
-});
+    document.getElementById('bottom-sheet-content').addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
 
-document.getElementById('submit-comment').addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (activeCommentReelId) {
-    submitComment(activeCommentReelId);
-  } else {
-    showAlert('No reel selected for commenting.');
-  }
-});
+    document.getElementById('comment-sheet-content').addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
 
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM fully loaded, initializing Firebase');
-  initializeFirebase();
-});
-
-// Prevent default touch behaviors for better UX
-document.addEventListener('touchstart', (e) => {
-  if (e.target.closest('.bottom-sheet, .reel-actions, .reel-header, .nav-item, .kebab-menu')) return;
-  e.preventDefault();
-}, { passive: false });
-
-document.addEventListener('touchmove', (e) => {
-  if (e.target.closest('.bottom-sheet, .reel-actions, .reel-header, .nav-item, .kebab-menu')) return;
-  e.preventDefault();
-}, { passive: false });
-
-document.addEventListener('click', (e) => {
-  document.querySelectorAll('.kebab-menu').forEach(menu => {
-    if (!e.target.closest('.kebab-menu') && !e.target.closest('.kebab-menu-btn')) {
-      menu.style.display = 'none';
-    }
-  });
-});
-
-// Ensure only one bottom sheet is open at a time
-document.addEventListener('click', (e) => {
+    document.addEventListener('click', (e) => {
   const uploadSheet = document.getElementById('upload-sheet');
   const commentSheet = document.getElementById('comment-sheet');
-  if (e.target.closest('.bottom-sheet, .nav-item, .reel-actions, .reel-header')) return;
-  if (uploadSheet.classList.contains('active') || commentSheet.classList.contains('active')) {
+  const navItems = document.querySelectorAll('.nav-item');
+  const kebabMenus = document.querySelectorAll('.kebab-menu');
+  const isNavClick = Array.from(navItems).some(item => item.contains(e.target));
+  const isKebabMenuClick = Array.from(kebabMenus).some(menu => menu.contains(e.target));
+  const isKebabButtonClick = Array.from(document.querySelectorAll('.kebab-menu-btn')).some(btn => btn.contains(e.target));
+  if ((uploadSheet.classList.contains('active') || commentSheet.classList.contains('active')) &&
+      !uploadSheet.contains(e.target) && !commentSheet.contains(e.target) && !isNavClick) {
+    console.log('Click outside, closing all bottom sheets');
     closeBottomSheet(e);
+  }
+  if (!isKebabMenuClick && !isKebabButtonClick) {
+    kebabMenus.forEach(menu => menu.style.display = 'none');
   }
 });
 
-window.addEventListener('popstate', () => {
-  console.log('Popstate event, closing bottom sheets');
-  closeBottomSheet();
-});
-</script>
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM loaded, initializing Firebase and observers');
+      initializeFirebase();
+    });
+
+    window.toggleLike = toggleLike;
+    window.toggleBookmark = toggleBookmark;
+    window.trackImpression = trackImpression;
+    window.toggleFollow = toggleFollow;
+    window.showReplyInput = showReplyInput;
+    window.submitReply = submitReply;
+    window.deleteComment = deleteComment;
+    window.goToProfile = goToProfile;
+    window.closeBottomSheet = closeBottomSheet;
+    window.openBottomSheet = openBottomSheet;
+    window.deleteReel = deleteReel;
+window.toggleKebabMenu = toggleKebabMenu;
+window.openSettings = openSettings;
+window.reportReel = reportReel;
+  </script>
 </body>
 </html>
