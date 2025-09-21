@@ -170,10 +170,8 @@
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      max-width: 80%;
+      max-width: 90%;
       margin-top: 8px;
-      position: relative;
-      padding-right: 80px;
     }
 
     .reel-actions {
@@ -645,6 +643,83 @@
       animation: slideIn 0.3s ease-out;
     }
 
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 103;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      width: 300px;
+      max-width: 90%;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-primary);
+    }
+
+    .close-modal:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .modal-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .modal-option {
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      font-size: 16px;
+      text-align: left;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .modal-option:hover {
+      background: rgba(255,255,孔子0
+
+    .modal-option.destructive {
+      color: var(--badge-bg);
+    }
+
     body, .reel, .reel-actions, .reel-action, .bottom-sheet, .nav-item {
       -webkit-user-select: none;
       user-select: none;
@@ -815,6 +890,17 @@
       </div>
     </div>
 
+    <div class="modal" id="reel-options-modal">
+      <div class="modal-content">
+        <button class="close-modal" onclick="closeModal()">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+        <div class="modal-options" id="modal-options"></div>
+      </div>
+    </div>
+
     <div id="spinner-overlay" class="spinner-overlay">
       <div class="spinner"></div>
     </div>
@@ -913,6 +999,84 @@
       window.location.href = `profile.html?uid=${userId}`;
     }
 
+    async function confirmDeleteReel(reelId) {
+      if (!currentUser) {
+        showAlert('Please log in to delete reels.');
+        return;
+      }
+      const confirmDelete = confirm('Are you sure you want to delete this reel?');
+      if (confirmDelete) {
+        try {
+          await remove(ref(db, `reels/${reelId}`));
+          console.log(`Deleted reel ${reelId}`);
+          showAlert('Reel deleted successfully.');
+          loadReels();
+        } catch (error) {
+          console.error('Error deleting reel:', error);
+          showAlert('Failed to delete reel. Please try again.');
+        }
+      }
+    }
+
+    function openReelOptionsModal(reelId, userId) {
+      console.log(`Opening options modal for reel ${reelId}`);
+      const modal = document.getElementById('reel-options-modal');
+      const optionsContainer = document.getElementById('modal-options');
+      optionsContainer.innerHTML = '';
+      const isOwner = currentUser && userId === currentUser.uid;
+
+      const options = [
+        { label: 'Settings', action: `goToSettings()`, class: '' },
+        { label: 'Edit Post', action: `editPost('${reelId}')`, class: isOwner ? '' : 'hidden' },
+        { label: 'View Profile', action: `goToProfile('${userId}')`, class: '' },
+        { label: 'Delete Post', action: `confirmDeleteReel('${reelId}')`, class: isOwner ? 'destructive' : 'hidden' },
+        { label: 'Report', action: `reportPost('${reelId}')`, class: '' },
+        { label: 'Share', action: `sharePost('${reelId}')`, class: '' }
+      ];
+
+      options.forEach(option => {
+        if (!option.class.includes('hidden')) {
+          const button = document.createElement('button');
+          button.className = `modal-option ${option.class}`;
+          button.textContent = option.label;
+          button.setAttribute('onclick', option.action);
+          optionsContainer.appendChild(button);
+        }
+      });
+
+      modal.classList.add('active');
+    }
+
+    function closeModal() {
+      console.log('Closing options modal');
+      document.getElementById('reel-options-modal').classList.remove('active');
+    }
+
+    function goToSettings() {
+      console.log('Redirecting to settings');
+      window.location.href = 'settings.html';
+    }
+
+    function editPost(reelId) {
+      console.log(`Editing reel ${reelId}`);
+      window.location.href = `edit-reel.html?reelId=${reelId}`;
+    }
+
+    function reportPost(reelId) {
+      console.log(`Reporting reel ${reelId}`);
+      showAlert('Report submitted. Thank you for your feedback.');
+    }
+
+    function sharePost(reelId) {
+      console.log(`Sharing reel ${reelId}`);
+      const shareURL = `${window.location.origin}/reel.html?reelId=${reelId}`;
+      navigator.clipboard.writeText(shareURL).then(() => {
+        showAlert('Link copied to clipboard.');
+      }).catch(() => {
+        showAlert('Failed to copy link.');
+      });
+    }
+
     function initializeFirebase() {
       console.log('Initializing Firebase');
       try {
@@ -969,30 +1133,6 @@
       return array;
     }
 
-    async function deleteReel(reelId, event) {
-      event.stopPropagation();
-      if (!currentUser) {
-        showAlert('Please log in to delete reels.');
-        return;
-      }
-      try {
-        const reelRef = ref(db, `reels/${reelId}`);
-        const snapshot = await onValue(reelRef, (snap) => snap, { onlyOnce: true });
-        const reel = snapshot.val();
-        if (reel.userId !== currentUser.uid) {
-          showAlert('You can only delete your own reels.');
-          return;
-        }
-        await remove(reelRef);
-        console.log(`Deleted reel ${reelId}`);
-        showAlert('Reel deleted successfully.');
-        loadReels();
-      } catch (error) {
-        console.error('Error deleting reel:', error);
-        showAlert('Failed to delete reel. Please try again.');
-      }
-    }
-
     async function loadReels() {
       console.log('Loading reels');
       showSpinner();
@@ -1031,7 +1171,6 @@
                 const caption = reel.caption || '';
                 const isFollowing = await checkFollowingStatus(currentUser.uid, reel.userId);
                 await trackImpression(reel.reelId);
-                const isOwnReel = currentUser && reel.userId === currentUser.uid;
                 const div = document.createElement('div');
                 div.className = 'reel';
                 div.dataset.reelId = reel.reelId;
@@ -1061,7 +1200,6 @@
                       </div>
                     </div>
                     <div class="reel-caption">${caption}</div>
-                    ${isOwnReel ? `<button class="delete-reel btn" onclick="deleteReel('${reel.reelId}', event)" style="position: absolute; right: 10px; bottom: 10px; padding: 5px 15px; border-radius: 15px; background-color: #ff4d4d; color: white; border: none; cursor: pointer;">Delete</button>` : ''}
                   </div>
                   <div class="reel-actions">
                     <button class="reel-action btn ${reel.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${reel.reelId}', this)">
@@ -1081,6 +1219,13 @@
                         <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
                       </svg>
                     </button>
+                    ${reel.userId === currentUser?.uid ? `
+                      <button class="reel-action btn" onclick="confirmDeleteReel('${reel.reelId}')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                          <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/>
+                        </svg>
+                      </button>
+                    ` : ''}
                   </div>
                 `;
                 reelsContainer.appendChild(div);
@@ -1136,7 +1281,7 @@
                 div.addEventListener('touchstart', (e) => {
                   e.stopPropagation();
                   pressTimer = setTimeout(() => {
-                    openBottomSheet('comment', reel.reelId);
+                    openReelOptionsModal(reel.reelId, reel.userId);
                   }, 500);
                 }, { passive: true });
                 div.addEventListener('touchmove', (e) => {
@@ -1663,113 +1808,122 @@
       reels.forEach(reel => observer.observe(reel));
     }
 
-    document.getElementById('reels-container').addEventListener('scroll', handleScroll);
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('reels-container').addEventListener('scroll', handleScroll);
 
-    document.getElementById('upload-nav-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      openBottomSheet('upload');
-      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-    });
+      document.getElementById('upload-nav-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openBottomSheet('upload');
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+      });
 
-    document.getElementById('upload-nav-btn-mobile').addEventListener('click', (e) => {
-      e.stopPropagation();
-      openBottomSheet('upload');
-      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-    });
+      document.getElementById('upload-nav-btn-mobile').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openBottomSheet('upload');
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+      });
 
-    document.getElementById('friends-nav-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      console.log('Redirecting to friends.html');
-      window.location.href = 'friends.html';
-    });
+      document.getElementById('friends-nav-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        console.log('Redirecting to friends.html');
+        window.location.href = 'friends.html';
+      });
 
-    document.getElementById('friends-nav-btn-mobile').addEventListener('click', (e) => {
-      e.stopPropagation();
-      console.log('Redirecting to friends.html');
-      window.location.href = 'friends.html';
-    });
+      document.getElementById('friends-nav-btn-mobile').addEventListener('click', (e) => {
+        e.stopPropagation();
+        console.log('Redirecting to friends.html');
+        window.location.href = 'friends.html';
+      });
 
-    document.getElementById('home-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-      loadReels();
-    });
+      document.getElementById('home-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        console.log('Home button clicked, ensuring reels are loaded');
+        loadReels(); // Reload reels to ensure the feed is up-to-date
+      });
 
-    document.getElementById('home-btn-mobile').addEventListener('click', (e) => {
-      e.stopPropagation();
-      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-      loadReels();
-    });
+      document.getElementById('home-btn-mobile').addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        console.log('Mobile home button clicked, ensuring reels are loaded');
+        loadReels(); // Reload reels to ensure the feed is up-to-date
+      });
 
-    document.getElementById('media-upload').addEventListener('change', (e) => {
-      e.stopPropagation();
-      showPreviews(e.target.files);
-    });
+      document.getElementById('media-upload').addEventListener('change', (e) => {
+        console.log('Media files selected:', e.target.files.length);
+        showPreviews(e.target.files);
+      });
 
-    document.getElementById('submit-upload').addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const button = e.currentTarget;
-      button.disabled = true;
-      try {
+      document.getElementById('submit-upload').addEventListener('click', async (e) => {
+        e.stopPropagation();
         const files = document.getElementById('media-upload').files;
         const caption = document.getElementById('caption-input').value.trim();
         await uploadMedia(files, caption);
-      } finally {
-        button.disabled = false;
-      }
-    });
+      });
 
-    document.getElementById('submit-comment').addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (activeCommentReelId) {
-        submitComment(activeCommentReelId);
-      }
-    });
+      document.getElementById('submit-comment').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (activeCommentReelId) {
+          await submitComment(activeCommentReelId);
+        }
+      });
 
-    document.getElementById('bottom-sheet-content').addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
+      // Handle double-tap to like
+      const reelsContainer = document.getElementById('reels-container');
+      let lastTap = 0;
+      reelsContainer.addEventListener('click', (e) => {
+        const now = Date.now();
+        const reel = e.target.closest('.reel');
+        if (!reel) return;
+        if (now - lastTap < 300 && e.target.classList.contains('reel-media')) {
+          const likeButton = reel.querySelector('.reel-action');
+          if (!likeButton.classList.contains('liked')) {
+            toggleLike(reel.dataset.reelId, likeButton);
+            showLoveAnimation(reel);
+          }
+        }
+        lastTap = now;
+      });
 
-    document.getElementById('comment-sheet-content').addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
+      // Prevent context menu on long press for reels
+      reelsContainer.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+      });
 
-    document.addEventListener('click', (e) => {
-      const uploadSheet = document.getElementById('upload-sheet');
-      const commentSheet = document.getElementById('comment-sheet');
-      const navItems = document.querySelectorAll('.nav-item');
-      const isNavClick = Array.from(navItems).some(item => item.contains(e.target));
-      if ((uploadSheet.classList.contains('active') || commentSheet.classList.contains('active')) &&
-          !uploadSheet.contains(e.target) && !commentSheet.contains(e.target) && !isNavClick) {
-        console.log('Click outside, closing all bottom sheets');
-        closeBottomSheet(e);
-      }
-    });
-
-    document.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log('DOM loaded, initializing Firebase and observers');
+      // Initialize Firebase and load reels
       initializeFirebase();
     });
 
-    window.toggleLike = toggleLike;
-    window.toggleBookmark = toggleBookmark;
-    window.trackImpression = trackImpression;
-    window.toggleFollow = toggleFollow;
-    window.showReplyInput = showReplyInput;
-    window.submitReply = submitReply;
-    window.deleteComment = deleteComment;
-    window.deleteReel = deleteReel;
-    window.goToProfile = goToProfile;
-    window.closeBottomSheet = closeBottomSheet;
-    window.openBottomSheet = openBottomSheet;
+    // Ensure modals and sheets close when clicking outside
+    document.addEventListener('click', (e) => {
+      const modal = document.getElementById('reel-options-modal');
+      const uploadSheet = document.getElementById('upload-sheet');
+      const commentSheet = document.getElementById('comment-sheet');
+      if (modal.classList.contains('active') && !e.target.closest('.modal-content')) {
+        closeModal();
+      }
+      if (uploadSheet.classList.contains('active') && !e.target.closest('.bottom-sheet-content') && !e.target.closest('.nav-item')) {
+        closeBottomSheet();
+      }
+      if (commentSheet.classList.contains('active') && !e.target.closest('.bottom-sheet-content') && !e.target.closest('.comments-btn')) {
+        closeBottomSheet();
+      }
+    });
+
+    // Prevent default scrolling behavior for touch devices to ensure smooth snap scrolling
+    document.getElementById('reels-container').addEventListener('touchmove', (e) => {
+      const reel = e.target.closest('.reel');
+      if (!reel) return;
+      // Allow scrolling within reels container but prevent overscroll
+      if (e.target.closest('.reels-container')) {
+        e.stopPropagation();
+      }
+    }, { passive: true });
   </script>
 </body>
 </html>
+        
