@@ -11,15 +11,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #000000;
-      --card-bg: rgba(0, 0, 0, 0.2);
+      --bg: #0F0F0F;
+      --card-bg: rgba(255, 255, 255, 0.05);
       --text-primary: #FFFFFF;
-      --text-secondary: #8E8E8E;
-      --border: rgba(255, 255, 255, 0.1);
-      --highlight: #0095F6;
-      --badge-bg: #FA3E5F;
-      --glass-bg: rgba(0, 0, 0, 0.2);
-      --glass-blur: blur(10px);
+      --text-secondary: #A0A0A0;
+      --border: rgba(255, 255, 255, 0.15);
+      --highlight: #1DA1F2;
+      --badge-bg: #FF2D55;
+      --glass-bg: rgba(255, 255, 255, 0.1);
+      --glass-blur: blur(12px);
     }
 
     body {
@@ -31,14 +31,17 @@
       overflow-x: hidden;
       -webkit-user-select: none;
       user-select: none;
+      -webkit-font-smoothing: antialiased;
     }
 
     .btn {
       border-radius: 9999px;
-      padding: 8px 16px;
+      padding: 10px 20px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      font-weight: 500;
+      transition: background 0.2s ease, transform 0.2s ease;
     }
 
     .search-bar {
@@ -49,15 +52,19 @@
       width: 90%;
       max-width: 600px;
       background: var(--glass-bg);
-      -webkit-backdrop-filter: var(--glass-blur);
       backdrop-filter: var(--glass-blur);
       border: 1px solid var(--border);
-      border-radius: 9999px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
-      padding: 8px 16px;
-      z-index: 101;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      padding: 10px 16px;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      transition: border-color 0.3s ease;
+    }
+
+    .search-bar:focus-within {
+      border-color: var(--highlight);
     }
 
     .search-bar input {
@@ -65,7 +72,7 @@
       background: transparent;
       border: none;
       color: var(--text-primary);
-      font-size: 14px;
+      font-size: 16px;
       outline: none;
       -webkit-user-select: auto;
       user-select: auto;
@@ -73,14 +80,15 @@
 
     .search-bar input::placeholder {
       color: var(--text-secondary);
+      font-weight: 400;
     }
 
     .search-bar svg {
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       stroke: var(--text-primary);
       stroke-width: 2;
-      margin-right: 8px;
+      margin-right: 12px;
     }
 
     .reels-grid {
@@ -90,7 +98,7 @@
       padding: 80px 16px 16px;
       max-width: 1200px;
       margin: 0 auto;
-      height: calc(100vh - 80px);
+      min-height: calc(100vh - 80px);
       overflow-y: auto;
       scroll-behavior: smooth;
     }
@@ -98,17 +106,17 @@
     .reel-item {
       position: relative;
       aspect-ratio: 9/16;
-      border-radius: 8px;
+      border-radius: 12px;
       overflow: hidden;
       cursor: pointer;
       background: var(--card-bg);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
     .reel-item:hover {
-      transform: scale(1.02);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+      transform: scale(1.03);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
 
     .reel-item video,
@@ -116,14 +124,15 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      display: block;
     }
 
     .reel-profile {
       position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 40px;
-      height: 40px;
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       background: var(--text-secondary);
       display: flex;
@@ -131,9 +140,14 @@
       justify-content: center;
       color: var(--text-primary);
       font-weight: 600;
-      font-size: 16px;
+      font-size: 14px;
       border: 2px solid var(--text-primary);
       z-index: 10;
+      transition: transform 0.2s ease;
+    }
+
+    .reel-item:hover .reel-profile {
+      transform: scale(1.1);
     }
 
     .reel-profile-pic {
@@ -148,18 +162,24 @@
       bottom: 0;
       left: 0;
       right: 0;
-      padding: 8px;
-      background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+      padding: 12px;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
       color: var(--text-primary);
-      font-size: 12px;
+      font-size: 14px;
       display: flex;
       align-items: center;
       gap: 8px;
+      opacity: 0.9;
+      transition: opacity 0.3s ease;
+    }
+
+    .reel-item:hover .reel-overlay {
+      opacity: 1;
     }
 
     .reel-username {
       font-weight: 600;
-      font-size: 12px;
+      font-size: 14px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -171,11 +191,11 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0, 0, 0, 0.6);
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 45;
+      z-index: 1000;
     }
 
     .spinner-overlay.active {
@@ -183,8 +203,8 @@
     }
 
     .spinner {
-      width: 40px;
-      height: 40px;
+      width: 48px;
+      height: 48px;
       border: 4px solid var(--highlight);
       border-top-color: transparent;
       border-radius: 50%;
@@ -201,17 +221,18 @@
       left: 50%;
       transform: translateX(-50%);
       background: var(--glass-bg);
-      -webkit-backdrop-filter: var(--glass-blur);
       backdrop-filter: var(--glass-blur);
       color: var(--text-primary);
       padding: 12px 24px;
-      border-radius: 9999px;
+      border-radius: 12px;
       border: 1px solid var(--border);
-      z-index: 60;
+      z-index: 1001;
       display: none;
       max-width: 90%;
       text-align: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      font-size: 14px;
+      font-weight: 500;
     }
 
     .alert.active {
@@ -228,23 +249,35 @@
       .reels-grid {
         grid-template-columns: repeat(3, 1fr);
         gap: 8px;
-        padding: 64px 8px 8px;
-        height: calc(100vh - 64px);
+        padding: 72px 8px 8px;
+        min-height: calc(100vh - 72px);
       }
 
       .reel-profile {
         width: 32px;
         height: 32px;
-        font-size: 14px;
+        font-size: 12px;
       }
 
       .search-bar {
-        top: 8px;
+        top: 12px;
         width: 95%;
+        padding: 8px 12px;
       }
 
       .alert {
-        top: 64px;
+        top: 72px;
+        font-size: 13px;
+        padding: 10px 20px;
+      }
+
+      .reel-overlay {
+        padding: 8px;
+        font-size: 12px;
+      }
+
+      .reel-username {
+        font-size: 12px;
       }
     }
   </style>
@@ -252,14 +285,14 @@
 <body>
   <main class="flex flex-col h-screen" id="main-content">
     <div class="search-bar">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
         <path d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
       </svg>
-      <input type="text" id="search-input" placeholder="Search by username or caption..." aria-label="Search reels">
+      <input type="text" id="search-input" placeholder="Search reels by username or caption" aria-label="Search reels">
     </div>
 
     <div class="reels-grid" id="reels-grid">
-      <p style="text-align: center; color: var(--text-primary); margin-top: 2rem; grid-column: 1 / -1;">Loading reels...</p>
+      <p style="text-align: center; color: var(--text-primary); margin-top: 2rem; grid-column: 1 / -1; font-size: 16px; font-weight: 500;">Loading reels...</p>
     </div>
 
     <div id="spinner-overlay" class="spinner-overlay">
@@ -323,7 +356,7 @@
           } else {
             console.log('No user logged in, redirecting to signup.html');
             showAlert('Please log in to search reels.');
-            window.location.href = 'signup.html';
+            setTimeout(() => window.location.href = 'signup.html', 1000);
           }
         }, (error) => {
           console.error('Auth state error:', error);
@@ -365,15 +398,15 @@
           const reelsGrid = document.getElementById('reels-grid');
           if (!snapshot.exists()) {
             console.log('No reels data found');
-            reelsGrid.innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem; grid-column: 1 / -1;">No reels available.</p>';
+            reelsGrid.innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem; grid-column: 1 / -1; font-size: 16px; font-weight: 500;">No reels available.</p>';
             hideSpinner();
             return;
           }
           const reels = snapshot.val();
           allReels = Object.entries(reels)
             .map(([reelId, reelData]) => ({ reelId, ...reelData }))
-            .filter(reel => reel.mediaType === 'video') // Only show videos
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Sort by newest first
+            .filter(reel => reel.mediaType === 'video')
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
           console.log('Fetched', allReels.length, 'video reels');
           renderReels(allReels);
           hideSpinner();
@@ -401,11 +434,11 @@
             const div = document.createElement('div');
             div.className = 'reel-item';
             div.dataset.reelId = reel.reelId;
-            const thumbnailURL = reel.mediaURL.replace('/upload/', '/upload/so_0/'); // Use Cloudinary to get first frame as thumbnail
+            const thumbnailURL = reel.mediaURL.replace('/upload/', '/upload/so_0/');
             div.innerHTML = `
               ${networkIssue
                 ? `<img src="${thumbnailURL}" alt="Reel thumbnail" class="reel-media">`
-                : `<video src="${reel.mediaURL}" class="reel-media" muted autoplay loop playsinline></video>`}
+                : `<video src="${reel.mediaURL}" class="reel-media" muted autoplay loop playsinline preload="metadata"></video>`}
               <div class="reel-profile">
                 ${userData?.photoURL
                   ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture">`
@@ -426,16 +459,14 @@
               video.addEventListener('error', (e) => {
                 console.error('Video error for reel', reel.reelId, ':', e);
                 networkIssue = true;
-                renderReels(allReels); // Re-render as images on network issue
+                renderReels(allReels);
               });
               video.addEventListener('waiting', () => showSpinner());
-              video.addEventListener('playing', () => hideSpinner());
               video.addEventListener('canplay', () => hideSpinner());
-              // Attempt to play video immediately
               video.play().catch((err) => {
                 console.log('Autoplay prevented for video:', reel.mediaURL, err);
                 networkIssue = true;
-                renderReels(allReels); // Re-render as images if autoplay fails
+                renderReels(allReels);
               });
             } else {
               div.addEventListener('click', (e) => {
@@ -466,7 +497,7 @@
       });
       renderReels(filteredReels);
       if (filteredReels.length === 0) {
-        document.getElementById('reels-grid').innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem; grid-column: 1 / -1;">No results found.</p>';
+        document.getElementById('reels-grid').innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem; grid-column: 1 / -1; font-size: 16px; font-weight: 500;">No results found.</p>';
       }
     }
 
@@ -480,6 +511,32 @@
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
       };
+    }
+
+    // Optimize video playback by pausing out-of-view videos
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const video = entry.target.querySelector('.reel-media');
+        if (!video || video.tagName !== 'VIDEO') return;
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+          video.play().catch(err => {
+            console.error('Error playing video:', err);
+            networkIssue = true;
+            renderReels(allReels);
+          });
+          console.log(`Playing video for reel ${entry.target.dataset.reelId}`);
+        } else {
+          video.pause();
+          video.currentTime = 0;
+          console.log(`Paused video for reel ${entry.target.dataset.reelId}`);
+        }
+      });
+    }, { threshold: 0.5 });
+
+    function observeVideos() {
+      console.log('Observing videos for visibility');
+      const reelItems = document.querySelectorAll('.reel-item');
+      reelItems.forEach(item => observer.observe(item));
     }
 
     document.getElementById('search-input').addEventListener('input', debounce((e) => {
@@ -496,7 +553,7 @@
       initializeFirebase();
     });
 
-    // Prevent default touch behaviors for better UX
+    // Improved touch handling
     document.addEventListener('touchstart', (e) => {
       if (e.target.closest('.search-bar, .reel-item')) return;
       e.preventDefault();
