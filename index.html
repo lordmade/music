@@ -764,6 +764,21 @@
 .kebab-menu-item:hover {
   background: rgba(255, 255, 255, 0.1);
 }
+    .progress-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.progress-text {
+  color: var(--text-primary);
+  font-size: 12px;
+}
   </style>
 </head>
 <body>
@@ -1616,66 +1631,90 @@ async function loadReels() {
     }
 
     function showPreviews(files) {
-      console.log('Showing previews for', files.length, 'files');
-      const previewContainer = document.getElementById('preview-container');
-      previewContainer.innerHTML = '';
-      Array.from(files).forEach((file, index) => {
-        const isVideo = file.type.startsWith('video');
-        const url = URL.createObjectURL(file);
-        const previewItem = document.createElement('div');
-        previewItem.className = 'preview-item';
-        previewItem.innerHTML = `
-          ${isVideo
-            ? `<video src="${url}" muted></video>`
-            : `<img src="${url}" alt="Preview ${index + 1}">`}
-          <button class="remove-preview" data-index="${index}">&times;</button>
-        `;
-        previewContainer.appendChild(previewItem);
-      });
+  console.log('Showing previews for', files.length, 'files');
+  const previewContainer = document.getElementById('preview-container');
+  previewContainer.innerHTML = '';
+  Array.from(files).forEach((file, index) => {
+    const isVideo = file.type.startsWith('video');
+    const url = URL.createObjectURL(file);
+    const previewItem = document.createElement('div');
+    previewItem.className = 'preview-item';
+    previewItem.innerHTML = `
+      ${isVideo
+        ? `<video src="${url}" muted></video>`
+        : `<img src="${url}" alt="Preview ${index + 1}">`}
+      <button class="remove-preview" data-index="${index}">&times;</button>
+      <div class="progress-container" style="display: none;">
+        <div class="progress-bar" id="upload-progress-${index}" style="width: 0%; height: 4px; background: var(--highlight);"></div>
+        <span class="progress-text" id="progress-text-${index}">0%</span>
+      </div>
+    `;
+    previewContainer.appendChild(previewItem);
+  });
 
-      const removeButtons = previewContainer.querySelectorAll('.remove-preview');
-      removeButtons.forEach(button => {
-        button.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const index = parseInt(button.dataset.index);
-          const input = document.getElementById('media-upload');
-          const dt = new DataTransfer();
-          Array.from(input.files)
-            .filter((_, i) => i !== index)
-            .forEach(file => dt.items.add(file));
-          input.files = dt.files;
-          showPreviews(input.files);
-          console.log('Removed preview at index', index);
-        });
-      });
-    }
+  const removeButtons = previewContainer.querySelectorAll('.remove-preview');
+  removeButtons.forEach(button => {
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const index = parseInt(button.dataset.index);
+      const input = document.getElementById('media-upload');
+      const dt = new DataTransfer();
+      Array.from(input.files)
+        .filter((_, i) => i !== index)
+        .forEach(file => dt.items.add(file));
+      input.files = dt.files;
+      showPreviews(input.files);
+      console.log('Removed preview at index', index);
+    });
+  });
+}
 
     async function uploadMedia(files, caption) {
-      console.log('Uploading', files.length, 'files with caption:', caption);
-      if (!currentUser) {
-        showAlert('Please log in to upload.');
-        return;
+  console.log('Uploading', files.length, 'files with caption:', caption);
+  if (!currentUser) {
+    showAlert('Please log in to upload.');
+    return;
+  }
+  if (!files.length) {
+    showAlert('Please select at least one file to upload.');
+    return;
+  }
+  showSpinner();
+  try {
+    for (let index = 0; index < files.length; index++) {
+      const file = files[index];
+      if (!file.type.match(/^(image|video)\//)) {
+        showAlert('Invalid file type. Please select images or videos.');
+        continue;
       }
-      if (!files.length) {
-        showAlert('Please select at least one file to upload.');
-        return;
-      }
-      showSpinner();
-      try {
-        for (const file of files) {
-          if (!file.type.match(/^(image|video)\//)) {
-            showAlert('Invalid file type. Please select images or videos.');
-            continue;
-          }
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-          const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${file.type.startsWith('video') ? 'video' : 'image'}/upload`, {
-            method: 'POST',
-            body: formData
-          });
-          const data = await response.json();
+      // Show progress container for this file
+      const progressContainer = document.querySelector(`#preview-container .preview-item:nth-child(${index + 1}) .progress-container`);
+      const progressBar = document.getElementById(`upload-progress-${index}`);
+      const progressText = document.getElementById(`progress-text-${index}`);
+      progressContainer.style.display = 'flex';
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${file.type.startsWith('video') ? 'video' : 'image'}/upload`, true);
+
+      // Track upload progress
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          progressBar.style.width = `${percentComplete}%`;
+          progressText.textContent = `${percentComplete}%`;
+          console.log(`Upload progress for file ${index + 1}: ${percentComplete}%`);
+        }
+      };
+
+      // Handle upload completion
+      xhr.onload = async () => {
+        if (xhr.status === 200) {
+          const data = JSON.parse(xhr.responseText);
           if (data.secure_url) {
             const reelsRef = ref(db, 'reels');
             await push(reelsRef, {
@@ -1692,18 +1731,30 @@ async function loadReels() {
             console.log('Uploaded file:', data.secure_url);
           } else {
             console.error('Cloudinary error:', data.error?.message);
-            showAlert(`Upload failed: ${data.error?.message || 'Unknown error'}`);
+            showAlert(`Upload failed for file ${index + 1}: ${data.error?.message || 'Unknown error'}`);
           }
+        } else {
+          showAlert(`Upload failed for file ${index + 1}. Please try again.`);
         }
-        closeBottomSheet();
-        loadReels();
-      } catch (error) {
-        console.error('Error uploading media:', error);
-        showAlert('Failed to upload media. Please try again.');
-      } finally {
-        hideSpinner();
-      }
+      };
+
+      // Handle errors
+      xhr.onerror = () => {
+        console.error('Upload error for file', index + 1);
+        showAlert(`Upload failed for file ${index + 1}. Please check your network.`);
+      };
+
+      xhr.send(formData);
     }
+    closeBottomSheet();
+    loadReels();
+  } catch (error) {
+    console.error('Error uploading media:', error);
+    showAlert('Failed to upload media. Please try again.');
+  } finally {
+    hideSpinner();
+  }
+}
 
     let observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
