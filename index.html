@@ -783,12 +783,15 @@
   }
 
   .reel-profile-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 20px;
-  }
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 10px; /* Adjusted for tighter spacing */
+}
+   .reel-profile-pic, .reel-avatar {
+  -webkit-tap-highlight-color: var(--highlight);
+}
 </style>
 </head>
 <body>
@@ -1070,6 +1073,7 @@ function reportReel(reelId) {
 
    
 
+<!-- Replace the loadReels function in the <script type="module"> section -->
 async function loadReels() {
   console.log('Loading reels and ads');
   showSpinner();
@@ -1177,8 +1181,8 @@ async function loadReels() {
                 <div class="reel-actions">
                   <div class="reel-profile-container">
                     ${userData?.photoURL
-                      ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture" onclick="goToProfile('${item.userId}')">`
-                      : `<div class="reel-avatar" onclick="goToProfile('${item.userId}')">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+                      ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture" aria-label="View ${userData.displayName}'s profile" onclick="goToProfile('${item.userId}')">`
+                      : `<div class="reel-avatar" aria-label="View ${userData?.displayName || 'User'}'s profile" onclick="goToProfile('${item.userId}')">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
                   </div>
                   <button class="reel-action btn ${item.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${item.reelId}', this)">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -1295,7 +1299,6 @@ async function loadReels() {
     hideSpinner();
   }
 }
-
     async function trackImpression(reelId, button = null) {
       if (!currentUser) return;
       try {
