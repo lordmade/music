@@ -1256,7 +1256,7 @@ async function loadReels() {
             div.addEventListener('touchstart', (e) => {
               e.stopPropagation();
               pressTimer = setTimeout(() => {
-                openBottomSheet('comment', item.reelId || item.adId);
+                window.location.href = 'ai.html'; // Replace with your AI page URL
               }, 500);
             }, { passive: true });
             div.addEventListener('touchmove', (e) => {
