@@ -1179,8 +1179,8 @@ async function loadReels() {
                 <div class="reel-actions">
                   <div class="reel-profile-container">
                     ${userData?.photoURL
-                      ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture" aria-label="View ${userData.displayName}'s profile" onclick="goToProfile('${item.userId}')">`
-                      : `<div class="reel-avatar" aria-label="View ${userData?.displayName || 'User'}'s profile" onclick="goToProfile('${item.userId}')">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+                      ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture" onclick="goToProfile('${item.userId}')">`
+                      : `<div class="reel-avatar" onclick="goToProfile('${item.userId}')">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
                   </div>
                   <button class="reel-action btn ${item.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${item.reelId}', this)">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
