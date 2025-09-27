@@ -795,6 +795,20 @@
     gap: 20px;
     margin-bottom: 10px;
   }
+   .reel-text-post {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 16px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+  word-break: break-word;
+}
 </style>
 </head>
 <body>
@@ -850,19 +864,19 @@
 </nav>
 
     <div class="bottom-sheet" id="upload-sheet">
-      <button class="close-sheet" onclick="closeBottomSheet(event)">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
-      <div class="bottom-sheet-content" id="bottom-sheet-content">
-        <label class="btn" for="media-upload">Select Image/Video</label>
-        <input type="file" id="media-upload" accept="image/*,video/*" multiple>
-        <div class="preview-container" id="preview-container"></div>
-        <textarea id="caption-input" placeholder="Write a caption..." rows="3"></textarea>
-        <button class="btn" id="submit-upload">Post</button>
-      </div>
-    </div>
+  <button class="close-sheet" onclick="closeBottomSheet(event)">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+      <path d="M6 18L18 6M6 6l12 12"/>
+    </svg>
+  </button>
+  <div class="bottom-sheet-content" id="bottom-sheet-content">
+    <label class="btn" for="media-upload">Select Image/Video (Optional)</label>
+    <input type="file" id="media-upload" accept="image/*,video/*" multiple>
+    <div class="preview-container" id="preview-container"></div>
+    <textarea id="caption-input" placeholder="Write your post or caption..." rows="3"></textarea>
+    <button class="btn" id="submit-upload">Post</button>
+  </div>
+</div>
 
     <div class="bottom-sheet" id="comment-sheet">
       <button class="close-sheet" onclick="closeBottomSheet(event)">
@@ -1070,7 +1084,9 @@ function reportReel(reelId) {
       }
     }
 
-    async function loadReels() {
+
+          
+          async function loadReels() {
   console.log('Loading reels');
   showSpinner();
   const reelsRef = ref(db, 'reels');
@@ -1092,7 +1108,7 @@ function reportReel(reelId) {
     console.log('Data fetched:', Object.keys(reels).length, 'reels');
     const reelsArray = Object.entries(reels)
       .map(([reelId, reelData]) => ({ reelId, ...reelData }))
-      .sort((a, b) => Object.keys(b.likedBy || {}).length - Object.keys(a.likedBy || {}).length); // Sort by popularity (likes desc) for AI-like feed
+      .sort((a, b) => Object.keys(b.likedBy || {}).length - Object.keys(a.likedBy || {}).length);
 
     if (reelsContainer.children.length !== reelsArray.length) {
       reelsContainer.innerHTML = '';
@@ -1114,14 +1130,17 @@ function reportReel(reelId) {
           div.className = 'reel';
           div.dataset.reelId = item.reelId;
           const isVideo = item.mediaType === 'video';
+          const isText = item.mediaType === 'text';
           div.innerHTML = `
-            ${isVideo
-              ? `<video class="reel-media" src="${item.mediaURL}" playsinline loop preload="metadata"></video>
-                 <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                   <path d="M5 3l14 9-14 9V3z"/>
-                 </svg>
-                 <div class="progress-bar" id="progress-${item.reelId}"></div>`
-              : `<img class="reel-media" src="${item.mediaURL}" alt="Reel image">`}
+            ${isText
+              ? `<div class="reel-text-post">${caption}</div>`
+              : isVideo
+                ? `<video class="reel-media" src="${item.mediaURL}" playsinline loop preload="metadata"></video>
+                   <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                     <path d="M5 3l14 9-14 9V3z"/>
+                   </svg>
+                   <div class="progress-bar" id="progress-${item.reelId}"></div>`
+                : `<img class="reel-media" src="${item.mediaURL}" alt="Reel image">`}
             <div class="reel-top-actions">
               <div class="reel-header" onclick="goToProfile('${item.userId}')">
                 <div class="reel-header-info">
@@ -1141,7 +1160,7 @@ function reportReel(reelId) {
                   <button class="comments-btn btn" onclick="openBottomSheet('comment', '${item.reelId}', event)">Comments (${Object.keys(item.comments || {}).length})</button>
                 </div>
               </div>
-              <div class="reel-caption">${caption}</div>
+              ${!isText ? `<div class="reel-caption">${caption}</div>` : ''}
               <div class="kebab-menu" id="kebab-menu-${item.reelId}" style="display: none; position: absolute; top: 100%; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
                 <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="openSettings('${item.reelId}')">Settings</button>
                 <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="goToProfile('${item.userId}')">View Profile</button>
@@ -1175,7 +1194,7 @@ function reportReel(reelId) {
           `;
           reelsContainer.appendChild(div);
           renderedReels.add(item.reelId);
-          if (isVideo) {
+          if (isVideo && !isText) {
             const video = div.querySelector('.reel-media');
             const progressBar = div.querySelector(`#progress-${item.reelId}`);
             const playIcon = div.querySelector('.play-icon');
@@ -1226,7 +1245,7 @@ function reportReel(reelId) {
           div.addEventListener('touchstart', (e) => {
             e.stopPropagation();
             pressTimer = setTimeout(() => {
-              window.location.href = 'ai.html'; // Replace with your AI page URL
+              window.location.href = 'ai.html';
             }, 500);
           }, { passive: true });
           div.addEventListener('touchmove', (e) => {
@@ -1237,7 +1256,7 @@ function reportReel(reelId) {
           }, { passive: true });
           if (targetReelId && item.reelId === targetReelId) {
             div.scrollIntoView({ behavior: 'smooth' });
-            if (isVideo) {
+            if (isVideo && !isText) {
               const video = div.querySelector('.reel-media');
               pauseAllVideos(item.reelId);
               currentPlayingVideo = video;
@@ -1260,7 +1279,7 @@ function reportReel(reelId) {
   };
 
   try {
-    off(reelsRef, 'value', reelsCallback); // Unsubscribe previous if exists
+    off(reelsRef, 'value', reelsCallback);
     onValue(reelsRef, reelsCallback);
   } catch (error) {
     console.error('Error loading reels:', error);
@@ -1268,7 +1287,8 @@ function reportReel(reelId) {
     pauseAllVideos();
     hideSpinner();
   }
-}
+}    
+            
 
     async function trackImpression(reelId, button = null) {
       if (!currentUser) return;
@@ -1659,62 +1679,73 @@ function reportReel(reelId) {
     showAlert('Please log in to upload.');
     return;
   }
-  if (!files.length) {
-    showAlert('Please select at least one file to upload.');
+  if (!files.length && !caption) {
+    showAlert('Please provide a caption or select at least one file.');
     return;
   }
   showSpinner();
   try {
-    const worker = new Worker(URL.createObjectURL(new Blob([`
-      self.onmessage = async (e) => {
-        const { file, index, cloudinaryUrl, preset } = e.data;
+    const reelsRef = ref(db, 'reels');
+    if (!files.length && caption) {
+      // Text-only post
+      await push(reelsRef, {
+        userId: currentUser.uid,
+        mediaURL: null,
+        mediaType: 'text',
+        caption: caption,
+        timestamp: new Date().toISOString(),
+        likedBy: {},
+        bookmarkedBy: {},
+        impressions: {},
+        comments: {}
+      });
+      console.log('Uploaded text-only post');
+      closeBottomSheet();
+      loadReels();
+    } else {
+      // Media post with optional caption
+      for (let index = 0; index < files.length; index++) {
+        const file = files[index];
+        if (!file.type.match(/^(image|video)\//)) {
+          showAlert('Invalid file type. Please select images or videos.');
+          continue;
+        }
+        const progressContainer = document.querySelector(`#preview-container .preview-item:nth-child(${index + 1}) .progress-container`);
+        progressContainer.style.display = 'flex';
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', preset);
-        const response = await fetch(cloudinaryUrl, { method: 'POST', body: formData });
-        self.postMessage({ index, data: await response.json() });
-      };
-    `], { type: 'text/javascript' })));
-
-    worker.onmessage = async (e) => {
-      const { index, data } = e.data;
-      if (data.secure_url) {
-        const reelsRef = ref(db, 'reels');
-        await push(reelsRef, {
-          userId: currentUser.uid,
-          mediaURL: data.secure_url,
-          mediaType: files[index].type.startsWith('video') ? 'video' : 'image',
-          caption: caption || null,
-          timestamp: new Date().toISOString(),
-          likedBy: {},
-          bookmarkedBy: {},
-          impressions: {},
-          comments: {}
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${file.type.startsWith('video') ? 'video' : 'image'}/upload`, {
+          method: 'POST',
+          body: formData
         });
-        console.log('Uploaded file:', data.secure_url);
-        document.getElementById(`upload-progress-${index}`).style.width = '100%';
-        document.getElementById(`progress-text-${index}`).textContent = '100%';
-      } else {
-        console.error('Cloudinary error:', data.error?.message);
-        showAlert(`Upload failed for file ${index + 1}: ${data.error?.message || 'Unknown error'}`);
+        const data = await response.json();
+        if (data.secure_url) {
+          await push(reelsRef, {
+            userId: currentUser.uid,
+            mediaURL: data.secure_url,
+            mediaType: file.type.startsWith('video') ? 'video' : 'image',
+            caption: caption || null,
+            timestamp: new Date().toISOString(),
+            likedBy: {},
+            bookmarkedBy: {},
+            impressions: {},
+            comments: {}
+          });
+          console.log('Uploaded media:', data.secure_url);
+          document.getElementById(`upload-progress-${index}`).style.width = '100%';
+          document.getElementById(`progress-text-${index}`).textContent = '100%';
+        } else {
+          console.error('Cloudinary error:', data.error?.message);
+          showAlert(`Upload failed for file ${index + 1}: ${data.error?.message || 'Unknown error'}`);
+        }
       }
-    };
-
-    for (let index = 0; index < files.length; index++) {
-      const file = files[index];
-      if (!file.type.match(/^(image|video)\//)) {
-        showAlert('Invalid file type. Please select images or videos.');
-        continue;
-      }
-      const progressContainer = document.querySelector(`#preview-container .preview-item:nth-child(${index + 1}) .progress-container`);
-      progressContainer.style.display = 'flex';
-      await uploadMediaWithRetry(file, index, caption); // Use retry wrapper
+      closeBottomSheet();
+      loadReels();
     }
-    closeBottomSheet();
-    loadReels();
   } catch (error) {
     console.error('Error uploading media:', error);
-    showAlert('Failed to upload media. Please try again.');
+    showAlert('Failed to upload post. Please try again.');
   } finally {
     hideSpinner();
   }
