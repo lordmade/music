@@ -12,15 +12,13 @@
 
 <style>
   :root {
-    --bg: #121212; /* Dark gray for a softer, professional look */
+    --bg: #121212; /* Dark gray for professional look */
     --card-bg: rgba(30, 30, 30, 0.9); /* Subtle dark card background */
-    --text-primary: #F5F5F5; /* Off-white for better contrast */
+    --text-primary: #F5F5F5; /* Off-white for contrast */
     --text-secondary: #A0A0A0; /* Neutral gray for secondary text */
     --border: rgba(255, 255, 255, 0.15); /* Softer border */
     --highlight: #1E88E5; /* Vibrant blue for accents */
     --badge-bg: #E91E63; /* Pink for liked/bookmarked states */
-    --glass-bg: rgba(40, 40, 40, 0.7); /* Lighter glassmorphism */
-    --glass-blur: blur(8px); /* Subtle blur effect */
     --shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Soft shadow */
     --transition: 0.2s ease; /* Smooth transitions */
   }
@@ -51,10 +49,9 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 72px; /* Slightly narrower for sleekness */
+    width: 72px;
     height: 100%;
-    background: var(--glass-bg);
-    backdrop-filter: var(--glass-blur);
+    background: var(--card-bg);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -84,13 +81,9 @@
   .sidebar .nav-item svg {
     width: 22px;
     height: 22px;
-    stroke: var(--text-secondary);
+    stroke: #FFFFFF; /* White SVG icons */
     margin-bottom: 4px;
     transition: stroke var(--transition);
-  }
-
-  .sidebar .nav-item:hover svg {
-    stroke: var(--text-primary);
   }
 
   .sidebar .nav-item.active {
@@ -111,14 +104,10 @@
     align-items: center;
     width: 90%;
     max-width: 480px;
-    height: 48px; /* Reduced height for compact, professional look */
-    background: var(--glass-bg);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--border);
-    border-radius: 12px; /* Softer corners */
+    height: 48px; /* Compact height */
+    border-radius: 24px; /* Pill shape */
     padding: 8px;
     z-index: 101;
-    box-shadow: var(--shadow);
   }
 
   .bottom-nav .nav-item {
@@ -130,29 +119,32 @@
     font-size: 10px;
     font-weight: 500;
     text-align: center;
-    padding: 4px;
+    padding: 4px 12px; /* Wider padding for pill shape */
+    border-radius: 24px; /* Pill shape */
     cursor: pointer;
-    transition: color var(--transition);
+    transition: color var(--transition), background var(--transition);
   }
 
   .bottom-nav .nav-item:hover {
     color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1); /* Subtle hover effect */
   }
 
   .bottom-nav .nav-item svg {
     width: 20px;
     height: 20px;
-    stroke: var(--text-secondary);
+    stroke: #FFFFFF; /* White SVG icons */
     margin-bottom: 2px;
     transition: stroke var(--transition);
   }
 
   .bottom-nav .nav-item:hover svg {
-    stroke: var(--text-primary);
+    stroke: #FFFFFF;
   }
 
   .bottom-nav .nav-item.active {
     color: var(--highlight);
+    background: rgba(255, 255, 255, 0.15); /* Subtle active state */
   }
 
   .bottom-nav .nav-item.active svg {
@@ -200,7 +192,7 @@
     background: var(--card-bg);
     color: var(--text-primary);
     font-size: 20px;
-    font-weight: 600; /* Slightly lighter for elegance */
+    font-weight: 600;
     line-height: 1.6;
     text-align: center;
     word-break: break-word;
@@ -268,7 +260,7 @@
     transform: translateY(-50%);
     display: flex;
     flex-direction: column;
-    gap: 12px; /* Tighter spacing */
+    gap: 12px;
     z-index: 10;
   }
 
@@ -279,7 +271,7 @@
   }
 
   .reel-profile-pic, .reel-avatar {
-    width: 36px; /* Slightly smaller for balance */
+    width: 36px;
     height: 36px;
     border-radius: 50%;
     object-fit: cover;
@@ -309,24 +301,22 @@
     color: var(--text-primary);
     font-size: 11px;
     font-weight: 500;
-    background: var(--glass-bg);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--border);
-    border-radius: 16px; /* Softer pill shape */
-    padding: 8px;
+    background: rgba(0, 0, 0, 0.7); /* Round black overlay */
+    border-radius: 50%; /* Circular shape */
+    padding: 10px; /* Increased for round shape */
     cursor: pointer;
     transition: background var(--transition), transform var(--transition);
   }
 
   .reel-action:hover {
-    background: rgba(60, 60, 60, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     transform: scale(1.05);
   }
 
   .reel-action svg {
-    width: 20px; /* Smaller for balance */
+    width: 20px;
     height: 20px;
-    stroke: var(--text-primary);
+    stroke: #FFFFFF; /* White SVG icons */
     margin-bottom: 3px;
     transition: stroke var(--transition);
   }
@@ -338,14 +328,14 @@
 
   .reel-username-container {
     position: absolute;
-    bottom: 68px; /* Adjusted for 48px nav height (20px bottom + 48px height) */
+    bottom: 68px; /* For 48px nav height (20px bottom + 48px height) */
     left: 16px;
     display: flex;
     align-items: center;
     gap: 6px;
     color: var(--text-primary);
     font-size: 14px;
-    font-weight: 500; /* Lighter for elegance */
+    font-weight: 500;
     z-index: 102;
     cursor: pointer;
     transition: color var(--transition);
@@ -368,9 +358,8 @@
     transform: translate(-50%, -50%);
     width: 40px;
     height: 40px;
-    stroke: var(--text-primary);
-    background: var(--glass-bg);
-    backdrop-filter: var(--glass-blur);
+    stroke: #FFFFFF;
+    background: rgba(0, 0, 0, 0.7); /* Match reel-action style */
     border-radius: 50%;
     padding: 10px;
     z-index: 10;
@@ -398,7 +387,6 @@
     left: 0;
     width: 100%;
     background: var(--card-bg);
-    backdrop-filter: var(--glass-blur);
     border-top: 1px solid var(--border);
     border-radius: 16px 16px 0 0;
     transform: translateY(100%);
@@ -431,6 +419,7 @@
   .close-sheet svg {
     width: 20px;
     height: 20px;
+    stroke: #FFFFFF;
   }
 
   .bottom-sheet-content {
@@ -448,7 +437,7 @@
 
   .preview-item {
     position: relative;
-    width: 80px; /* Smaller for cleaner preview */
+    width: 80px;
     height: 80px;
     border-radius: 8px;
     overflow: hidden;
@@ -518,7 +507,7 @@
     background: var(--highlight);
     color: var(--text-primary);
     border: none;
-    border-radius: 8px;
+    border-radius: 24px; /* Pill shape */
     padding: 10px 16px;
     font-size: 14px;
     font-weight: 500;
@@ -527,7 +516,7 @@
   }
 
   .btn:hover {
-    background: #1565C0; /* Darker blue */
+    background: #1565C0;
     transform: scale(1.02);
   }
 
@@ -539,6 +528,7 @@
   .follow-btn.friend {
     background: var(--card-bg);
     border: 1px solid var(--border);
+    border-radius: 24px;
   }
 
   .follow-btn.friend:hover {
@@ -616,7 +606,6 @@
     left: 50%;
     transform: translateX(-50%);
     background: var(--card-bg);
-    backdrop-filter: var(--glass-blur);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 12px 16px;
@@ -664,7 +653,7 @@
     }
 
     .reel-action {
-      padding: 6px;
+      padding: 8px;
     }
 
     .reel-action svg {
@@ -673,12 +662,12 @@
     }
 
     .reel-text-post {
-      padding: 12px 48px 80px 12px; /* Adjusted for mobile */
+      padding: 12px 48px 80px 12px;
       max-width: calc(100% - 64px);
     }
 
     .reel-username-container {
-      bottom: 68px; /* Consistent with desktop */
+      bottom: 68px;
       left: 12px;
     }
   }
