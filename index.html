@@ -46,6 +46,7 @@
     overflow-y: auto;
     scroll-snap-type: y mandatory;
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
 
   .reel {
@@ -55,6 +56,7 @@
     position: relative;
     scroll-snap-align: start;
     background: var(--card-bg);
+    animation: slideIn 0.5s cubic-bezier(0.25, 1, 0.5, 1);
   }
 
   .reel-media {
@@ -134,6 +136,7 @@
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--text-primary);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
   }
 
   .reel-username {
@@ -172,6 +175,8 @@
     overflow: hidden;
     max-width: 90%;
     margin-top: 8px;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,0.7));
+    padding: 8px;
   }
 
  .reel-actions {
@@ -312,7 +317,7 @@
     max-height: 100vh;
     overflow-y: auto;
     transform: translateY(100%);
-    transition: transform 0.3s ease-in-out;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
     z-index: 102;
     -webkit-user-select: none;
     user-select: none;
@@ -572,12 +577,12 @@
     z-index: 10;
     opacity: 0;
     animation: loveFloat 0.6s ease-out forwards;
+    will-change: transform, opacity;
   }
 
   @keyframes loveFloat {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(0deg); }
-    50% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(180deg); }
-    100% { opacity: 0; transform: translate(-50%, -50%) translateY(-100px) scale(1) rotate(360deg); }
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+    100% { opacity: 0; transform: translate(-50%, -50%) translateY(-80px) scale(1); }
   }
 
   .alert {
@@ -642,10 +647,6 @@
   @keyframes slideIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
-  }
-
-  .reel {
-    animation: slideIn 0.3s ease-out;
   }
 
   body, .reel, .reel-actions, .reel-action, .bottom-sheet, .nav-item {
@@ -886,7 +887,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, update, query, limitToLast, remove } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, push, update, query, limitToLast, remove, off } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -1054,7 +1055,11 @@ function reportReel(reelId) {
           video.pause();
           video.currentTime = 0;
           const progressBar = document.getElementById(`progress-${video.closest('.reel').dataset.reelId}`);
-          if (progressBar) progressBar.style.width = '0%';
+          if (progressBar) {
+            requestAnimationFrame(() => {
+              progressBar.style.width = '0%';
+            });
+          }
           const playIcon = video.closest('.reel').querySelector('.play-icon');
           if (playIcon) playIcon.classList.remove('hidden');
           console.log(`Paused and reset video for reel ${video.closest('.reel').dataset.reelId}`);
@@ -1065,233 +1070,198 @@ function reportReel(reelId) {
       }
     }
 
-    function shuffleArray(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-      return array;
-    }
-
-   
-async function loadReels() {
-  console.log('Loading reels and ads');
+    async function loadReels() {
+  console.log('Loading reels');
   showSpinner();
   const reelsRef = ref(db, 'reels');
-  const adsRef = ref(db, 'ads');
   const renderedReels = new Set();
   const urlParams = new URLSearchParams(window.location.search);
   const targetReelId = urlParams.get('reelId');
-  try {
-    let adsArray = [];
-    onValue(adsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        adsArray = Object.entries(snapshot.val())
-          .map(([adId, adData]) => ({ adId, ...adData, isAd: true }))
-          .filter(ad => ad.mediaType === 'image' || ad.mediaType === 'video');
-        console.log('Fetched', adsArray.length, 'ads');
-      }
-    }, { onlyOnce: true });
 
-    onValue(reelsRef, async (snapshot) => {
-      console.log('Reels snapshot received:', snapshot.exists());
-      const reelsContainer = document.getElementById('reels-container');
-      if (!snapshot.exists()) {
-        console.log('No reels data found');
-        reelsContainer.innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">No reels available.</p>';
-        pauseAllVideos();
-        hideSpinner();
-        return;
-      }
-      const reels = snapshot.val();
-      console.log('Data fetched:', Object.keys(reels).length, 'reels');
-      const reelsArray = Object.entries(reels)
-        .map(([reelId, reelData]) => ({ reelId, ...reelData }));
-      const randomizedReels = shuffleArray(reelsArray);
-      
-      // Insert ads every 3 reels
-      const combinedArray = [];
-      for (let i = 0; i < randomizedReels.length; i++) {
-        combinedArray.push(randomizedReels[i]);
-        if ((i + 1) % 3 === 0 && adsArray.length > 0) {
-          const randomAd = adsArray[Math.floor(Math.random() * adsArray.length)];
-          combinedArray.push(randomAd);
-        }
-      }
+  const reelsCallback = async (snapshot) => {
+    console.log('Reels snapshot received:', snapshot.exists());
+    const reelsContainer = document.getElementById('reels-container');
+    if (!snapshot.exists()) {
+      console.log('No reels data found');
+      reelsContainer.innerHTML = '<p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">No reels available.</p>';
+      pauseAllVideos();
+      hideSpinner();
+      return;
+    }
+    const reels = snapshot.val();
+    console.log('Data fetched:', Object.keys(reels).length, 'reels');
+    const reelsArray = Object.entries(reels)
+      .map(([reelId, reelData]) => ({ reelId, ...reelData }))
+      .sort((a, b) => Object.keys(b.likedBy || {}).length - Object.keys(a.likedBy || {}).length); // Sort by popularity (likes desc) for AI-like feed
 
-      if (reelsContainer.children.length !== combinedArray.length) {
-        reelsContainer.innerHTML = '';
-        renderedReels.clear();
-        pauseAllVideos();
-      }
+    if (reelsContainer.children.length !== reelsArray.length) {
+      reelsContainer.innerHTML = '';
+      renderedReels.clear();
+      pauseAllVideos();
+    }
 
-      for (const item of combinedArray) {
-        if (renderedReels.has(item.reelId || item.adId)) continue;
-        const userRef = ref(db, `users/${item.userId}`);
-        try {
-          onValue(userRef, async (userSnapshot) => {
-            const userData = userSnapshot.val();
-            console.log('User data for', item.isAd ? 'ad' : 'reel', item.reelId || item.adId, ':', userData);
-            const caption = item.caption || '';
-            const isFollowing = item.isAd ? false : await checkFollowingStatus(currentUser.uid, item.userId);
-            await trackImpression(item.reelId || item.adId);
-            const div = document.createElement('div');
-            div.className = 'reel';
-            div.dataset.reelId = item.reelId || item.adId;
-            const isVideo = item.mediaType === 'video';
-            div.innerHTML = `
-              ${isVideo
-                ? `<video class="reel-media" src="${item.mediaURL}" playsinline loop></video>
-                   <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                     <path d="M5 3l14 9-14 9V3z"/>
-                   </svg>
-                   <div class="progress-bar" id="progress-${item.reelId || item.adId}"></div>`
-                : `<img class="reel-media" src="${item.mediaURL}" alt="${item.isAd ? 'Sponsored content' : 'Reel image'}">`}
-              <div class="reel-top-actions">
-                <div class="reel-header" ${item.isAd ? '' : `onclick="goToProfile('${item.userId}')"`}>
-                  <div class="reel-header-info">
-                    <div class="reel-username">${userData?.displayName || 'User'}</div>
-                    <div class="reel-timestamp">· ${item.timestamp ? formatTimestamp(item.timestamp) : ''}</div>
-                  </div>
-                  <div class="reel-header-buttons">
-                    ${item.isAd ? '' : currentUser && item.userId === currentUser.uid
-                      ? `<button class="delete-reel-btn btn" style="background: var(--badge-bg); color: var(--text-primary); font-size: 12px; font-weight: 600;" onclick="deleteReel('${item.reelId}', this)">Delete</button>`
-                      : ''}
-                    ${item.isAd ? '' : `
-                      <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${item.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
-                      <button class="kebab-menu-btn btn" onclick="toggleKebabMenu('${item.reelId}', event)">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                          <path d="M12 5v.01M12 12v.01M12 19v.01"/>
-                        </svg>
-                      </button>
-                    `}
-                    <button class="comments-btn btn" onclick="openBottomSheet('comment', '${item.reelId || item.adId}', event)">Comments (${Object.keys(item.comments || {}).length})</button>
-                  </div>
+    for (const item of reelsArray) {
+      if (renderedReels.has(item.reelId)) continue;
+      const userRef = ref(db, `users/${item.userId}`);
+      try {
+        onValue(userRef, async (userSnapshot) => {
+          const userData = userSnapshot.val();
+          console.log('User data for reel', item.reelId, ':', userData);
+          const caption = item.caption || '';
+          const isFollowing = await checkFollowingStatus(currentUser.uid, item.userId);
+          await trackImpression(item.reelId);
+          const div = document.createElement('div');
+          div.className = 'reel';
+          div.dataset.reelId = item.reelId;
+          const isVideo = item.mediaType === 'video';
+          div.innerHTML = `
+            ${isVideo
+              ? `<video class="reel-media" src="${item.mediaURL}" playsinline loop preload="metadata"></video>
+                 <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                   <path d="M5 3l14 9-14 9V3z"/>
+                 </svg>
+                 <div class="progress-bar" id="progress-${item.reelId}"></div>`
+              : `<img class="reel-media" src="${item.mediaURL}" alt="Reel image">`}
+            <div class="reel-top-actions">
+              <div class="reel-header" onclick="goToProfile('${item.userId}')">
+                <div class="reel-header-info">
+                  <div class="reel-username">${userData?.displayName || 'User'}</div>
+                  <div class="reel-timestamp">· ${item.timestamp ? formatTimestamp(item.timestamp) : ''}</div>
                 </div>
-                ${item.isAd
-                  ? `<div class="reel-caption" style="font-size: 12px; color: var(--text-secondary); text-align: left;">Sponsored by ${userData?.displayName || 'User'}</div>`
-                  : `<div class="reel-caption">${caption}</div>
-                     <div class="kebab-menu" id="kebab-menu-${item.reelId}" style="display: none; position: absolute; top: 100%; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
-                       <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="openSettings('${item.reelId}')">Settings</button>
-                       <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="goToProfile('${item.userId}')">View Profile</button>
-                       <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="reportReel('${item.reelId}')">Report</button>
-                     </div>`}
+                <div class="reel-header-buttons">
+                  ${currentUser && item.userId === currentUser.uid
+                    ? `<button class="delete-reel-btn btn" style="background: var(--badge-bg); color: var(--text-primary); font-size: 12px; font-weight: 600;" onclick="deleteReel('${item.reelId}', this)">Delete</button>`
+                    : ''}
+                  <button class="follow-btn btn ${isFollowing ? 'friend' : ''}" onclick="toggleFollow('${item.userId}', this, event)">${isFollowing ? 'Following' : 'Follow'}</button>
+                  <button class="kebab-menu-btn btn" onclick="toggleKebabMenu('${item.reelId}', event)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path d="M12 5v.01M12 12v.01M12 19v.01"/>
+                    </svg>
+                  </button>
+                  <button class="comments-btn btn" onclick="openBottomSheet('comment', '${item.reelId}', event)">Comments (${Object.keys(item.comments || {}).length})</button>
+                </div>
               </div>
-              ${item.isAd ? '' : `
-                <div class="reel-actions">
-                  <div class="reel-profile-container">
-                    ${userData?.photoURL
-                      ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture" onclick="goToProfile('${item.userId}')">`
-                      : `<div class="reel-avatar" onclick="goToProfile('${item.userId}')">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
-                  </div>
-                  <button class="reel-action btn ${item.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${item.reelId}', this)">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-                    </svg>
-                    <span>${Object.keys(item.likedBy || {}).length}</span>
-                  </button>
-                  <button class="reel-action btn" onclick="trackImpression('${item.reelId}', this)">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                      <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
-                    </svg>
-                    <span>${Object.keys(item.impressions || {}).length}</span>
-                  </button>
-                  <button class="reel-action btn ${item.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${item.reelId}', this)">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                      <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
-                    </svg>
-                  </button>
-                </div>`}
-            `;
-            reelsContainer.appendChild(div);
-            renderedReels.add(item.reelId || item.adId);
-            if (isVideo) {
-              const video = div.querySelector('.reel-media');
-              const progressBar = div.querySelector(`#progress-${item.reelId || item.adId}`);
-              const playIcon = div.querySelector('.play-icon');
-              video.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (video.paused) {
-                  pauseAllVideos(item.reelId || item.adId);
-                  currentPlayingVideo = video;
-                  video.play().catch(err => console.error('Error playing video:', err));
-                  if (playIcon) playIcon.classList.add('hidden');
-                } else {
-                  video.pause();
-                  currentPlayingVideo = null;
-                  if (playIcon) playIcon.classList.remove('hidden');
-                }
-                console.log(`Video ${video.paused ? 'paused' : 'playing'} for ${item.isAd ? 'ad' : 'reel'} ${item.reelId || item.adId}`);
-              });
-              video.addEventListener('play', () => {
-                if (playIcon) playIcon.classList.add('hidden');
-              });
-              video.addEventListener('pause', () => {
-                if (playIcon) playIcon.classList.remove('hidden');
-              });
-              video.addEventListener('timeupdate', () => {
-                if (!video.paused) {
-                  const progress = (video.currentTime / video.duration) * 100;
-                  progressBar.style.width = `${progress}%`;
-                }
-              });
-              video.addEventListener('waiting', () => showSpinner());
-              video.addEventListener('stalled', () => showSpinner());
-              video.addEventListener('playing', () => hideSpinner());
-              video.addEventListener('canplay', () => hideSpinner());
-              video.addEventListener('ended', () => {
-                progressBar.style.width = '0%';
-                video.currentTime = 0;
-                video.play().catch(err => console.error('Error replaying video:', err));
-                if (playIcon) playIcon.classList.add('hidden');
-              });
-              video.addEventListener('error', () => {
-                console.log('Video error for URL:', item.mediaURL);
-                showSpinner();
-                showAlert('Failed to load video. Please check your network.');
-                if (playIcon) playIcon.classList.remove('hidden');
-              });
-            }
-            let pressTimer;
-            div.addEventListener('touchstart', (e) => {
+              <div class="reel-caption">${caption}</div>
+              <div class="kebab-menu" id="kebab-menu-${item.reelId}" style="display: none; position: absolute; top: 100%; right: 16px; background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 8px; padding: 8px 0; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
+                <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="openSettings('${item.reelId}')">Settings</button>
+                <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="goToProfile('${item.userId}')">View Profile</button>
+                <button class="kebab-menu-item btn" style="display: block; width: 100%; text-align: left; padding: 8px 16px; font-size: 14px;" onclick="reportReel('${item.reelId}')">Report</button>
+              </div>
+            </div>
+            <div class="reel-actions">
+              <div class="reel-profile-container">
+                ${userData?.photoURL
+                  ? `<img src="${userData.photoURL}" class="reel-profile-pic" alt="${userData.displayName}'s profile picture" onclick="goToProfile('${item.userId}')">`
+                  : `<div class="reel-avatar" onclick="goToProfile('${item.userId}')">${userData?.displayName ? userData.displayName[0].toUpperCase() : 'U'}</div>`}
+              </div>
+              <button class="reel-action btn ${item.likedBy?.[currentUser.uid] ? 'liked' : ''}" onclick="toggleLike('${item.reelId}', this)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                </svg>
+                <span>${Object.keys(item.likedBy || {}).length}</span>
+              </button>
+              <button class="reel-action btn" onclick="trackImpression('${item.reelId}', this)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path d="M12 4.5c5.5 0 10 4.5 10 7.5s-4.5 7.5-10 7.5-10-4.5-10-7.5S6.5 4.5 12 4.5zM12 8a4 4 0 00-4 4 4 4 0 004 4 4 4 0 004-4 4 4 0 00-4-4zm0 2a2 2 0 012 2 2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z"/>
+                </svg>
+                <span>${Object.keys(item.impressions || {}).length}</span>
+              </button>
+              <button class="reel-action btn ${item.bookmarkedBy?.[currentUser.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${item.reelId}', this)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
+                </svg>
+              </button>
+            </div>
+          `;
+          reelsContainer.appendChild(div);
+          renderedReels.add(item.reelId);
+          if (isVideo) {
+            const video = div.querySelector('.reel-media');
+            const progressBar = div.querySelector(`#progress-${item.reelId}`);
+            const playIcon = div.querySelector('.play-icon');
+            video.addEventListener('click', (e) => {
               e.stopPropagation();
-              pressTimer = setTimeout(() => {
-                window.location.href = 'ai.html'; // Replace with your AI page URL
-              }, 500);
-            }, { passive: true });
-            div.addEventListener('touchmove', (e) => {
-              clearTimeout(pressTimer);
-            }, { passive: true });
-            div.addEventListener('touchend', (e) => {
-              clearTimeout(pressTimer);
-            }, { passive: true });
-            if (targetReelId && (item.reelId === targetReelId || item.adId === targetReelId)) {
-              div.scrollIntoView({ behavior: 'smooth' });
-              if (isVideo) {
-                const video = div.querySelector('.reel-media');
-                pauseAllVideos(item.reelId || item.adId);
+              if (video.paused) {
+                pauseAllVideos(item.reelId);
                 currentPlayingVideo = video;
                 video.play().catch(err => console.error('Error playing video:', err));
                 if (playIcon) playIcon.classList.add('hidden');
+              } else {
+                video.pause();
+                currentPlayingVideo = null;
+                if (playIcon) playIcon.classList.remove('hidden');
               }
+              console.log(`Video ${video.paused ? 'paused' : 'playing'} for reel ${item.reelId}`);
+            });
+            video.addEventListener('play', () => {
+              if (playIcon) playIcon.classList.add('hidden');
+            });
+            video.addEventListener('pause', () => {
+              if (playIcon) playIcon.classList.remove('hidden');
+            });
+            video.addEventListener('timeupdate', () => {
+              if (!video.paused) {
+                const progress = (video.currentTime / video.duration) * 100;
+                progressBar.style.width = `${progress}%`;
+              }
+            });
+            video.addEventListener('waiting', () => showSpinner());
+            video.addEventListener('stalled', () => showSpinner());
+            video.addEventListener('playing', () => hideSpinner());
+            video.addEventListener('canplay', () => hideSpinner());
+            video.addEventListener('ended', () => {
+              progressBar.style.width = '0%';
+              video.currentTime = 0;
+              video.play().catch(err => console.error('Error replaying video:', err));
+              if (playIcon) playIcon.classList.add('hidden');
+            });
+            video.addEventListener('error', () => {
+              console.log('Video error for URL:', item.mediaURL);
+              showSpinner();
+              showAlert('Failed to load video. Please check your network.');
+              if (playIcon) playIcon.classList.remove('hidden');
+            });
+          }
+          let pressTimer;
+          div.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            pressTimer = setTimeout(() => {
+              window.location.href = 'ai.html'; // Replace with your AI page URL
+            }, 500);
+          }, { passive: true });
+          div.addEventListener('touchmove', (e) => {
+            clearTimeout(pressTimer);
+          }, { passive: true });
+          div.addEventListener('touchend', (e) => {
+            clearTimeout(pressTimer);
+          }, { passive: true });
+          if (targetReelId && item.reelId === targetReelId) {
+            div.scrollIntoView({ behavior: 'smooth' });
+            if (isVideo) {
+              const video = div.querySelector('.reel-media');
+              pauseAllVideos(item.reelId);
+              currentPlayingVideo = video;
+              video.play().catch(err => console.error('Error playing video:', err));
+              if (playIcon) playIcon.classList.add('hidden');
             }
-          }, { onlyOnce: true });
-        } catch (error) {
-          console.error('Error fetching user data for', item.isAd ? 'ad' : 'reel', item.reelId || item.adId, ':', error);
-        }
+          }
+        }, { onlyOnce: true });
+      } catch (error) {
+        console.error('Error fetching user data for reel', item.reelId, ':', error);
       }
-      hideSpinner();
-      observeReels();
-      if (targetReelId && !renderedReels.has(targetReelId)) {
-        console.log('Target reel not found:', targetReelId);
-        showAlert('Reel not found.');
-      }
-    }, (error) => {
-      console.error('Error in reels onValue:', error);
-      showAlert('Failed to fetch reels. Please try again.');
-      pauseAllVideos();
-      hideSpinner();
-    });
+    }
+    hideSpinner();
+    observeReels();
+    addDoubleTapLike();
+    if (targetReelId && !renderedReels.has(targetReelId)) {
+      console.log('Target reel not found:', targetReelId);
+      showAlert('Reel not found.');
+    }
+  };
+
+  try {
+    off(reelsRef, 'value', reelsCallback); // Unsubscribe previous if exists
+    onValue(reelsRef, reelsCallback);
   } catch (error) {
     console.error('Error loading reels:', error);
     showAlert('Failed to load reels. Please check your connection.');
@@ -1299,6 +1269,7 @@ async function loadReels() {
     hideSpinner();
   }
 }
+
     async function trackImpression(reelId, button = null) {
       if (!currentUser) return;
       try {
@@ -1694,70 +1665,50 @@ async function loadReels() {
   }
   showSpinner();
   try {
+    const worker = new Worker(URL.createObjectURL(new Blob([`
+      self.onmessage = async (e) => {
+        const { file, index, cloudinaryUrl, preset } = e.data;
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', preset);
+        const response = await fetch(cloudinaryUrl, { method: 'POST', body: formData });
+        self.postMessage({ index, data: await response.json() });
+      };
+    `], { type: 'text/javascript' })));
+
+    worker.onmessage = async (e) => {
+      const { index, data } = e.data;
+      if (data.secure_url) {
+        const reelsRef = ref(db, 'reels');
+        await push(reelsRef, {
+          userId: currentUser.uid,
+          mediaURL: data.secure_url,
+          mediaType: files[index].type.startsWith('video') ? 'video' : 'image',
+          caption: caption || null,
+          timestamp: new Date().toISOString(),
+          likedBy: {},
+          bookmarkedBy: {},
+          impressions: {},
+          comments: {}
+        });
+        console.log('Uploaded file:', data.secure_url);
+        document.getElementById(`upload-progress-${index}`).style.width = '100%';
+        document.getElementById(`progress-text-${index}`).textContent = '100%';
+      } else {
+        console.error('Cloudinary error:', data.error?.message);
+        showAlert(`Upload failed for file ${index + 1}: ${data.error?.message || 'Unknown error'}`);
+      }
+    };
+
     for (let index = 0; index < files.length; index++) {
       const file = files[index];
       if (!file.type.match(/^(image|video)\//)) {
         showAlert('Invalid file type. Please select images or videos.');
         continue;
       }
-
-      // Show progress container for this file
       const progressContainer = document.querySelector(`#preview-container .preview-item:nth-child(${index + 1}) .progress-container`);
-      const progressBar = document.getElementById(`upload-progress-${index}`);
-      const progressText = document.getElementById(`progress-text-${index}`);
       progressContainer.style.display = 'flex';
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${file.type.startsWith('video') ? 'video' : 'image'}/upload`, true);
-
-      // Track upload progress
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = Math.round((event.loaded / event.total) * 100);
-          progressBar.style.width = `${percentComplete}%`;
-          progressText.textContent = `${percentComplete}%`;
-          console.log(`Upload progress for file ${index + 1}: ${percentComplete}%`);
-        }
-      };
-
-      // Handle upload completion
-      xhr.onload = async () => {
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
-          if (data.secure_url) {
-            const reelsRef = ref(db, 'reels');
-            await push(reelsRef, {
-              userId: currentUser.uid,
-              mediaURL: data.secure_url,
-              mediaType: file.type.startsWith('video') ? 'video' : 'image',
-              caption: caption || null,
-              timestamp: new Date().toISOString(),
-              likedBy: {},
-              bookmarkedBy: {},
-              impressions: {},
-              comments: {}
-            });
-            console.log('Uploaded file:', data.secure_url);
-          } else {
-            console.error('Cloudinary error:', data.error?.message);
-            showAlert(`Upload failed for file ${index + 1}: ${data.error?.message || 'Unknown error'}`);
-          }
-        } else {
-          showAlert(`Upload failed for file ${index + 1}. Please try again.`);
-        }
-      };
-
-      // Handle errors
-      xhr.onerror = () => {
-        console.error('Upload error for file', index + 1);
-        showAlert(`Upload failed for file ${index + 1}. Please check your network.`);
-      };
-
-      xhr.send(formData);
+      await uploadMediaWithRetry(file, index, caption); // Use retry wrapper
     }
     closeBottomSheet();
     loadReels();
@@ -1769,6 +1720,39 @@ async function loadReels() {
   }
 }
 
+async function uploadMediaWithRetry(file, index, caption, retries = 3, delay = 1000) {
+  const progressBar = document.getElementById(`upload-progress-${index}`);
+  const progressText = document.getElementById(`progress-text-${index}`);
+  for (let i = 0; i < retries; i++) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${file.type.startsWith('video') ? 'video' : 'image'}/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      if (data.secure_url) {
+        await push(ref(db, 'reels'), {
+          userId: currentUser.uid,
+          mediaURL: data.secure_url,
+          mediaType: file.type.startsWith('video') ? 'video' : 'image',
+          caption,
+          timestamp: new Date().toISOString()
+        });
+        progressBar.style.width = '100%';
+        progressText.textContent = '100%';
+        return;
+      }
+    } catch (error) {
+      console.error(`Upload attempt ${i + 1} failed:`, error);
+      if (i < retries - 1) await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+    }
+  }
+  showAlert(`Upload failed for file ${index + 1} after ${retries} attempts.`);
+}
+
     let observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         const reel = entry.target;
@@ -1776,9 +1760,10 @@ async function loadReels() {
         if (video && video.tagName === 'VIDEO') {
           const playIcon = reel.querySelector('.play-icon');
           const progressBar = document.getElementById(`progress-${reel.dataset.reelId}`);
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.8) {
             pauseAllVideos(reel.dataset.reelId);
             currentPlayingVideo = video;
+            video.preload = 'auto';
             video.muted = false;
             video.play().catch(err => console.error('Error playing video:', err));
             if (playIcon) playIcon.classList.add('hidden');
@@ -1787,6 +1772,7 @@ async function loadReels() {
           } else {
             video.pause();
             video.currentTime = 0;
+            video.preload = 'none';
             video.muted = true;
             if (progressBar) progressBar.style.width = '0%';
             if (playIcon) playIcon.classList.remove('hidden');
@@ -1795,7 +1781,7 @@ async function loadReels() {
           }
         }
       });
-    }, { threshold: 0.6 });
+    }, { threshold: 0.8, rootMargin: '-10px' });
 
     function debounce(func, wait) {
       let timeout;
@@ -1824,12 +1810,31 @@ async function loadReels() {
           console.log(`Paused video for reel ${reel.dataset.reelId} during scroll`);
         }
       });
-    }, 100);
+    }, 150);
 
     function observeReels() {
       console.log('Observing reels for visibility');
       const reels = document.querySelectorAll('.reel');
       reels.forEach(reel => observer.observe(reel));
+    }
+
+    function addDoubleTapLike() {
+      const reels = document.querySelectorAll('.reel');
+      reels.forEach(reel => {
+        let lastTap = 0;
+        reel.addEventListener('touchend', (e) => {
+          const now = new Date().getTime();
+          if (now - lastTap <= 300) {
+            const likeButton = reel.querySelector('.reel-action');
+            if (likeButton && !likeButton.classList.contains('liked')) {
+              toggleLike(reel.dataset.reelId, likeButton);
+              showLoveAnimation(reel);
+              navigator.vibrate?.(50);
+            }
+          }
+          lastTap = now;
+        });
+      });
     }
 
     document.getElementById('reels-container').addEventListener('scroll', handleScroll);
@@ -1940,6 +1945,7 @@ async function loadReels() {
     document.addEventListener('DOMContentLoaded', () => {
       console.log('DOM loaded, initializing Firebase and observers');
       initializeFirebase();
+      addDoubleTapLike();
     });
 
     window.toggleLike = toggleLike;
