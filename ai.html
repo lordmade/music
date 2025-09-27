@@ -9,7 +9,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-remote-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/brain.js@2.0.0-beta.2/dist/brain-browser.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -261,19 +261,18 @@
       stroke: var(--text-primary);
     }
 
-    /* Desktop-specific styles (min-width: 1024px) */
     @media (min-width: 1024px) {
       .tab-container {
-        display: none; /* Hide top tabs on desktop */
+        display: none;
       }
 
       #hamburger-button {
-        display: none; /* Hide hamburger button on desktop */
+        display: none;
       }
 
       #sidebar {
-        transform: translateX(0); /* Sidebar always visible on desktop */
-        width: 5rem; /* Narrower sidebar for icons */
+        transform: translateX(0);
+        width: 5rem;
         background: var(--card-bg);
         display: flex;
         flex-direction: column;
@@ -282,30 +281,29 @@
         left: 0;
         height: 100vh;
         z-index: 10;
-        border-radius: 0 1.5rem 1.5rem 0; /* Pill-shaped right edge */
+        border-radius: 0 1.5rem 1.5rem 0;
       }
 
       #close-sidebar {
-        display: none; /* Hide close button on desktop */
+        display: none;
       }
 
       .chat-input-container {
-        left: calc(5rem + 50%); /* Adjust for narrower sidebar */
-        max-width: 800px; /* Wider input on desktop */
+        left: calc(5rem + 50%);
+        max-width: 800px;
       }
 
       #chat-messages {
-        margin-left: 5rem; /* Make space for narrower sidebar */
+        margin-left: 5rem;
         margin-top: 1rem;
         margin-bottom: 6rem;
         max-height: calc(100vh - 7rem);
       }
 
       .welcome-container {
-        margin-left: 5rem; /* Center in chat area */
+        margin-left: 5rem;
       }
 
-      /* Sidebar tabs styling for desktop */
       .sidebar-tabs {
         display: flex;
         flex-direction: column;
@@ -316,21 +314,20 @@
 
       .sidebar-tabs .tab {
         border-radius: 0.5rem;
-        justify-content: center; /* Center icons */
+        justify-content: center;
         padding: 0.75rem;
-        position: relative; /* For tooltip positioning */
+        position: relative;
       }
 
       .sidebar-tabs .tab span {
-        display: none; /* Hide text labels on desktop */
+        display: none;
       }
 
       .sidebar-tabs .tab svg {
-        width: 1.5rem; /* Larger icons */
+        width: 1.5rem;
         height: 1.5rem;
       }
 
-      /* Tooltip styling */
       .sidebar-tabs .tab:hover::after {
         content: attr(data-tooltip);
         position: absolute;
@@ -432,7 +429,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
-    import { getRemoteConfig, fetchAndActivate, getValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-remote-config.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -465,34 +461,73 @@
       imageUploadButton: document.getElementById('image-upload-button')
     };
 
-    let app, auth, db, remoteConfig;
-    let xAIApiKey, xAIApiEndpoint, xAIModel;
+    let app, auth, db, net = new brain.recurrent.LSTM();
+
+    const defaultTrainingData = [
+      { input: "hello", output: "Hey there!" },
+      { input: "how are you", output: "I'm doing great, thanks for asking!" },
+      { input: "what's up", output: "Just chilling in the cloud, you?" },
+      { input: "tell me a joke", output: "Why did the computer go to art school? It wanted to learn how to draw a better 'byte'!" },
+      { input: "goodbye", output: "Catch you later, pal!" }
+    ];
+
+    function normalizeText(text) {
+      return text.toLowerCase().trim();
+    }
+
+    function addTrainingData(input, output) {
+      const patternsRef = ref(db, 'chatPatterns');
+      push(patternsRef, [{ input: normalizeText(input), output }]);
+      console.log('Added new training data:', { input, output });
+    }
+
+    async function initializeBrainJS() {
+      const patternsRef = ref(db, 'chatPatterns');
+      onValue(patternsRef, (snapshot) => {
+        const trainingData = [];
+        snapshot.forEach((child) => {
+          child.val().forEach(({ input, output }) => {
+            trainingData.push({ input: normalizeText(input), output });
+          });
+        });
+        if (trainingData.length > 0) {
+          net.train(trainingData, {
+            iterations: 100,
+            errorThresh: 0.011,
+            log: true,
+            logPeriod: 10
+          });
+          console.log('Brain.js trained with', trainingData.length, 'patterns');
+        }
+      });
+
+      // Retrain periodically
+      onValue(patternsRef, () => {
+        setTimeout(() => {
+          initializeBrainJS();
+        }, 300000); // Every 5 minutes
+      });
+    }
 
     async function initializeFirebase() {
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       db = getDatabase(app);
-      remoteConfig = getRemoteConfig(app);
-      remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // Cache for 1 hour
-      try {
-        await fetchAndActivate(remoteConfig);
-        xAIApiKey = getValue(remoteConfig, 'xai_api_key').asString() || 'xai-jyDWKgfGS8YvcEj8KpmCbSNvnq573VZkz0VGKgXSC1At3sYOJI4bjsFknf0wh1kt1jTqW9WzjxjL97Lu'; // Fallback for testing
-        xAIApiEndpoint = getValue(remoteConfig, 'xai_api_endpoint').asString() || 'https://api.x.ai/v1/chat/completions';
-        xAIModel = getValue(remoteConfig, 'xai_model').asString() || 'grok-2-vision-012';
-        console.log('Remote Config loaded:', { xAIApiKey: '***', xAIApiEndpoint, xAIModel });
-      } catch (error) {
-        console.error('Remote Config Error:', error);
-        // Use fallbacks
-        xAIApiKey = 'xai-jyDWKgfGS8YvcEj8KpmCbSNvnq573VZkz0VGKgXSC1At3sYOJI4bjsFknf0wh1kt1jTqW9WzjxjL97Lu';
-        xAIApiEndpoint = 'https://api.x.ai/v1/chat/completions';
-        xAIModel = 'grok-2-vision-012';
-      }
+      const patternsRef = ref(db, 'chatPatterns');
+      onValue(patternsRef, (snapshot) => {
+        if (!snapshot.exists()) {
+          push(ref(db, 'chatPatterns'), defaultTrainingData);
+          console.log('Initialized chatPatterns with default data');
+        }
+      }, { onlyOnce: true });
+
       onAuthStateChanged(auth, (user) => {
         if (user) {
           elements.chatInput.disabled = false;
           elements.sendButton.disabled = false;
           loadConversations();
           elements.welcomeContainer.querySelector('h1').textContent = `Hey there, ${user.displayName || 'friend'}!`;
+          initializeBrainJS();
         } else {
           window.location.href = 'signup.html';
         }
@@ -526,60 +561,23 @@
       return div;
     }
 
-    // Helper to convert image file to base64
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result.split(',')[1]); // Remove data URL prefix
-        reader.onerror = error => reject(error);
-      });
-    }
-
-    async function getAIResponse(prompt, imageFile = null) {
+    async function getAIResponse(prompt) {
       if (!state.hasChatted) {
         state.hasChatted = true;
         elements.welcomeContainer.classList.add('hidden');
       }
       const tempMsg = appendMessage('', 'ai', true);
       try {
-        let messages = [{
-          role: 'system',
-          content: 'You are Vynix AI, crafted by Katlego in Mokopane, South Africa. Respond like a friendly, human buddy with a warm, conversational tone. Keep it concise and fun!'
-        }, {
-          role: 'user',
-          content: [{ type: 'text', text: prompt }]
-        }];
-        if (imageFile) {
-          const base64Image = await fileToBase64(imageFile);
-          messages[1].content.push({
-            type: 'image_url',
-            image_url: { url: `data:image/jpeg;base64,${base64Image}`, detail: 'high' }
-          });
-        }
-        const requestBody = {
-          model: xAIModel,
-          messages
-        };
-        const res = await fetch(xAIApiEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${xAIApiKey}`
-          },
-          body: JSON.stringify(requestBody)
-        });
-        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-        const data = await res.json();
-        const response = data.choices[0].message.content || 'Oops, something went wrong, pal!';
+        const normalizedPrompt = normalizeText(prompt);
+        const response = net.run(normalizedPrompt) || 'Hmm, not sure what to say—teach me more!';
         tempMsg.textContent = response;
         tempMsg.classList.remove('processing');
         state.messages.push({ content: response, sender: 'ai', timestamp: Date.now() });
       } catch (error) {
-        tempMsg.textContent = 'Whoops, hit a snag! Try again?';
+        tempMsg.textContent = 'Whoops, my circuits got tangled!';
         tempMsg.classList.remove('processing');
         state.messages.push({ content: tempMsg.textContent, sender: 'ai', timestamp: Date.now() });
-        console.error('xAI API Error:', error);
+        console.error('Brain.js Error:', error);
       }
     }
 
@@ -658,6 +656,7 @@
       elements.sidebar.classList.remove('open');
     });
 
+    /*
     elements.imageUploadButton.addEventListener('click', () => {
       const input = document.createElement('input');
       input.type = 'file';
@@ -684,6 +683,7 @@
       };
       input.click();
     });
+    */
 
     document.addEventListener('DOMContentLoaded', initializeFirebase);
   </script>
