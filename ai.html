@@ -32,7 +32,6 @@
       transition: background 0.3s ease;
     }
 
-    /* Mobile-specific styles */
     .tab-container {
       position: fixed;
       top: 0;
@@ -461,21 +460,53 @@
       imageUploadButton: document.getElementById('image-upload-button')
     };
 
-    let app, auth, db, net = new brain.recurrent.LSTM();
+    let app, auth, db, net = new brain.recurrent.LSTM(), lastTrainingSnapshot = null;
 
     const defaultTrainingData = [
       { input: "hello", output: "Hey there!" },
       { input: "how are you", output: "I'm doing great, thanks for asking!" },
       { input: "what's up", output: "Just chilling in the cloud, you?" },
       { input: "tell me a joke", output: "Why did the computer go to art school? It wanted to learn how to draw a better 'byte'!" },
-      { input: "goodbye", output: "Catch you later, pal!" }
+      { input: "goodbye", output: "Catch you later, pal!" },
+      { input: "what's your name", output: "I'm Vynix AI, your friendly chat buddy!" },
+      { input: "how's the weather", output: "No clue, I'm in the cloud! What's it like where you are?" },
+      { input: "who made you", output: "Katlego from Mokopane, South Africa, brought me to life!" },
+      { input: "help me", output: "Sure thing! What's on your mind?" }
     ];
 
     function normalizeText(text) {
-      return text.toLowerCase().trim();
+      text = text.toLowerCase().trim();
+      const synonyms = {
+        "hi": "hello",
+        "hey": "hello",
+        "whats up": "what's up",
+        "joke": "tell me a joke"
+      };
+      return synonyms[text] || text;
+    }
+
+    function getClosestMatch(prompt, trainingData) {
+      const words = prompt.split(' ');
+      let bestMatch = null;
+      let maxOverlap = 0;
+
+      trainingData.forEach(({ input }) => {
+        const inputWords = input.split(' ');
+        const overlap = words.filter(word => inputWords.includes(word)).length;
+        if (overlap > maxOverlap) {
+          maxOverlap = overlap;
+          bestMatch = input;
+        }
+      });
+
+      return bestMatch;
     }
 
     function addTrainingData(input, output) {
+      if (!input || !output || input.length > 100 || output.length > 200) {
+        console.error('Invalid input/output: must be non-empty and within length limits');
+        return;
+      }
       const patternsRef = ref(db, 'chatPatterns');
       push(patternsRef, [{ input: normalizeText(input), output }]);
       console.log('Added new training data:', { input, output });
@@ -486,26 +517,29 @@
       onValue(patternsRef, (snapshot) => {
         const trainingData = [];
         snapshot.forEach((child) => {
-          child.val().forEach(({ input, output }) => {
-            trainingData.push({ input: normalizeText(input), output });
-          });
+          trainingData.push(...child.val());
         });
-        if (trainingData.length > 0) {
-          net.train(trainingData, {
-            iterations: 100,
-            errorThresh: 0.011,
+        const cappedData = trainingData.slice(-100); // Limit to last 100 entries
+        const newData = lastTrainingSnapshot
+          ? cappedData.filter(item => !lastTrainingSnapshot.some(prev => prev.input === item.input && prev.output === item.output))
+          : cappedData;
+
+        if (newData.length > 0) {
+          net.train(newData, {
+            iterations: 50,
+            errorThresh: 0.015,
             log: true,
             logPeriod: 10
           });
-          console.log('Brain.js trained with', trainingData.length, 'patterns');
+          console.log('Brain.js trained with', newData.length, 'new patterns');
         }
+        lastTrainingSnapshot = cappedData;
       });
 
-      // Retrain periodically
       onValue(patternsRef, () => {
         setTimeout(() => {
           initializeBrainJS();
-        }, 300000); // Every 5 minutes
+        }, 300000);
       });
     }
 
@@ -569,10 +603,28 @@
       const tempMsg = appendMessage('', 'ai', true);
       try {
         const normalizedPrompt = normalizeText(prompt);
-        const response = net.run(normalizedPrompt) || 'Hmm, not sure what to say—teach me more!';
-        tempMsg.textContent = response;
+        let trainingData = [];
+        await new Promise(resolve => {
+          onValue(ref(db, 'chatPatterns'), (snapshot) => {
+            snapshot.forEach((child) => {
+              trainingData.push(...child.val());
+            });
+            resolve();
+          }, { onlyOnce: true });
+        });
+
+        const response = net.run(normalizedPrompt);
+        if (!response || response === 'undefined') {
+          const closestInput = getClosestMatch(normalizedPrompt, trainingData);
+          const fallback = closestInput
+            ? trainingData.find(item => item.input === closestInput).output
+            : 'Hmm, not sure what to say—teach me more!';
+          tempMsg.textContent = fallback;
+        } else {
+          tempMsg.textContent = response;
+        }
         tempMsg.classList.remove('processing');
-        state.messages.push({ content: response, sender: 'ai', timestamp: Date.now() });
+        state.messages.push({ content: tempMsg.textContent, sender: 'ai', timestamp: Date.now() });
       } catch (error) {
         tempMsg.textContent = 'Whoops, my circuits got tangled!';
         tempMsg.classList.remove('processing');
@@ -655,35 +707,6 @@
     elements.closeSidebar.addEventListener('click', () => {
       elements.sidebar.classList.remove('open');
     });
-
-    /*
-    elements.imageUploadButton.addEventListener('click', () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const tempMsg = appendMessage('', 'user', true);
-        try {
-          const base64Image = await fileToBase64(file);
-          const img = document.createElement('img');
-          img.src = `data:image/jpeg;base64,${base64Image}`;
-          img.alt = 'Uploaded image';
-          tempMsg.innerHTML = '';
-          tempMsg.classList.remove('processing');
-          appendMessage(img.src, 'user', false, true);
-          await getAIResponse('Describe this image in a fun, friendly way!', file);
-        } catch (error) {
-          tempMsg.textContent = 'Oops, couldn’t upload the image!';
-          tempMsg.classList.remove('processing');
-          state.messages.push({ content: tempMsg.textContent, sender: 'user', timestamp: Date.now() });
-          console.error('Upload Error:', error);
-        }
-      };
-      input.click();
-    });
-    */
 
     document.addEventListener('DOMContentLoaded', initializeFirebase);
   </script>
