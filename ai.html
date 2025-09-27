@@ -9,6 +9,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-remote-config.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -31,6 +32,7 @@
       transition: background 0.3s ease;
     }
 
+    /* Mobile-specific styles */
     .tab-container {
       position: fixed;
       top: 0;
@@ -259,18 +261,19 @@
       stroke: var(--text-primary);
     }
 
+    /* Desktop-specific styles (min-width: 1024px) */
     @media (min-width: 1024px) {
       .tab-container {
-        display: none;
+        display: none; /* Hide top tabs on desktop */
       }
 
       #hamburger-button {
-        display: none;
+        display: none; /* Hide hamburger button on desktop */
       }
 
       #sidebar {
-        transform: translateX(0);
-        width: 5rem;
+        transform: translateX(0); /* Sidebar always visible on desktop */
+        width: 5rem; /* Narrower sidebar for icons */
         background: var(--card-bg);
         display: flex;
         flex-direction: column;
@@ -279,29 +282,30 @@
         left: 0;
         height: 100vh;
         z-index: 10;
-        border-radius: 0 1.5rem 1.5rem 0;
+        border-radius: 0 1.5rem 1.5rem 0; /* Pill-shaped right edge */
       }
 
       #close-sidebar {
-        display: none;
+        display: none; /* Hide close button on desktop */
       }
 
       .chat-input-container {
-        left: calc(5rem + 50%);
-        max-width: 800px;
+        left: calc(5rem + 50%); /* Adjust for narrower sidebar */
+        max-width: 800px; /* Wider input on desktop */
       }
 
       #chat-messages {
-        margin-left: 5rem;
+        margin-left: 5rem; /* Make space for narrower sidebar */
         margin-top: 1rem;
         margin-bottom: 6rem;
         max-height: calc(100vh - 7rem);
       }
 
       .welcome-container {
-        margin-left: 5rem;
+        margin-left: 5rem; /* Center in chat area */
       }
 
+      /* Sidebar tabs styling for desktop */
       .sidebar-tabs {
         display: flex;
         flex-direction: column;
@@ -312,20 +316,21 @@
 
       .sidebar-tabs .tab {
         border-radius: 0.5rem;
-        justify-content: center;
+        justify-content: center; /* Center icons */
         padding: 0.75rem;
-        position: relative;
+        position: relative; /* For tooltip positioning */
       }
 
       .sidebar-tabs .tab span {
-        display: none;
+        display: none; /* Hide text labels on desktop */
       }
 
       .sidebar-tabs .tab svg {
-        width: 1.5rem;
+        width: 1.5rem; /* Larger icons */
         height: 1.5rem;
       }
 
+      /* Tooltip styling */
       .sidebar-tabs .tab:hover::after {
         content: attr(data-tooltip);
         position: absolute;
@@ -363,7 +368,7 @@
       </button>
       <div class="sidebar-tabs">
         <a href="profile.html" class="tab" id="profile-tab" data-tooltip="Profile">
-          <svg fill="none" stroke=" Ascending" viewBox="0 0 24 24" stroke-width="2">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
           </svg>
           <span>Profile</span>
@@ -427,6 +432,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getRemoteConfig, fetchAndActivate, getValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-remote-config.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
@@ -441,8 +447,6 @@
 
     const state = {
       messages: [],
-      xAIApiKey: 'xai-jyDWKgfGS8YvcEj8KpmCbSNvnq573VZkz0VGKgXSC1At3sYOJI4bjsFknf0wh1kt1jTqW9WzjxjL97Lu',
-      xAIApiEndpoint: 'https://api.x.ai/v1/chat/completions',
       hasChatted: false,
       conversationId: null
     };
@@ -461,12 +465,28 @@
       imageUploadButton: document.getElementById('image-upload-button')
     };
 
-    let app, auth, db;
+    let app, auth, db, remoteConfig;
+    let xAIApiKey, xAIApiEndpoint, xAIModel;
 
-    function initializeFirebase() {
+    async function initializeFirebase() {
       app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       db = getDatabase(app);
+      remoteConfig = getRemoteConfig(app);
+      remoteConfig.settings.minimumFetchIntervalMillis = 3600000; // Cache for 1 hour
+      try {
+        await fetchAndActivate(remoteConfig);
+        xAIApiKey = getValue(remoteConfig, 'xai_api_key').asString() || 'xai-jyDWKgfGS8YvcEj8KpmCbSNvnq573VZkz0VGKgXSC1At3sYOJI4bjsFknf0wh1kt1jTqW9WzjxjL97Lu'; // Fallback for testing
+        xAIApiEndpoint = getValue(remoteConfig, 'xai_api_endpoint').asString() || 'https://api.x.ai/v1/chat/completions';
+        xAIModel = getValue(remoteConfig, 'xai_model').asString() || 'grok-2-vision-012';
+        console.log('Remote Config loaded:', { xAIApiKey: '***', xAIApiEndpoint, xAIModel });
+      } catch (error) {
+        console.error('Remote Config Error:', error);
+        // Use fallbacks
+        xAIApiKey = 'xai-jyDWKgfGS8YvcEj8KpmCbSNvnq573VZkz0VGKgXSC1At3sYOJI4bjsFknf0wh1kt1jTqW9WzjxjL97Lu';
+        xAIApiEndpoint = 'https://api.x.ai/v1/chat/completions';
+        xAIModel = 'grok-2-vision-012';
+      }
       onAuthStateChanged(auth, (user) => {
         if (user) {
           elements.chatInput.disabled = false;
@@ -506,32 +526,46 @@
       return div;
     }
 
-    async function getAIResponse(prompt, imageUrl = null) {
+    // Helper to convert image file to base64
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(',')[1]); // Remove data URL prefix
+        reader.onerror = error => reject(error);
+      });
+    }
+
+    async function getAIResponse(prompt, imageFile = null) {
       if (!state.hasChatted) {
         state.hasChatted = true;
         elements.welcomeContainer.classList.add('hidden');
       }
       const tempMsg = appendMessage('', 'ai', true);
       try {
-        let requestBody = {
-          model: 'grok-3',
-          messages: [{
-            role: 'system',
-            content: 'You are Vynix AI, crafted by Katlego in Mokopane, South Africa. Respond like a friendly, human buddy with a warm, conversational tone. Keep it concise and fun!'
-          }, {
-            role: 'user',
-            content: prompt
-          }]
-        };
-        if (imageUrl) {
-          requestBody.messages[1].content = `Hey, let's check out this image! Describe what you see in a fun, friendly way.`;
-          requestBody.messages[1].image_url = imageUrl; // Note: Confirm xAI supports image URLs
+        let messages = [{
+          role: 'system',
+          content: 'You are Vynix AI, crafted by Katlego in Mokopane, South Africa. Respond like a friendly, human buddy with a warm, conversational tone. Keep it concise and fun!'
+        }, {
+          role: 'user',
+          content: [{ type: 'text', text: prompt }]
+        }];
+        if (imageFile) {
+          const base64Image = await fileToBase64(imageFile);
+          messages[1].content.push({
+            type: 'image_url',
+            image_url: { url: `data:image/jpeg;base64,${base64Image}`, detail: 'high' }
+          });
         }
-        const res = await fetch(state.xAIApiEndpoint, {
+        const requestBody = {
+          model: xAIModel,
+          messages
+        };
+        const res = await fetch(xAIApiEndpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${state.xAIApiKey}`
+            'Authorization': `Bearer ${xAIApiKey}`
           },
           body: JSON.stringify(requestBody)
         });
@@ -540,11 +574,11 @@
         const response = data.choices[0].message.content || 'Oops, something went wrong, pal!';
         tempMsg.textContent = response;
         tempMsg.classList.remove('processing');
-        state.messages.push({ text: response, sender: 'ai', timestamp: Date.now() });
+        state.messages.push({ content: response, sender: 'ai', timestamp: Date.now() });
       } catch (error) {
         tempMsg.textContent = 'Whoops, hit a snag! Try again?';
         tempMsg.classList.remove('processing');
-        state.messages.push({ text: tempMsg.textContent, sender: 'ai', timestamp: Date.now() });
+        state.messages.push({ content: tempMsg.textContent, sender: 'ai', timestamp: Date.now() });
         console.error('xAI API Error:', error);
       }
     }
@@ -631,25 +665,20 @@
       input.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'banter_box');
         const tempMsg = appendMessage('', 'user', true);
         try {
-          const uploadResponse = await fetch('https://api.cloudinary.com/v1_1/dqkujefxj/image/upload', {
-            method: 'POST',
-            body: formData
-          });
-          const uploadData = await uploadResponse.json();
-          const imageUrl = uploadData.secure_url;
+          const base64Image = await fileToBase64(file);
+          const img = document.createElement('img');
+          img.src = `data:image/jpeg;base64,${base64Image}`;
+          img.alt = 'Uploaded image';
           tempMsg.innerHTML = '';
           tempMsg.classList.remove('processing');
-          appendMessage(imageUrl, 'user', false, true);
-          await getAIResponse('Describe this image', imageUrl);
+          appendMessage(img.src, 'user', false, true);
+          await getAIResponse('Describe this image in a fun, friendly way!', file);
         } catch (error) {
           tempMsg.textContent = 'Oops, couldn’t upload the image!';
           tempMsg.classList.remove('processing');
-          state.messages.push({ text: tempMsg.textContent, sender: 'user', timestamp: Date.now() });
+          state.messages.push({ content: tempMsg.textContent, sender: 'user', timestamp: Date.now() });
           console.error('Upload Error:', error);
         }
       };
