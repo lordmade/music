@@ -31,7 +31,6 @@
       transition: background 0.3s ease;
     }
 
-    /* Mobile-specific styles */
     .tab-container {
       position: fixed;
       top: 0;
@@ -260,19 +259,18 @@
       stroke: var(--text-primary);
     }
 
-    /* Desktop-specific styles (min-width: 1024px) */
     @media (min-width: 1024px) {
       .tab-container {
-        display: none; /* Hide top tabs on desktop */
+        display: none;
       }
 
       #hamburger-button {
-        display: none; /* Hide hamburger button on desktop */
+        display: none;
       }
 
       #sidebar {
-        transform: translateX(0); /* Sidebar always visible on desktop */
-        width: 5rem; /* Narrower sidebar for icons */
+        transform: translateX(0);
+        width: 5rem;
         background: var(--card-bg);
         display: flex;
         flex-direction: column;
@@ -281,30 +279,29 @@
         left: 0;
         height: 100vh;
         z-index: 10;
-        border-radius: 0 1.5rem 1.5rem 0; /* Pill-shaped right edge */
+        border-radius: 0 1.5rem 1.5rem 0;
       }
 
       #close-sidebar {
-        display: none; /* Hide close button on desktop */
+        display: none;
       }
 
       .chat-input-container {
-        left: calc(5rem + 50%); /* Adjust for narrower sidebar */
-        max-width: 800px; /* Wider input on desktop */
+        left: calc(5rem + 50%);
+        max-width: 800px;
       }
 
       #chat-messages {
-        margin-left: 5rem; /* Make space for narrower sidebar */
+        margin-left: 5rem;
         margin-top: 1rem;
         margin-bottom: 6rem;
         max-height: calc(100vh - 7rem);
       }
 
       .welcome-container {
-        margin-left: 5rem; /* Center in chat area */
+        margin-left: 5rem;
       }
 
-      /* Sidebar tabs styling for desktop */
       .sidebar-tabs {
         display: flex;
         flex-direction: column;
@@ -315,21 +312,20 @@
 
       .sidebar-tabs .tab {
         border-radius: 0.5rem;
-        justify-content: center; /* Center icons */
+        justify-content: center;
         padding: 0.75rem;
-        position: relative; /* For tooltip positioning */
+        position: relative;
       }
 
       .sidebar-tabs .tab span {
-        display: none; /* Hide text labels on desktop */
+        display: none;
       }
 
       .sidebar-tabs .tab svg {
-        width: 1.5rem; /* Larger icons */
+        width: 1.5rem;
         height: 1.5rem;
       }
 
-      /* Tooltip styling */
       .sidebar-tabs .tab:hover::after {
         content: attr(data-tooltip);
         position: absolute;
@@ -367,7 +363,7 @@
       </button>
       <div class="sidebar-tabs">
         <a href="profile.html" class="tab" id="profile-tab" data-tooltip="Profile">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <svg fill="none" stroke=" Ascending" viewBox="0 0 24 24" stroke-width="2">
             <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
           </svg>
           <span>Profile</span>
@@ -445,7 +441,8 @@
 
     const state = {
       messages: [],
-      geminiApiKey: 'AIzaSyCGRia5VZZrmFtmommSK5NZRve4wpef2T8', // Move to environment variable in production
+      xAIApiKey: 'xai-jyDWKgfGS8YvcEj8KpmCbSNvnq573VZkz0VGKgXSC1At3sYOJI4bjsFknf0wh1kt1jTqW9WzjxjL97Lu',
+      xAIApiEndpoint: 'https://api.x.ai/v1/chat/completions',
       hasChatted: false,
       conversationId: null
     };
@@ -517,21 +514,30 @@
       const tempMsg = appendMessage('', 'ai', true);
       try {
         let requestBody = {
-          contents: [{
-            parts: [{ text: `You are Vynix AI, crafted by Katlego in Mokopane, South Africa. Respond like a friendly, human buddy with a warm, conversational tone. Keep it concise and fun! Query: ${prompt}` }]
+          model: 'grok-3',
+          messages: [{
+            role: 'system',
+            content: 'You are Vynix AI, crafted by Katlego in Mokopane, South Africa. Respond like a friendly, human buddy with a warm, conversational tone. Keep it concise and fun!'
+          }, {
+            role: 'user',
+            content: prompt
           }]
         };
         if (imageUrl) {
-          requestBody.contents[0].parts[0].text = `Hey, let's check out this image! Describe what you see in a fun, friendly way.`;
-          requestBody.contents[0].parts.push({ inlineData: { mimeType: 'image/jpeg', data: imageUrl } });
+          requestBody.messages[1].content = `Hey, let's check out this image! Describe what you see in a fun, friendly way.`;
+          requestBody.messages[1].image_url = imageUrl; // Note: Confirm xAI supports image URLs
         }
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${state.geminiApiKey}`, {
+        const res = await fetch(state.xAIApiEndpoint, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.xAIApiKey}`
+          },
           body: JSON.stringify(requestBody)
         });
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
         const data = await res.json();
-        const response = data.candidates[0].content.parts[0].text || 'Oops, something went wrong, pal!';
+        const response = data.choices[0].message.content || 'Oops, something went wrong, pal!';
         tempMsg.textContent = response;
         tempMsg.classList.remove('processing');
         state.messages.push({ text: response, sender: 'ai', timestamp: Date.now() });
@@ -539,7 +545,7 @@
         tempMsg.textContent = 'Whoops, hit a snag! Try again?';
         tempMsg.classList.remove('processing');
         state.messages.push({ text: tempMsg.textContent, sender: 'ai', timestamp: Date.now() });
-        console.error('API Error:', error);
+        console.error('xAI API Error:', error);
       }
     }
 
