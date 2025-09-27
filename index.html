@@ -9,18 +9,19 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<style>
+  
+  <style>
   :root {
-    --bg: #121212; /* Dark gray for professional look */
-    --card-bg: rgba(30, 30, 30, 0.9); /* Subtle dark card background */
-    --text-primary: #F5F5F5; /* Off-white for contrast */
-    --text-secondary: #A0A0A0; /* Neutral gray for secondary text */
-    --border: rgba(255, 255, 255, 0.15); /* Softer border */
-    --highlight: #1E88E5; /* Vibrant blue for accents */
-    --badge-bg: #E91E63; /* Pink for liked/bookmarked states */
-    --shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Soft shadow */
-    --transition: 0.2s ease; /* Smooth transitions */
+    --bg: #000000; /* Instagram’s black background */
+    --card-bg: rgba(18, 18, 18, 0.95); /* Dark card for reels */
+    --text-primary: #FFFFFF; /* White for primary text/icons */
+    --text-secondary: #8E8E93; /* Gray for secondary text */
+    --border: rgba(255, 255, 255, 0.2); /* Subtle border */
+    --highlight: #0095F6; /* Instagram’s blue accent */
+    --like-bg: #ED4956; /* Instagram’s red for liked states */
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Subtle shadow */
+    --gradient: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D); /* Instagram’s iconic gradient */
+    --transition: 0.2s ease; /* Smooth animations */
   }
 
   * {
@@ -32,7 +33,7 @@
   body {
     background: var(--bg);
     color: var(--text-primary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 16px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -71,17 +72,18 @@
     text-align: center;
     margin: 20px 0;
     cursor: pointer;
-    transition: color var(--transition);
+    transition: color var(--transition), transform var(--transition);
   }
 
   .sidebar .nav-item:hover {
     color: var(--text-primary);
+    transform: scale(1.1);
   }
 
   .sidebar .nav-item svg {
     width: 22px;
     height: 22px;
-    stroke: #FFFFFF; /* White SVG icons */
+    stroke: var(--text-primary); /* White icons */
     margin-bottom: 4px;
     transition: stroke var(--transition);
   }
@@ -115,36 +117,31 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     font-size: 10px;
     font-weight: 500;
     text-align: center;
-    padding: 4px 12px; /* Wider padding for pill shape */
+    padding: 4px 12px; /* Wider for pill shape */
     border-radius: 24px; /* Pill shape */
     cursor: pointer;
-    transition: color var(--transition), background var(--transition);
+    transition: color var(--transition), background var(--transition), transform var(--transition);
   }
 
   .bottom-nav .nav-item:hover {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.1); /* Subtle hover effect */
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
   }
 
   .bottom-nav .nav-item svg {
     width: 20px;
     height: 20px;
-    stroke: #FFFFFF; /* White SVG icons */
+    stroke: var(--text-primary); /* White SVG icons */
     margin-bottom: 2px;
-    transition: stroke var(--transition);
-  }
-
-  .bottom-nav .nav-item:hover svg {
-    stroke: #FFFFFF;
   }
 
   .bottom-nav .nav-item.active {
     color: var(--highlight);
-    background: rgba(255, 255, 255, 0.15); /* Subtle active state */
+    background: rgba(255, 255, 255, 0.15);
   }
 
   .bottom-nav .nav-item.active svg {
@@ -170,7 +167,6 @@
     display: flex;
     flex-direction: column;
     background: var(--card-bg);
-    box-shadow: var(--shadow);
   }
 
   .reel-media {
@@ -192,7 +188,7 @@
     background: var(--card-bg);
     color: var(--text-primary);
     font-size: 20px;
-    font-weight: 600;
+    font-weight: 700; /* Bold for Instagram style */
     line-height: 1.6;
     text-align: center;
     word-break: break-word;
@@ -245,9 +241,9 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    max-width: 90%;
+    max-width: 80%;
     margin-top: 8px;
-    background: linear-gradient(180deg, transparent, rgba(18, 18, 18, 0.7));
+    background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.8));
     padding: 8px 12px;
     border-radius: 8px;
     z-index: 10;
@@ -260,7 +256,7 @@
     transform: translateY(-50%);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px; /* Instagram-like spacing */
     z-index: 10;
   }
 
@@ -271,17 +267,17 @@
   }
 
   .reel-profile-pic, .reel-avatar {
-    width: 36px;
-    height: 36px;
+    width: 32px; /* Instagram’s compact profile size */
+    height: 32px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid var(--border);
+    border: 2px solid var(--gradient); /* Instagram gradient border */
     cursor: pointer;
-    transition: border-color var(--transition);
+    transition: transform var(--transition);
   }
 
   .reel-profile-pic:hover, .reel-avatar:hover {
-    border-color: var(--highlight);
+    transform: scale(1.1);
   }
 
   .reel-avatar {
@@ -290,7 +286,7 @@
     align-items: center;
     background: var(--card-bg);
     color: var(--text-primary);
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
   }
 
@@ -303,27 +299,26 @@
     font-weight: 500;
     background: rgba(0, 0, 0, 0.7); /* Round black overlay */
     border-radius: 50%; /* Circular shape */
-    padding: 10px; /* Increased for round shape */
+    padding: 10px;
     cursor: pointer;
     transition: background var(--transition), transform var(--transition);
   }
 
   .reel-action:hover {
     background: rgba(0, 0, 0, 0.85);
-    transform: scale(1.05);
+    transform: scale(1.15); /* Instagram-like tap animation */
   }
 
   .reel-action svg {
-    width: 20px;
-    height: 20px;
-    stroke: #FFFFFF; /* White SVG icons */
+    width: 22px;
+    height: 22px;
+    stroke: var(--text-primary); /* White icons */
     margin-bottom: 3px;
-    transition: stroke var(--transition);
   }
 
   .reel-action.liked svg, .reel-action.bookmarked svg {
-    fill: var(--badge-bg);
-    stroke: var(--badge-bg);
+    fill: var(--like-bg); /* Instagram’s red heart */
+    stroke: var(--like-bg);
   }
 
   .reel-username-container {
@@ -335,20 +330,21 @@
     gap: 6px;
     color: var(--text-primary);
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 700; /* Bold for Instagram style */
     z-index: 102;
     cursor: pointer;
-    transition: color var(--transition);
+    transition: color var(--transition), transform var(--transition);
   }
 
   .reel-username-container:hover {
     color: var(--highlight);
+    transform: scale(1.05);
   }
 
   .reel-username-container svg.verified-icon {
     width: 16px;
     height: 16px;
-    fill: var(--highlight);
+    fill: var(--highlight); /* Instagram blue */
   }
 
   .play-icon {
@@ -356,10 +352,10 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 40px;
-    height: 40px;
-    stroke: #FFFFFF;
-    background: rgba(0, 0, 0, 0.7); /* Match reel-action style */
+    width: 44px;
+    height: 44px;
+    stroke: var(--text-primary);
+    background: rgba(0, 0, 0, 0.7);
     border-radius: 50%;
     padding: 10px;
     z-index: 10;
@@ -375,7 +371,7 @@
     bottom: 0;
     left: 0;
     height: 3px;
-    background: var(--highlight);
+    background: var(--gradient); /* Instagram gradient for video progress */
     width: 0;
     z-index: 10;
     transition: width 0.1s linear;
@@ -409,17 +405,18 @@
     border: none;
     color: var(--text-primary);
     cursor: pointer;
-    transition: color var(--transition);
+    transition: color var(--transition), transform var(--transition);
   }
 
   .close-sheet:hover {
     color: var(--highlight);
+    transform: scale(1.1);
   }
 
   .close-sheet svg {
     width: 20px;
     height: 20px;
-    stroke: #FFFFFF;
+    stroke: var(--text-primary);
   }
 
   .bottom-sheet-content {
@@ -439,7 +436,7 @@
     position: relative;
     width: 80px;
     height: 80px;
-    border-radius: 8px;
+    border-radius: 12px; /* Instagram’s rounded preview */
     overflow: hidden;
     box-shadow: var(--shadow);
   }
@@ -475,7 +472,7 @@
 
   .progress-bar-upload div {
     height: 100%;
-    background: var(--highlight);
+    background: var(--gradient); /* Instagram gradient */
     width: 0;
     transition: width 0.3s ease;
   }
@@ -490,10 +487,11 @@
     width: 100%;
     background: var(--card-bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 12px; /* Instagram’s rounded input */
     padding: 10px;
     color: var(--text-primary);
     font-size: 14px;
+    font-weight: 400;
     resize: none;
     transition: border-color var(--transition);
   }
@@ -504,20 +502,19 @@
   }
 
   .btn {
-    background: var(--highlight);
+    background: var(--gradient); /* Instagram gradient for buttons */
     color: var(--text-primary);
     border: none;
     border-radius: 24px; /* Pill shape */
     padding: 10px 16px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    transition: background var(--transition), transform var(--transition);
+    transition: transform var(--transition);
   }
 
   .btn:hover {
-    background: #1565C0;
-    transform: scale(1.02);
+    transform: scale(1.05);
   }
 
   .btn:disabled {
@@ -532,7 +529,8 @@
   }
 
   .follow-btn.friend:hover {
-    background: rgba(60, 60, 60, 0.8);
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
   }
 
   .comment-list {
@@ -547,20 +545,21 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 8px;
-    border-radius: 8px;
-    background: rgba(40, 40, 40, 0.3);
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
   }
 
   .comment-username {
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 700; /* Bold for Instagram style */
     color: var(--text-primary);
   }
 
   .comment-text {
     font-size: 13px;
     color: var(--text-primary);
+    font-weight: 400;
   }
 
   .comment-timestamp {
@@ -607,7 +606,7 @@
     transform: translateX(-50%);
     background: var(--card-bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 12px 16px;
     color: var(--text-primary);
     font-size: 13px;
@@ -648,8 +647,8 @@
     }
 
     .reel-profile-pic, .reel-avatar {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
     }
 
     .reel-action {
@@ -657,22 +656,28 @@
     }
 
     .reel-action svg {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
     }
 
     .reel-text-post {
       padding: 12px 48px 80px 12px;
       max-width: calc(100% - 64px);
+      font-size: 18px; /* Slightly smaller for mobile */
     }
 
     .reel-username-container {
       bottom: 68px;
       left: 12px;
+      font-size: 13px;
+    }
+
+    .reel-username-container svg.verified-icon {
+      width: 14px;
+      height: 14px;
     }
   }
 </style>
-        
 </head>
 <body>
   <main class="flex flex-col h-screen" id="main-content">
