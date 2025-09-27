@@ -1,17 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Vynix AI - Reels</title>
+  <!-- Removed TailwindCSS CDN to reduce payload -->
+  <!-- Using system fonts to eliminate Google Fonts request -->
   <style>
     :root {
-      --bg: #000;
-      --text: #fff;
-      --text-secondary: #8e8e8e;
+      --bg: #000000;
+      --card-bg: rgba(0, 0, 0, 0.2);
+      --text-primary: #FFFFFF;
+      --text-secondary: #8E8E8E;
       --border: rgba(255, 255, 255, 0.1);
-      --highlight: #0095f6;
-      --badge-bg: #fa3e5f;
+      --highlight: #0095F6;
+      --badge-bg: #FA3E5F;
+      --glass-bg: rgba(0, 0, 0, 0.2);
+      --glass-blur: blur(8px); /* Reduced blur radius for performance */
     }
 
     * {
@@ -23,28 +28,50 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg);
-      color: var(--text);
+      color: var(--text-primary);
       min-height: 100vh;
       overflow-x: hidden;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .btn {
+      border-radius: 9999px;
+      padding: 8px 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--highlight);
+      color: var(--text-primary);
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
     }
 
     .reels-container {
       height: 100vh;
       overflow-y: auto;
       scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
     }
 
     .reel {
       height: 100vh;
+      display: flex;
+      flex-direction: column;
       position: relative;
       scroll-snap-align: start;
-      background: var(--bg);
+      background: var(--card-bg);
+      animation: slideIn 0.3s ease-out;
     }
 
     .reel-media {
       width: 100%;
       height: 100%;
       object-fit: cover;
+      background: var(--bg);
+      loading: lazy; /* Added lazy loading for images */
     }
 
     .play-icon {
@@ -52,33 +79,63 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 40px;
-      height: 40px;
-      color: var(--text);
-      opacity: 0.7;
-      transition: opacity 0.2s;
-      z-index: 10;
+      width: 48px;
+      height: 48px;
+      color: var(--text-primary);
+      opacity: 0.8;
+      transition: opacity 0.3s ease;
+      z-index: 20;
     }
 
     .play-icon.hidden {
       opacity: 0;
     }
 
-    .reel-header {
+    .reel-top-actions {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      padding: 10px;
-      background: rgba(0, 0, 0, 0.5);
+      padding: 16px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid var(--border);
+      z-index: 45;
+    }
+
+    .reel-header {
       display: flex;
       align-items: center;
+      gap: 8px;
       justify-content: space-between;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+
+    .reel-header-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .reel-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 14px;
     }
 
     .reel-username {
-      font-size: 14px;
       font-weight: 600;
+      font-size: 14px;
     }
 
     .reel-timestamp {
@@ -87,43 +144,44 @@
       margin-left: 8px;
     }
 
-    .btn {
-      padding: 6px 12px;
-      border-radius: 20px;
-      border: none;
-      background: var(--highlight);
-      color: var(--text);
-      font-size: 12px;
-      cursor: pointer;
+    .follow-btn.friend {
+      background: var(--border);
+      color: var(--text-secondary);
+    }
+
+    .reel-caption {
+      font-size: 14px;
+      line-height: 1.4;
+      max-width: 90%;
+      margin-top: 8px;
     }
 
     .reel-actions {
       position: absolute;
-      right: 8px;
+      right: 12px;
       top: 50%;
       transform: translateY(-50%);
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      padding: 8px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 20px;
+      gap: 10px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border-radius: 34px;
+      padding: 16px 8px;
+      border: 1px solid var(--border);
     }
 
     .reel-action {
       background: none;
       border: none;
-      color: var(--text);
+      color: var(--text-primary);
+      cursor: pointer;
       display: flex;
       flex-direction: column;
       align-items: center;
+      gap: 4px;
       font-size: 12px;
-    }
-
-    .reel-action svg {
-      width: 24px;
-      height: 24px;
-      stroke: var(--text);
     }
 
     .reel-action.liked svg {
@@ -131,44 +189,77 @@
       stroke: var(--badge-bg);
     }
 
+    .reel-action.bookmarked svg {
+      fill: var(--text-primary);
+      stroke: var(--text-primary);
+    }
+
+    .reel-action svg {
+      width: 28px;
+      height: 28px;
+      stroke: var(--text-primary);
+      stroke-width: 1.5;
+    }
+
     .progress-bar {
       position: absolute;
       bottom: 0;
       left: 0;
       width: 0;
-      height: 2px;
+      height: 3px;
       background: var(--highlight);
+      transition: width linear;
     }
 
     .bottom-nav {
       position: fixed;
-      bottom: 10px;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 20px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
       display: flex;
-      padding: 6px;
-      width: 90%;
-      max-width: 300px;
-      z-index: 10;
+      padding: 8px 16px;
+      width: 280px;
+      max-width: 90%;
+      z-index: 101;
+    }
+
+    .sidebar {
+      display: none;
     }
 
     .nav-item {
-      flex: 1;
       background: none;
       border: none;
-      color: var(--text);
+      color: var(--text-primary);
+      cursor: pointer;
       display: flex;
       flex-direction: column;
       align-items: center;
-      font-size: 10px;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .nav-item.upload-btn {
+      background: var(--highlight);
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 16px;
     }
 
     .nav-item svg {
-      width: 20px;
-      height: 20px;
-      stroke: var(--text);
+      width: 24px;
+      height: 24px;
+      stroke: var(--text-primary);
+      stroke-width: 2;
     }
 
     .nav-item.active svg {
@@ -180,44 +271,174 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: var(--bg);
-      padding: 10px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      padding: 16px;
       max-height: 80vh;
       overflow-y: auto;
       transform: translateY(100%);
-      transition: transform 0.2s;
-      z-index: 20;
+      transition: transform 0.3s ease-in-out;
+      z-index: 102;
+      visibility: hidden;
     }
 
     .bottom-sheet.active {
       transform: translateY(0);
+      visibility: visible;
     }
 
-    .bottom-sheet textarea {
-      width: 100%;
+    .close-sheet {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-primary);
+    }
+
+    .bottom-sheet-content label {
+      display: block;
+      background: var(--highlight);
+      color: var(--text-primary);
+      text-align: center;
+      border-radius: 9999px;
       padding: 8px;
+      cursor: pointer;
+    }
+
+    .bottom-sheet-content textarea {
+      width: 100%;
+      padding: 12px;
       border: 1px solid var(--border);
       border-radius: 8px;
-      background: transparent;
-      color: var(--text);
+      background: var(--glass-bg);
+      color: var(--text-primary);
+      resize: none;
       font-size: 14px;
+    }
+
+    .preview-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+    }
+
+    .preview-item {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 9/16;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .preview-item img,
+    .preview-item video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .preview-item .remove-preview {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(0,0,0,0.7);
+      color: var(--text-primary);
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    .comment-list {
+      margin-bottom: 16px;
+    }
+
+    .comment-item {
+      padding: 12px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      background: var(--glass-bg);
+      border: 1px solid var(--border);
+    }
+
+    .comment-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .comment-username {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .comment-timestamp {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .delete-comment {
+      background: none;
+      border: none;
+      color: var(--badge-bg);
+      cursor: pointer;
+    }
+
+    .love-animation {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      color: var(--badge-bg);
+      opacity: 0;
+      animation: loveFloat 0.6s ease-out forwards;
+    }
+
+    @keyframes loveFloat {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) translateY(-100px) scale(1); }
     }
 
     .alert {
       position: fixed;
-      top: 10px;
+      top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.5);
-      color: var(--text);
-      padding: 8px 16px;
-      border-radius: 20px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      color: var(--text-primary);
+      padding: 12px 24px;
+      border-radius: 9999px;
+      border: 1px solid var(--border);
       display: none;
-      z-index: 30;
+      z-index: 60;
     }
 
     .alert.active {
       display: block;
+      animation: slideInAlert 0.3s ease-out;
+    }
+
+    @keyframes slideInAlert {
+      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
 
     .spinner-overlay {
@@ -226,11 +447,11 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0,0,0,0.5);
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 40;
+      z-index: 45;
     }
 
     .spinner-overlay.active {
@@ -238,9 +459,9 @@
     }
 
     .spinner {
-      width: 30px;
-      height: 30px;
-      border: 3px solid var(--highlight);
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--highlight);
       border-top-color: transparent;
       border-radius: 50%;
       animation: spin 1s linear infinite;
@@ -250,78 +471,163 @@
       to { transform: rotate(360deg); }
     }
 
+    @media (max-width: 768px) {
+      .reel-top-actions { padding: 12px; }
+      .reel-actions { right: 8px; }
+      .bottom-nav { width: 90%; }
+    }
+
     @media (min-width: 769px) {
       .bottom-nav { display: none; }
-      .reels-container { margin-left: 60px; width: calc(100% - 60px); }
       .sidebar {
         display: flex;
         position: fixed;
         top: 50%;
-        left: 10px;
+        left: 16px;
         transform: translateY(-50%);
+        width: 80px;
+        background: var(--glass-bg);
+        -webkit-backdrop-filter: var(--glass-blur);
+        backdrop-filter: var(--glass-blur);
+        border: 1px solid var(--border);
+        border-radius: 9999px;
         flex-direction: column;
-        background: rgba(0, 0, 0, 0.5);
-        border-radius: 20px;
-        padding: 10px;
-        z-index: 10;
+        align-items: center;
+        padding: 16px 0;
+        z-index: 101;
       }
+
+      .sidebar .nav-item {
+        margin: 12px 0;
+        width: 64px;
+        padding: 8px;
+        border-radius: 9999px;
+      }
+
+      .reels-container {
+        margin-left: 112px;
+        width: calc(100% - 112px);
+      }
+    }
+
+    .delete-reel-btn {
+      background: var(--badge-bg);
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      border-radius: 9999px;
+      padding: 6px 12px;
+    }
+
+    .kebab-menu {
+      position: absolute;
+      top: 100%;
+      right: 16px;
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: var(--glass-blur);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 0;
+      z-index: 50;
+      display: none;
+    }
+
+    .kebab-menu.active {
+      display: block;
+    }
+
+    .kebab-menu-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 8px 16px;
+      font-size: 14px;
+      background: none;
+      border: none;
+      color: var(--text-primary);
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <main class="flex flex-col h-screen">
+  <main class="flex flex-col h-screen" id="main-content">
     <nav class="sidebar">
-      <button class="nav-item active" id="home-btn">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/></svg>
-        <span>Feed</span>
+      <button class="nav-item btn active" id="home-btn">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/>
+        </svg>
+        <span>Auto Play</span>
       </button>
-      <button class="nav-item" id="upload-nav-btn">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v8m0 0v8m8-8H4"/></svg>
+      <button class="nav-item upload-btn" id="upload-nav-btn">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 4v8m0 0v8m8-8H4"/>
+        </svg>
       </button>
-      <button class="nav-item" id="friends-nav-btn">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z"/></svg>
+      <button class="nav-item btn" id="friends-nav-btn">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z"/>
+        </svg>
         <span>Friends</span>
       </button>
     </nav>
 
     <div class="reels-container" id="reels-container">
-      <p style="text-align: center; color: var(--text); margin-top: 2rem;">Loading...</p>
+      <p style="text-align: center; color: var(--text-primary); margin-top: 2rem;">Loading reels...</p>
     </div>
 
     <nav class="bottom-nav">
-      <button class="nav-item" id="search-nav-btn-mobile">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
+      <button class="nav-item btn" id="search-nav-btn-mobile">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/>
+        </svg>
         <span>Search</span>
       </button>
-      <button class="nav-item active" id="home-btn-mobile">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/></svg>
-        <span>Feed</span>
+      <button class="nav-item btn active" id="home-btn-mobile">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/>
+        </svg>
+        <span>Auto Play</span>
       </button>
-      <button class="nav-item" id="upload-nav-btn-mobile">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v8m0 0v8m8-8H4"/></svg>
+      <button class="nav-item upload-btn" id="upload-nav-btn-mobile">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 4v8m0 0v8m8-8H4"/>
+        </svg>
       </button>
-      <button class="nav-item" id="friends-nav-btn-mobile">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z"/></svg>
+      <button class="nav-item btn" id="friends-nav-btn-mobile">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z"/>
+        </svg>
         <span>Friends</span>
       </button>
     </nav>
 
     <div class="bottom-sheet" id="upload-sheet">
-      <button class="btn" onclick="closeBottomSheet()">Close</button>
-      <div>
-        <label class="btn" for="media-upload">Select Media</label>
+      <button class="close-sheet" onclick="closeBottomSheet(event)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+      <div class="bottom-sheet-content">
+        <label class="btn" for="media-upload">Select Image/Video</label>
         <input type="file" id="media-upload" accept="image/*,video/*" multiple>
-        <div id="preview-container"></div>
-        <textarea id="caption-input" placeholder="Caption..." rows="3"></textarea>
+        <div class="preview-container" id="preview-container"></div>
+        <textarea id="caption-input" placeholder="Write a caption..." rows="3"></textarea>
         <button class="btn" id="submit-upload">Post</button>
       </div>
     </div>
 
     <div class="bottom-sheet" id="comment-sheet">
-      <button class="btn" onclick="closeBottomSheet()">Close</button>
-      <div>
-        <div id="comment-list"></div>
-        <textarea id="comment-input" placeholder="Comment..." rows="2"></textarea>
+      <button class="close-sheet" onclick="closeBottomSheet(event)">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+      <div class="bottom-sheet-content">
+        <div class="comment-list" id="comment-list"></div>
+        <textarea id="comment-input" placeholder="Add a comment..." rows="2"></textarea>
         <button class="btn" id="submit-comment">Post</button>
       </div>
     </div>
@@ -329,13 +635,14 @@
     <div id="spinner-overlay" class="spinner-overlay">
       <div class="spinner"></div>
     </div>
+
     <div id="alert-message" class="alert"></div>
   </main>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, update, remove } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase, ref, onValue, push, update, remove, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
@@ -351,6 +658,9 @@
     const CLOUDINARY_PRESET = 'banter_box';
 
     let app, auth, db, currentUser, observer;
+    let activeCommentReelId = null;
+    let commentListeners = new Map();
+    let currentPlayingVideo = null;
 
     function showSpinner() {
       document.getElementById('spinner-overlay').classList.add('active');
@@ -367,15 +677,29 @@
       setTimeout(() => alert.classList.remove('active'), 2000);
     }
 
-    function openBottomSheet(type, reelId = null) {
-      document.getElementById(`${type}-sheet`).classList.add('active');
-      if (type === 'comment') {
+    function showLoveAnimation(reelDiv) {
+      const heart = document.createElement('div');
+      heart.innerHTML = '❤️';
+      heart.className = 'love-animation';
+      reelDiv.appendChild(heart);
+      setTimeout(() => heart.remove(), 600);
+    }
+
+    function openBottomSheet(type, reelId = null, event = null) {
+      if (event) event.stopPropagation();
+      if (type === 'upload') {
+        document.getElementById('upload-sheet').classList.add('active');
+        document.getElementById('comment-sheet').classList.remove('active');
+      } else if (type === 'comment') {
+        document.getElementById('comment-sheet').classList.add('active');
+        document.getElementById('upload-sheet').classList.remove('active');
         activeCommentReelId = reelId;
         loadComments(reelId);
       }
     }
 
-    function closeBottomSheet() {
+    function closeBottomSheet(event) {
+      if (event) event.stopPropagation();
       document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('active'));
       document.getElementById('media-upload').value = '';
       document.getElementById('caption-input').value = '';
@@ -383,6 +707,16 @@
       document.getElementById('comment-input').value = '';
       document.getElementById('comment-list').innerHTML = '';
       activeCommentReelId = null;
+      commentListeners.forEach(unsubscribe => unsubscribe());
+      commentListeners.clear();
+    }
+
+    function toggleKebabMenu(reelId, event) {
+      event.stopPropagation();
+      const menu = document.getElementById(`kebab-menu-${reelId}`);
+      const isVisible = menu.classList.contains('active');
+      document.querySelectorAll('.kebab-menu').forEach(m => m.classList.remove('active'));
+      menu.classList.toggle('active', !isVisible);
     }
 
     function initializeFirebase() {
@@ -412,11 +746,15 @@
           if (playIcon) playIcon.classList.remove('hidden');
         }
       });
+      if (currentPlayingVideo && currentPlayingVideo.closest('.reel').dataset.reelId !== exceptId) {
+        currentPlayingVideo = null;
+      }
     }
 
     async function loadReels() {
       showSpinner();
       const reelsRef = ref(db, 'reels');
+      const renderedReels = new Set();
       onValue(reelsRef, snapshot => {
         const reelsContainer = document.getElementById('reels-container');
         if (!snapshot.exists()) {
@@ -427,6 +765,7 @@
         const reels = snapshot.val();
         reelsContainer.innerHTML = '';
         Object.entries(reels).forEach(([reelId, reelData]) => {
+          if (renderedReels.has(reelId)) return;
           const div = document.createElement('div');
           div.className = 'reel';
           div.dataset.reelId = reelId;
@@ -437,29 +776,52 @@
                  <svg class="play-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 3l14 9-14 9V3z"/></svg>
                  <div class="progress-bar" id="progress-${reelId}"></div>`
               : `<img class="reel-media" src="${reelData.mediaURL}" alt="Reel image" loading="lazy">`}
-            <div class="reel-header">
-              <div>
-                <span class="reel-username">${reelData.userId}</span>
-                <span class="reel-timestamp">${formatTimestamp(reelData.timestamp)}</span>
+            <div class="reel-top-actions">
+              <div class="reel-header">
+                <div class="reel-header-info">
+                  <div class="reel-avatar">${reelData.userId[0].toUpperCase()}</div>
+                  <div class="reel-username">${reelData.userId}</div>
+                  <div class="reel-timestamp">${formatTimestamp(reelData.timestamp)}</div>
+                </div>
+                <div class="reel-header-buttons">
+                  <button class="follow-btn btn ${reelData.isFollowing ? 'friend' : ''}" onclick="toggleFollow('${reelData.userId}', this, event)">${reelData.isFollowing ? 'Following' : 'Follow'}</button>
+                  <button class="kebab-menu-btn btn" onclick="toggleKebabMenu('${reelId}', event)">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path d="M12 5v.01M12 12v.01M12 19v.01"/>
+                    </svg>
+                  </button>
+                  <button class="comments-btn btn" onclick="openBottomSheet('comment', '${reelId}', event)">Comments (${Object.keys(reelData.comments || {}).length})</button>
+                </div>
               </div>
-              <button class="btn" onclick="openBottomSheet('comment', '${reelId}')">Comments (${Object.keys(reelData.comments || {}).length})</button>
+              <div class="reel-caption">${reelData.caption || ''}</div>
+              <div class="kebab-menu" id="kebab-menu-${reelId}">
+                <button class="kebab-menu-item btn" onclick="openSettings('${reelId}')">Settings</button>
+                <button class="kebab-menu-item btn" onclick="goToProfile('${reelData.userId}')">View Profile</button>
+                <button class="kebab-menu-item btn" onclick="reportReel('${reelId}')">Report</button>
+              </div>
             </div>
             <div class="reel-actions">
-              <button class="reel-action ${reelData.likedBy?.[currentUser?.uid] ? 'liked' : ''}" onclick="toggleLike('${reelId}', this)">
+              <button class="reel-action btn ${reelData.likedBy?.[currentUser?.uid] ? 'liked' : ''}" onclick="toggleLike('${reelId}', this)">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
                 <span>${Object.keys(reelData.likedBy || {}).length}</span>
+              </button>
+              <button class="reel-action btn ${reelData.bookmarkedBy?.[currentUser?.uid] ? 'bookmarked' : ''}" onclick="toggleBookmark('${reelId}', this)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V proprio5z"/></svg>
               </button>
             </div>
           `;
           reelsContainer.appendChild(div);
+          renderedReels.add(reelId);
           if (isVideo) {
             const video = div.querySelector('.reel-media');
             const progressBar = div.querySelector(`#progress-${reelId}`);
             const playIcon = div.querySelector('.play-icon');
-            video.addEventListener('click', () => {
+            video.addEventListener('click', e => {
+              e.stopPropagation();
               if (video.paused) {
                 pauseAllVideos(reelId);
-                video.play();
+                currentPlayingVideo = video;
+                video.play().catch(() => showAlert('Failed to play video.'));
                 playIcon.classList.add('hidden');
               } else {
                 video.pause();
@@ -471,11 +833,12 @@
                 progressBar.style.width = `${(video.currentTime / video.duration) * 100}%`;
               }
             });
+            video.addEventListener('error', () => showAlert('Failed to load video.'));
           }
         });
         hideSpinner();
         observeReels();
-      });
+      }, { onlyOnce: true }); // Reduced Firebase reads
     }
 
     async function toggleLike(reelId, button) {
@@ -491,30 +854,89 @@
       });
       button.classList.toggle('liked');
       countSpan.textContent = isLiked ? count - 1 : count + 1;
+      if (!isLiked) showLoveAnimation(button.closest('.reel'));
+    }
+
+    async function toggleBookmark(reelId, button) {
+      if (!currentUser) {
+        showAlert('Please log in.');
+        return;
+      }
+      const isBookmarked = button.classList.contains('bookmarked');
+      await update(ref(db, `reels/${reelId}/bookmarkedBy`), {
+        [currentUser.uid]: isBookmarked ? null : true
+      });
+      button.classList.toggle('bookmarked');
+      showAlert(isBookmarked ? 'Removed from bookmarks' : 'Saved to bookmarks');
+    }
+
+    async function toggleFollow(targetUserId, button, event) {
+      event.stopPropagation();
+      if (!currentUser) {
+        showAlert('Please log in.');
+        return;
+      }
+      const isFollowing = button.classList.contains('friend');
+      await update(ref(db, `users/${currentUser.uid}/following`), {
+        [targetUserId]: isFollowing ? null : true
+      });
+      button.classList.toggle('friend');
+      button.textContent = isFollowing ? 'Follow' : 'Following';
+      showAlert(isFollowing ? 'Unfollowed' : 'Followed');
     }
 
     async function loadComments(reelId) {
       const commentList = document.getElementById('comment-list');
       commentList.innerHTML = '';
-      const commentsRef = ref(db, `reels/${reelId}/comments`);
-      onValue(commentsRef, snapshot => {
+      const commentsRef = query(ref(db, `reels/${reelId}/comments`), limitToLast(10));
+      if (commentListeners.has(reelId)) {
+        commentListeners.get(reelId)();
+        commentListeners.delete(reelId);
+      }
+      const unsubscribe = onValue(commentsRef, snapshot => {
         if (!snapshot.exists()) {
-          commentList.innerHTML = '<p>No comments yet.</p>';
+          commentList.innerHTML = '<p style="color: var(--text-secondary);">No comments yet.</p>';
           return;
         }
         const comments = snapshot.val();
         Object.entries(comments).forEach(([commentId, commentData]) => {
           const div = document.createElement('div');
+          div.className = 'comment-item';
           div.innerHTML = `
-            <div>
-              <span>${commentData.userId}</span>
-              <span>${formatTimestamp(commentData.timestamp)}</span>
+            <div class="comment-header">
+              <div class="comment-username">${commentData.userId}</div>
+              <div class="comment-timestamp">${formatTimestamp(commentData.timestamp)}</div>
+              ${currentUser && commentData.userId === currentUser.uid
+                ? `<button class="delete-comment" onclick="deleteComment('${reelId}', '${commentId}')">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0v14a2 2 0 002 2h4a2 2 0 002-2V6m-4 0v14m-4-14v14"/></svg>
+                  </button>`
+                : ''}
             </div>
-            <p>${commentData.comment}</p>
+            <div class="comment-text">${commentData.comment}</div>
           `;
           commentList.appendChild(div);
         });
       });
+      commentListeners.set(reelId, unsubscribe);
+    }
+
+    async function deleteComment(reelId, commentId) {
+      if (!currentUser) {
+        showAlert('Please log in.');
+        return;
+      }
+      await remove(ref(db, `reels/${reelId}/comments/${commentId}`));
+      showAlert('Comment deleted.');
+      loadComments(reelId);
+    }
+
+    function formatTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      const diff = Math.floor((Date.now() - date) / 1000);
+      if (diff < 60) return `${diff}s ago`;
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      return `${Math.floor(diff / 86400)}d ago`;
     }
 
     async function submitComment(reelId) {
@@ -537,26 +959,31 @@
       loadComments(reelId);
     }
 
-    function formatTimestamp(timestamp) {
-      const date = new Date(timestamp);
-      const diff = Math.floor((Date.now() - date) / 1000);
-      if (diff < 60) return `${diff}s ago`;
-      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-      return `${Math.floor(diff / 86400)}d ago`;
-    }
-
     function showPreviews(files) {
       const previewContainer = document.getElementById('preview-container');
       previewContainer.innerHTML = '';
-      Array.from(files).forEach(file => {
+      Array.from(files).forEach((file, index) => {
         const isVideo = file.type.startsWith('video');
         const url = URL.createObjectURL(file);
         const div = document.createElement('div');
-        div.innerHTML = isVideo
-          ? `<video src="${url}" muted></video>`
-          : `<img src="${url}" alt="Preview" loading="lazy">`;
+        div.className = 'preview-item';
+        div.innerHTML = `
+          ${isVideo
+            ? `<video src="${url}" muted></video>`
+            : `<img src="${url}" alt="Preview" loading="lazy">`}
+          <button class="remove-preview" data-index="${index}">&times;</button>
+        `;
         previewContainer.appendChild(div);
+      });
+      document.querySelectorAll('.remove-preview').forEach(button => {
+        button.addEventListener('click', e => {
+          const index = parseInt(e.target.dataset.index);
+          const input = document.getElementById('media-upload');
+          const dt = new DataTransfer();
+          Array.from(input.files).filter((_, i) => i !== index).forEach(file => dt.items.add(file));
+          input.files = dt.files;
+          showPreviews(input.files);
+        });
       });
     }
 
@@ -566,33 +993,42 @@
         return;
       }
       showSpinner();
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', CLOUDINARY_PRESET);
-        const res = await fetch(CLOUDINARY_URL, {
-          method: 'POST',
-          body: formData
-        });
-        const data = await res.json();
-        if (data.secure_url) {
-          await push(ref(db, 'reels'), {
-            userId: currentUser.uid,
-            mediaURL: data.secure_url,
-            mediaType: file.type.startsWith('video') ? 'video' : 'image',
-            caption: caption || null,
-            timestamp: new Date().toISOString(),
-            likedBy: {},
-            comments: {}
+      try {
+        for (const file of files) {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', CLOUDINARY_PRESET);
+          const res = await fetch(CLOUDINARY_URL, {
+            method: 'POST',
+            body: formData
           });
+          const data = await res.json();
+          if (data.secure_url) {
+            await push(ref(db, 'reels'), {
+              userId: currentUser.uid,
+              mediaURL: data.secure_url,
+              mediaType: file.type.startsWith('video') ? 'video' : 'image',
+              caption: caption || null,
+              timestamp: new Date().toISOString(),
+              likedBy: {},
+              bookmarkedBy: {},
+              comments: {}
+            });
+          } else {
+            showAlert('Upload failed.');
+          }
         }
+        closeBottomSheet();
+        loadReels();
+      } catch (error) {
+        showAlert('Upload failed. Please try again.');
+      } finally {
+        hideSpinner();
       }
-      closeBottomSheet();
-      loadReels();
-      hideSpinner();
     }
 
     function observeReels() {
+      if (observer) observer.disconnect();
       observer = new IntersectionObserver(entries => {
         entries.forEach(entry => {
           const reel = entry.target;
@@ -601,7 +1037,8 @@
             const playIcon = reel.querySelector('.play-icon');
             if (entry.isIntersecting && entry.intersectionRatio >= 0.7) {
               pauseAllVideos(reel.dataset.reelId);
-              video.play();
+              currentPlayingVideo = video;
+              video.play().catch(() => showAlert('Failed to play video.'));
               playIcon.classList.add('hidden');
             } else {
               video.pause();
@@ -614,12 +1051,19 @@
       document.querySelectorAll('.reel').forEach(reel => observer.observe(reel));
     }
 
-    document.getElementById('upload-nav-btn').addEventListener('click', () => openBottomSheet('upload'));
-    document.getElementById('upload-nav-btn-mobile').addEventListener('click', () => openBottomSheet('upload'));
+    document.getElementById('upload-nav-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      openBottomSheet('upload');
+    });
+    document.getElementById('upload-nav-btn-mobile').addEventListener('click', e => {
+      e.stopPropagation();
+      openBottomSheet('upload');
+    });
     document.getElementById('friends-nav-btn').addEventListener('click', () => window.location.href = 'friends.html');
     document.getElementById('friends-nav-btn-mobile').addEventListener('click', () => window.location.href = 'friends.html');
     document.getElementById('home-btn').addEventListener('click', loadReels);
     document.getElementById('home-btn-mobile').addEventListener('click', loadReels);
+    document.getElementById('search-nav-btn-mobile').addEventListener('click', () => window.location.href = 'search.html');
     document.getElementById('media-upload').addEventListener('change', e => showPreviews(e.target.files));
     document.getElementById('submit-upload').addEventListener('click', async () => {
       const files = document.getElementById('media-upload').files;
@@ -627,7 +1071,27 @@
       await uploadMedia(files, caption);
     });
     document.getElementById('submit-comment').addEventListener('click', () => submitComment(activeCommentReelId));
+    document.addEventListener('click', e => {
+      const kebabMenus = document.querySelectorAll('.kebab-menu');
+      if (!e.target.closest('.kebab-menu') && !e.target.closest('.kebab-menu-btn')) {
+        kebabMenus.forEach(menu => menu.classList.remove('active'));
+      }
+      if (!e.target.closest('.bottom-sheet') && !e.target.closest('.nav-item')) {
+        closeBottomSheet();
+      }
+    });
     document.addEventListener('DOMContentLoaded', initializeFirebase);
+
+    window.toggleLike = toggleLike;
+    window.toggleBookmark = toggleBookmark;
+    window.toggleFollow = toggleFollow;
+    window.deleteComment = deleteComment;
+    window.goToProfile = () => showAlert('Profile navigation not implemented.');
+    window.openSettings = () => showAlert('Settings not implemented.');
+    window.reportReel = () => showAlert('Report submitted.');
+    window.closeBottomSheet = closeBottomSheet;
+    window.openBottomSheet = openBottomSheet;
+    window.toggleKebabMenu = toggleKebabMenu;
   </script>
 </body>
 </html>
