@@ -810,6 +810,24 @@
   word-break: break-word;
   max-width: calc(100% - 80px); /* Ensure text doesn't extend under reel-actions */
 }
+   .reel-username-container {
+  position: absolute;
+  bottom: 80px; /* Above bottom-nav (20px bottom + 60px height + buffer) */
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px; /* Space between username and verified icon */
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 102; /* Above bottom-nav (z-index: 101) */
+}
+
+.reel-username-container svg.verified-icon {
+  width: 16px;
+  height: 16px;
+  fill: var(--highlight); /* Blue #0095F6 */
+}
 </style>
 </head>
 <body>
@@ -1087,7 +1105,8 @@ function reportReel(reelId) {
 
 
           
-          async function loadReels() {
+          
+              async function loadReels() {
   console.log('Loading reels');
   showSpinner();
   const reelsRef = ref(db, 'reels');
@@ -1126,6 +1145,7 @@ function reportReel(reelId) {
           console.log('User data for reel', item.reelId, ':', userData);
           const caption = item.caption || '';
           const isFollowing = await checkFollowingStatus(currentUser.uid, item.userId);
+          const isVerified = userData?.verified || false; // Assume verified field, default false
           await trackImpression(item.reelId);
           const div = document.createElement('div');
           div.className = 'reel';
@@ -1143,9 +1163,8 @@ function reportReel(reelId) {
                    <div class="progress-bar" id="progress-${item.reelId}"></div>`
                 : `<img class="reel-media" src="${item.mediaURL}" alt="Reel image">`}
             <div class="reel-top-actions">
-              <div class="reel-header" onclick="goToProfile('${item.userId}')">
+              <div class="reel-header">
                 <div class="reel-header-info">
-                  <div class="reel-username">${userData?.displayName || 'User'}</div>
                   <div class="reel-timestamp">· ${item.timestamp ? formatTimestamp(item.timestamp) : ''}</div>
                 </div>
                 <div class="reel-header-buttons">
@@ -1191,6 +1210,12 @@ function reportReel(reelId) {
                   <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-5-7 5V5z"/>
                 </svg>
               </button>
+            </div>
+            <div class="reel-username-container" onclick="goToProfile('${item.userId}')">
+              <span>${userData?.displayName || 'User'}</span>
+              ${isVerified ? `<svg class="verified-icon" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-7 7z"/>
+              </svg>` : ''}
             </div>
           `;
           reelsContainer.appendChild(div);
@@ -1288,7 +1313,7 @@ function reportReel(reelId) {
     pauseAllVideos();
     hideSpinner();
   }
-}    
+}
             
 
     async function trackImpression(reelId, button = null) {
