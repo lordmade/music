@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Vynix Max • Admin Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vynix Max • Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet">
 
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -16,252 +15,132 @@
     :root {
       --bg: #0a0e14;
       --surface: #11171f;
-      --surface-glass: rgba(17, 23, 31, 0.65);
       --accent: #00eaff;
-      --accent-glow: rgba(0, 234, 255, 0.35);
       --text: #f0f4f8;
       --text-dim: #a0b0c0;
-      --border: rgba(0, 234, 255, 0.18);
+      --border: rgba(0,234,255,0.18);
       --danger: #ff4d4d;
       --success: #00ff9d;
     }
-
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
-      min-height: 100vh;
-      padding: 2rem;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2.5rem;
-    }
-    h1 {
-      font-size: 2.4rem;
-      font-weight: 800;
-      background: linear-gradient(90deg, var(--accent), #a78bfa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .btn {
-      padding: 0.8rem 1.6rem;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: none;
-    }
-    .btn-primary { background: var(--accent); color: #0a0e14; }
-    .btn-danger { background: var(--danger); color: white; }
-    .btn-success { background: var(--success); color: #0a0e14; }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--accent-glow); }
-
-    .section {
-      margin-bottom: 3rem;
-      background: var(--surface);
-      border-radius: 12px;
-      padding: 2rem;
-      border: 1px solid var(--border);
-    }
-    .section h2 {
-      margin-bottom: 1.5rem;
-      color: var(--accent);
-      font-size: 1.6rem;
-    }
-
-    .form-grid {
-      display: grid;
-      gap: 1.2rem;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    }
-    label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-      color: var(--text-dim);
-    }
-    input, textarea {
-      width: 100%;
-      padding: 0.9rem 1.1rem;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: white;
-      font-size: 1rem;
-    }
-    input:focus, textarea:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-glow);
-    }
-
-    .item-list {
-      display: grid;
-      gap: 1rem;
-    }
-    .item-card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all 0.2s ease;
-    }
-    .item-card:hover { background: rgba(255,255,255,0.08); }
-    .item-info strong { color: var(--text); }
-    .item-info small { color: var(--text-dim); }
-
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      padding: 1rem 1.6rem;
-      background: var(--surface);
-      border-left: 4px solid var(--accent);
-      border-radius: 8px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      animation: slideIn 0.4s ease;
-    }
-    @keyframes slideIn { from { transform: translateX(120%); opacity:0; } to { transform: translateX(0); opacity:1; } }
-
-    .hidden { display: none !important; }
+    body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; padding:2rem; min-height:100vh; }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:2.5rem; }
+    h1 { font-size:2.4rem; font-weight:800; background:linear-gradient(90deg,var(--accent),#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .btn { padding:0.8rem 1.6rem; border-radius:8px; font-weight:600; cursor:pointer; border:none; transition:all 0.25s; display:inline-flex; align-items:center; gap:8px; }
+    .btn-primary { background:var(--accent); color:#0a0e14; }
+    .btn-danger { background:var(--danger); color:white; }
+    .btn-success { background:var(--success); color:#0a0e14; }
+    .btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,234,255,0.35); }
+    .section { margin-bottom:3rem; background:var(--surface); border-radius:12px; padding:2rem; border:1px solid var(--border); }
+    .form-grid { display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+    label { display:block; margin-bottom:0.5rem; color:var(--text-dim); font-weight:500; }
+    input, textarea { width:100%; padding:0.9rem; background:rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:8px; color:white; }
+    input:focus, textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,234,255,0.3); }
+    .upload-wrapper { display:flex; gap:0.8rem; align-items:flex-end; }
+    .upload-btn { padding:0.9rem 1.2rem; background:rgba(0,234,255,0.15); border:1px solid var(--accent); color:var(--accent); border-radius:8px; cursor:pointer; }
+    .preview-img { max-width:140px; max-height:90px; object-fit:cover; border-radius:6px; border:1px solid var(--border); margin-top:0.5rem; }
+    .item-list { display:grid; gap:1rem; }
+    .item-card { background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:1.2rem; display:flex; justify-content:space-between; align-items:center; }
+    .item-card:hover { background:rgba(255,255,255,0.08); }
+    .toast { position:fixed; bottom:24px; right:24px; padding:1rem 1.6rem; background:var(--surface); border-left:4px solid var(--accent); border-radius:8px; box-shadow:0 8px 32px rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; gap:12px; animation:slideIn 0.4s ease; }
+    @keyframes slideIn { from { transform:translateX(120%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+    .hidden { display:none !important; }
   </style>
 </head>
 <body>
 
 <header>
   <h1>Vynix Max Dashboard</h1>
-  <div>
-    <button class="btn btn-danger" id="signOutBtn">Sign Out</button>
-  </div>
+  <button class="btn btn-danger" id="signOutBtn">Sign Out</button>
 </header>
 
-<!-- Login Form (shown before auth) -->
 <div id="loginSection" class="section">
   <h2>Admin Login</h2>
   <div class="form-grid">
-    <div>
-      <label for="email">Email</label>
-      <input type="email" id="email" placeholder="admin@vynixmax.com" required/>
-    </div>
-    <div>
-      <label for="password">Password</label>
-      <input type="password" id="password" placeholder="••••••••" required/>
-    </div>
+    <div><label for="email">Email</label><input type="email" id="email" required/></div>
+    <div><label for="password">Password</label><input type="password" id="password" required/></div>
   </div>
-  <button class="btn btn-primary" style="margin-top:1.5rem;" id="loginBtn">Login</button>
-  <p id="loginError" style="color:var(--danger); margin-top:1rem; min-height:1.2rem;"></p>
+  <button class="btn btn-primary" id="loginBtn" style="margin-top:1.5rem;">Login</button>
+  <p id="loginError" style="color:var(--danger);margin-top:1rem;"></p>
 </div>
 
-<!-- Main Dashboard (hidden until logged in) -->
 <div id="dashboard" class="hidden">
 
-  <!-- Hero Section -->
+  <!-- Hero -->
   <div class="section">
     <h2>Hero Section</h2>
     <div class="form-grid">
-      <div>
-        <label for="heroTitle">Title (supports <br>)</label>
-        <input type="text" id="heroTitle" placeholder="NEON<br>HORIZON"/>
-      </div>
-      <div>
-        <label for="heroDesc">Tagline / Description</label>
-        <textarea id="heroDesc" rows="3"></textarea>
-      </div>
-      <div>
-        <label for="heroBadge">Badge Text</label>
-        <input type="text" id="heroBadge" placeholder="VYNIX ORIGINAL"/>
-      </div>
-      <div>
-        <label for="heroRating">Rating</label>
-        <input type="text" id="heroRating" placeholder="8.7"/>
-      </div>
-      <div>
-        <label for="heroYear">Year</label>
-        <input type="text" id="heroYear" placeholder="2025"/>
-      </div>
-      <div>
-        <label for="heroDuration">Duration</label>
-        <input type="text" id="heroDuration" placeholder="2h 18m"/>
-      </div>
-      <div>
-        <label for="heroAge">Age Rating</label>
-        <input type="text" id="heroAge" placeholder="16+"/>
-      </div>
-      <div style="grid-column: 1 / -1;">
-        <label for="heroBg">Background Image URL</label>
-        <input type="url" id="heroBg" placeholder="https://..."/>
+      <div><label>Title</label><input id="heroTitle"/></div>
+      <div><label>Description</label><textarea id="heroDesc" rows="3"></textarea></div>
+      <div><label>Badge</label><input id="heroBadge"/></div>
+      <div><label>Rating</label><input id="heroRating"/></div>
+      <div><label>Year</label><input id="heroYear"/></div>
+      <div><label>Duration</label><input id="heroDuration"/></div>
+      <div><label>Age Rating</label><input id="heroAge"/></div>
+      <div style="grid-column:1/-1;">
+        <label>Background (Image/Video)</label>
+        <div class="upload-wrapper">
+          <input type="url" id="heroBg"/>
+          <label class="upload-btn">
+            <span class="material-symbols-rounded">upload</span> Upload
+            <input type="file" id="heroBgFile" accept="image/*,video/*" hidden/>
+          </label>
+        </div>
+        <img id="heroBgPreview" class="preview-img" style="display:none;" alt="Preview"/>
       </div>
     </div>
-    <button class="btn btn-success" style="margin-top:1.5rem;" id="saveHero">Save Hero</button>
+    <button class="btn btn-success" id="saveHero" style="margin-top:1.5rem;">Save Hero</button>
   </div>
 
-  <!-- Trending Movies -->
+  <!-- Trending -->
   <div class="section">
     <h2>Trending Now</h2>
     <div id="trendingList" class="item-list"></div>
-
-    <h3 style="margin:1.5rem 0 1rem;">Add New Trending Item</h3>
+    <h3 style="margin:1.5rem 0 1rem;">Add New</h3>
     <div class="form-grid">
+      <div><label>Title</label><input id="trTitle"/></div>
       <div>
-        <label for="trTitle">Title</label>
-        <input type="text" id="trTitle"/>
+        <label>Image/Video</label>
+        <div class="upload-wrapper">
+          <input type="url" id="trMedia"/>
+          <label class="upload-btn">
+            <span class="material-symbols-rounded">upload</span> Upload
+            <input type="file" id="trMediaFile" accept="image/*,video/*" hidden/>
+          </label>
+        </div>
+        <img id="trMediaPreview" class="preview-img" style="display:none;" alt="Thumbnail"/>
       </div>
-      <div>
-        <label for="trImage">Image URL</label>
-        <input type="url" id="trImage"/>
-      </div>
-      <div>
-        <label for="trYear">Year</label>
-        <input type="text" id="trYear"/>
-      </div>
+      <div><label>Year</label><input id="trYear"/></div>
     </div>
-    <button class="btn btn-primary" style="margin-top:1rem;" id="addTrending">Add Item</button>
+    <button class="btn btn-primary" id="addTrending" style="margin-top:1rem;">Add</button>
   </div>
 
-  <!-- Popular Movies (similar structure) -->
+  <!-- Popular -->
   <div class="section">
     <h2>Popular on Vynix</h2>
     <div id="popularList" class="item-list"></div>
-
-    <h3 style="margin:1.5rem 0 1rem;">Add New Popular Item</h3>
+    <h3 style="margin:1.5rem 0 1rem;">Add New</h3>
     <div class="form-grid">
+      <div><label>Title</label><input id="popTitle"/></div>
       <div>
-        <label for="popTitle">Title</label>
-        <input type="text" id="popTitle"/>
+        <label>Image/Video</label>
+        <div class="upload-wrapper">
+          <input type="url" id="popMedia"/>
+          <label class="upload-btn">
+            <span class="material-symbols-rounded">upload</span> Upload
+            <input type="file" id="popMediaFile" accept="image/*,video/*" hidden/>
+          </label>
+        </div>
+        <img id="popMediaPreview" class="preview-img" style="display:none;" alt="Thumbnail"/>
       </div>
-      <div>
-        <label for="popImage">Image URL</label>
-        <input type="url" id="popImage"/>
-      </div>
-      <div>
-        <label for="popYear">Year</label>
-        <input type="text" id="popYear"/>
-      </div>
+      <div><label>Year</label><input id="popYear"/></div>
     </div>
-    <button class="btn btn-primary" style="margin-top:1rem;" id="addPopular">Add Item</button>
+    <button class="btn btn-primary" id="addPopular" style="margin-top:1rem;">Add</button>
   </div>
 </div>
 
-<!-- Toast Container -->
-<div id="toastContainer" style="position:fixed; bottom:24px; right:24px; z-index:9999;"></div>
+<div id="toastContainer" style="position:fixed;bottom:24px;right:24px;z-index:9999;"></div>
 
 <script>
-  // ── Firebase Config ──
   const firebaseConfig = {
     apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
     authDomain: "fire-b-a8878.firebaseapp.com",
@@ -273,20 +152,69 @@
   const auth = firebase.auth();
   const db = firebase.database();
 
-  // ── Toast ──
-  function showToast(msg, type = 'info') {
-    const colors = { info: var(--accent), success: var(--success), error: var(--danger) };
+  // Cloudinary Config
+  const CLOUD_NAME = "YOUR_CLOUD_NAME_HERE";           // ← replace
+  const UPLOAD_PRESET = "YOUR_UNSIGNED_PRESET_HERE";   // ← replace
+
+  function showToast(msg, type='info') {
+    const icon = type==='success'?'check_circle':type==='error'?'error':'info';
+    const color = type==='success'?'#00ff9d':type==='error'?'#ff4d4d':'#00eaff';
     const t = document.createElement('div');
-    t.style.cssText = `
-      padding: 1rem 1.6rem; margin-top:12px; background:var(--surface); border-left:4px solid ${colors[type] || var(--accent)};
-      border-radius:8px; box-shadow:0 8px 32px rgba(0,0,0,0.5); display:flex; align-items:center; gap:12px; color:var(--text);
-    `;
-    t.innerHTML = `<span class="material-symbols-rounded">${type === 'success' ? 'check_circle' : type === 'error' ? 'error' : 'info'}</span><span>${msg}</span>`;
+    t.innerHTML = `<span class="material-symbols-rounded" style="color:${color}">${icon}</span><span>${msg}</span>`;
+    t.style.cssText=`padding:1rem 1.6rem;background:#11171f;border-left:4px solid ${color};border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.5);display:flex;align-items:center;gap:12px;color:#f0f4f8;margin-top:12px;animation:slideIn 0.4s ease;`;
     document.getElementById('toastContainer').appendChild(t);
-    setTimeout(() => t.remove(), 4000);
+    setTimeout(()=>t.remove(),4000);
   }
 
-  // ── Auth State & Login ──
+  async function uploadFile(fileInputId, urlInputId, previewId) {
+    const fileInput = document.getElementById(fileInputId);
+    if (!fileInput.files.length) return showToast("No file selected","error");
+
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', UPLOAD_PRESET);
+
+    try {
+      showToast("Uploading...", "info");
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      if (!res.ok) throw new Error((await res.json()).error?.message || "Upload failed");
+
+      const data = await res.json();
+      const urlInput = document.getElementById(urlInputId);
+      urlInput.value = data.secure_url;
+
+      // Generate thumbnail at 10 seconds (video) or use original (image)
+      const isVideo = data.resource_type === 'video';
+      const thumb = isVideo
+        ? `https://res.cloudinary.com/${CLOUD_NAME}/video/upload/so_10,w_400,h_225,c_fill,q_auto/${data.public_id}.jpg`
+        : data.secure_url;
+
+      const preview = document.getElementById(previewId);
+      if (preview) {
+        preview.src = thumb;
+        preview.style.display = 'block';
+      }
+
+      showToast("Upload complete", "success");
+      fileInput.value = '';
+      return data.secure_url;
+
+    } catch (err) {
+      showToast("Upload failed: " + err.message, "error");
+      console.error(err);
+    }
+  }
+
+  // Wire uploads
+  document.getElementById('heroBgFile').onchange = () => uploadFile('heroBgFile', 'heroBg', 'heroBgPreview');
+  document.getElementById('trMediaFile').onchange = () => uploadFile('trMediaFile', 'trMedia', 'trMediaPreview');
+  document.getElementById('popMediaFile').onchange = () => uploadFile('popMediaFile', 'popMedia', 'popMediaPreview');
+
+  // ── Auth & Dashboard Logic ──
   const loginSection = document.getElementById('loginSection');
   const dashboard = document.getElementById('dashboard');
 
@@ -303,10 +231,10 @@
   });
 
   document.getElementById('loginBtn').onclick = async () => {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+    const email = document.getElementById('email').value.trim();
+    const pass = document.getElementById('password').value;
     try {
-      await auth.signInWithEmailAndPassword(email, password);
+      await auth.signInWithEmailAndPassword(email, pass);
     } catch (err) {
       document.getElementById('loginError').textContent = err.message;
     }
@@ -314,25 +242,28 @@
 
   document.getElementById('signOutBtn').onclick = () => auth.signOut();
 
-  // ── Load & Save Content ──
+  // ── Content Load & Save ──
   function loadAllContent() {
     loadHero();
     loadTrending();
     loadPopular();
   }
 
-  // Hero
   function loadHero() {
     db.ref('/content/hero').once('value', snap => {
-      const data = snap.val() || {};
-      document.getElementById('heroTitle').value = data.title || '';
-      document.getElementById('heroDesc').value = data.description || '';
-      document.getElementById('heroBadge').value = data.badge || '';
-      document.getElementById('heroRating').value = data.rating || '';
-      document.getElementById('heroYear').value = data.year || '';
-      document.getElementById('heroDuration').value = data.duration || '';
-      document.getElementById('heroAge').value = data.ageRating || '';
-      document.getElementById('heroBg').value = data.backgroundImage || '';
+      const d = snap.val() || {};
+      document.getElementById('heroTitle').value = d.title || '';
+      document.getElementById('heroDesc').value = d.description || '';
+      document.getElementById('heroBadge').value = d.badge || '';
+      document.getElementById('heroRating').value = d.rating || '';
+      document.getElementById('heroYear').value = d.year || '';
+      document.getElementById('heroDuration').value = d.duration || '';
+      document.getElementById('heroAge').value = d.ageRating || '';
+      document.getElementById('heroBg').value = d.backgroundImage || '';
+      if (d.backgroundImage) {
+        document.getElementById('heroBgPreview').src = d.backgroundImage;
+        document.getElementById('heroBgPreview').style.display = 'block';
+      }
     });
   }
 
@@ -348,16 +279,14 @@
       backgroundImage: document.getElementById('heroBg').value
     };
     db.ref('/content/hero').set(data)
-      .then(() => showToast('Hero updated!', 'success'))
-      .catch(err => showToast('Error: ' + err.message, 'error'));
+      .then(() => showToast('Hero saved', 'success'))
+      .catch(err => showToast('Error: '+err.message, 'error'));
   };
 
   // Trending
   function loadTrending() {
-    const list = document.getElementById('trendingList');
-    list.innerHTML = '<div>Loading...</div>';
-
     db.ref('/content/trending').on('value', snap => {
+      const list = document.getElementById('trendingList');
       list.innerHTML = '';
       const items = snap.val() || {};
       Object.entries(items).forEach(([key, item]) => {
@@ -365,10 +294,10 @@
         card.className = 'item-card';
         card.innerHTML = `
           <div class="item-info">
-            <strong>${item.title || 'No title'}</strong><br/>
-            <small>${item.image ? item.image.substring(0,60)+'...' : 'No image'}</small>
+            <strong>${item.title||'Untitled'}</strong><br/>
+            <small>${item.year||'—'}</small>
           </div>
-          <button class="btn btn-danger" onclick="deleteTrending('${key}')">Delete</button>
+          <button class="btn btn-danger" onclick="deleteItem('trending', '${key}')">Delete</button>
         `;
         list.appendChild(card);
       });
@@ -377,35 +306,22 @@
 
   document.getElementById('addTrending').onclick = () => {
     const title = document.getElementById('trTitle').value.trim();
-    const image = document.getElementById('trImage').value.trim();
+    const media = document.getElementById('trMedia').value.trim();
     const year = document.getElementById('trYear').value.trim();
-
-    if (!title) return showToast('Title is required', 'error');
-
-    db.ref('/content/trending').push({ title, image, year })
+    if (!title || !media) return showToast('Title & media required', 'error');
+    db.ref('/content/trending').push({ title, image:media, year })
       .then(() => {
-        showToast('Item added!', 'success');
-        document.getElementById('trTitle').value = '';
-        document.getElementById('trImage').value = '';
-        document.getElementById('trYear').value = '';
+        showToast('Added', 'success');
+        ['trTitle','trMedia','trYear'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('trMediaPreview').style.display = 'none';
       })
-      .catch(err => showToast('Error: ' + err.message, 'error'));
+      .catch(err => showToast('Error: '+err.message, 'error'));
   };
 
-  window.deleteTrending = key => {
-    if (confirm('Delete this item?')) {
-      db.ref(`/content/trending/${key}`).remove()
-        .then(() => showToast('Deleted', 'success'))
-        .catch(err => showToast('Error: ' + err.message, 'error'));
-    }
-  };
-
-  // Popular – same logic
+  // Popular (identical)
   function loadPopular() {
-    const list = document.getElementById('popularList');
-    list.innerHTML = '<div>Loading...</div>';
-
     db.ref('/content/popular').on('value', snap => {
+      const list = document.getElementById('popularList');
       list.innerHTML = '';
       const items = snap.val() || {};
       Object.entries(items).forEach(([key, item]) => {
@@ -413,10 +329,10 @@
         card.className = 'item-card';
         card.innerHTML = `
           <div class="item-info">
-            <strong>${item.title || 'No title'}</strong><br/>
-            <small>${item.image ? item.image.substring(0,60)+'...' : 'No image'}</small>
+            <strong>${item.title||'Untitled'}</strong><br/>
+            <small>${item.year||'—'}</small>
           </div>
-          <button class="btn btn-danger" onclick="deletePopular('${key}')">Delete</button>
+          <button class="btn btn-danger" onclick="deleteItem('popular', '${key}')">Delete</button>
         `;
         list.appendChild(card);
       });
@@ -425,26 +341,23 @@
 
   document.getElementById('addPopular').onclick = () => {
     const title = document.getElementById('popTitle').value.trim();
-    const image = document.getElementById('popImage').value.trim();
+    const media = document.getElementById('popMedia').value.trim();
     const year = document.getElementById('popYear').value.trim();
-
-    if (!title) return showToast('Title is required', 'error');
-
-    db.ref('/content/popular').push({ title, image, year })
+    if (!title || !media) return showToast('Title & media required', 'error');
+    db.ref('/content/popular').push({ title, image:media, year })
       .then(() => {
-        showToast('Item added!', 'success');
-        document.getElementById('popTitle').value = '';
-        document.getElementById('popImage').value = '';
-        document.getElementById('popYear').value = '';
+        showToast('Added', 'success');
+        ['popTitle','popMedia','popYear'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('popMediaPreview').style.display = 'none';
       })
-      .catch(err => showToast('Error: ' + err.message, 'error'));
+      .catch(err => showToast('Error: '+err.message, 'error'));
   };
 
-  window.deletePopular = key => {
+  window.deleteItem = (type, key) => {
     if (confirm('Delete this item?')) {
-      db.ref(`/content/popular/${key}`).remove()
+      db.ref(`/content/${type}/${key}`).remove()
         .then(() => showToast('Deleted', 'success'))
-        .catch(err => showToast('Error: ' + err.message, 'error'));
+        .catch(err => showToast('Error: '+err.message, 'error'));
     }
   };
 </script>
