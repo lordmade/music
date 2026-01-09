@@ -8,10 +8,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet"/>
 
-  <!-- SortableJS CDN -->
+  <!-- SortableJS for drag & drop -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-  <!-- Firebase -->
+  <!-- Firebase Compat v9 -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -290,7 +290,7 @@
           <img id="newPreview" class="preview" alt="Preview"/>
         </div>
       </div>
-      <button class="btn btn-primary" id="addNewRelease">Add to New Releases</button>
+      <button class="btn btn-primary" id="saveNewRelease">Save & Add to New Releases</button>
     </div>
 
     <div class="items-grid sortable" id="newReleasesList" data-category="new"></div>
@@ -314,7 +314,7 @@
           <img id="trendingPreview" class="preview" alt="Preview"/>
         </div>
       </div>
-      <button class="btn btn-primary" id="addTrending">Add to Trending</button>
+      <button class="btn btn-primary" id="saveTrending">Save & Add to Trending</button>
     </div>
 
     <div class="items-grid sortable" id="trendingList" data-category="trending"></div>
@@ -338,7 +338,7 @@
           <img id="popularPreview" class="preview" alt="Preview"/>
         </div>
       </div>
-      <button class="btn btn-primary" id="addPopular">Add to Popular</button>
+      <button class="btn btn-primary" id="savePopular">Save & Add to Popular</button>
     </div>
 
     <div class="items-grid sortable" id="popularList" data-category="popular"></div>
@@ -380,17 +380,14 @@ auth.onAuthStateChanged(user => {
 document.getElementById('loginBtn').onclick = () => {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
-
   auth.signInWithEmailAndPassword(email, password)
-    .catch(err => {
-      document.getElementById('loginError').textContent = err.message;
-    });
+    .catch(err => document.getElementById('loginError').textContent = err.message);
 };
 
 document.getElementById('signOutBtn').onclick = () => auth.signOut();
 
 // =============================================
-// FILE UPLOAD HELPERS
+// FILE UPLOAD PREVIEW SETUP
 // =============================================
 function setupFileUpload(areaId, inputId, previewId) {
   const area = document.getElementById(areaId);
@@ -401,10 +398,10 @@ function setupFileUpload(areaId, inputId, previewId) {
 
   input.onchange = e => {
     const file = e.target.files[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    preview.src = url;
-    preview.style.display = 'block';
+    if (file) {
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+    }
   };
 
   ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => area.addEventListener(ev, e => e.preventDefault()));
@@ -427,160 +424,178 @@ setupFileUpload('popularUploadArea', 'popularFileInput', 'popularPreview');
 // SAVE HERO
 // =============================================
 document.getElementById('saveHero').onclick = async () => {
-  const file = document.getElementById('heroFileInput').files[0];
-  let backgroundUrl = '';
+  try {
+    const file = document.getElementById('heroFileInput').files[0];
+    let backgroundUrl = '';
 
-  if (file) {
-    const ref = storage.ref(`hero/${Date.now()}_${file.name}`);
-    await ref.put(file);
-    backgroundUrl = await ref.getDownloadURL();
+    if (file) {
+      const ref = storage.ref(`hero/${Date.now()}_${file.name}`);
+      await ref.put(file);
+      backgroundUrl = await ref.getDownloadURL();
+    }
+
+    const updates = {
+      title: document.getElementById('heroTitle').value.trim() || '',
+      description: document.getElementById('heroDescription').value.trim() || '',
+      badge: document.getElementById('heroBadge').value.trim() || '16+',
+      rating: document.getElementById('heroRating').value.trim() || '',
+      year: document.getElementById('heroYear').value.trim() || '',
+      duration: document.getElementById('heroDuration').value.trim() || '',
+      backgroundImage: backgroundUrl || null,
+      updatedAt: firebase.database.ServerValue.TIMESTAMP
+    };
+
+    await db.ref('/content/hero').update(updates);
+    alert('Hero section saved successfully!');
+  } catch (err) {
+    alert('Error saving hero: ' + err.message);
   }
-
-  const updates = {
-    title: document.getElementById('heroTitle').value.trim(),
-    description: document.getElementById('heroDescription').value.trim(),
-    badge: document.getElementById('heroBadge').value.trim(),
-    rating: document.getElementById('heroRating').value.trim(),
-    year: document.getElementById('heroYear').value.trim(),
-    duration: document.getElementById('heroDuration').value.trim(),
-    backgroundImage: backgroundUrl || null,
-    updatedAt: firebase.database.ServerValue.TIMESTAMP
-  };
-
-  await db.ref('/content/hero').update(updates);
-  alert('Hero section updated successfully!');
 };
 
 // =============================================
-// ADD ITEM
+// GENERIC SAVE NEW ITEM
 // =============================================
-async function addItem(category, titleId, yearId, fileInputId) {
-  const title = document.getElementById(titleId).value.trim();
-  const year = document.getElementById(yearId).value.trim();
-  const file = document.getElementById(fileInputId).files[0];
+async function saveNewItem(category, titleId, yearId, fileInputId, previewId) {
+  try {
+    const title = document.getElementById(titleId).value.trim();
+    const year = document.getElementById(yearId).value.trim();
+    const file = document.getElementById(fileInputId).files[0];
 
-  if (!title || !year) {
-    alert('Title and Year are required!');
-    return;
+    if (!title || !year) {
+      alert('Title and Year are required!');
+      return;
+    }
+
+    let imageUrl = '';
+    if (file) {
+      const ref = storage.ref(`${category}/${Date.now()}_${file.name}`);
+      await ref.put(file);
+      imageUrl = await ref.getDownloadURL();
+    }
+
+    // Get highest order for appending at the end
+    const snap = await db.ref(`/content/${category}`)
+      .orderByChild('order')
+      .limitToLast(1)
+      .once('value');
+
+    let maxOrder = 0;
+    snap.forEach(child => {
+      maxOrder = child.val().order || 0;
+    });
+
+    const item = {
+      title,
+      year,
+      image: imageUrl,
+      order: maxOrder + 100,
+      createdAt: firebase.database.ServerValue.TIMESTAMP
+    };
+
+    await db.ref(`/content/${category}`).push(item);
+
+    // Clear form
+    document.getElementById(titleId).value = '';
+    document.getElementById(yearId).value = '';
+    document.getElementById(fileInputId).value = '';
+    document.getElementById(previewId).style.display = 'none';
+
+    alert(`Item successfully added to ${category.replace(/([A-Z])/g, ' $1')}!`);
+  } catch (err) {
+    alert(`Error adding item to ${category}: ${err.message}`);
   }
-
-  let imageUrl = '';
-  if (file) {
-    const ref = storage.ref(`${category}/${Date.now()}_${file.name}`);
-    await ref.put(file);
-    imageUrl = await ref.getDownloadURL();
-  }
-
-  // Get current highest order
-  const snapshot = await db.ref(`/content/${category}`)
-    .orderByChild('order')
-    .limitToLast(1)
-    .once('value');
-
-  let maxOrder = 0;
-  snapshot.forEach(child => {
-    maxOrder = child.val().order || 0;
-  });
-
-  const item = {
-    title,
-    year,
-    image: imageUrl,
-    order: maxOrder + 100, // nice spacing between items
-    createdAt: firebase.database.ServerValue.TIMESTAMP
-  };
-
-  await db.ref(`/content/${category}`).push(item);
-
-  // Clear form
-  document.getElementById(titleId).value = '';
-  document.getElementById(yearId).value = '';
-  document.getElementById(fileInputId).value = '';
-  document.getElementById(fileInputId.replace('Input','Preview')).style.display = 'none';
-
-  alert(`Added to ${category.replace(/([A-Z])/g, ' $1')} successfully!`);
 }
+
+// Bind save buttons
+document.getElementById('saveNewRelease').onclick = () => 
+  saveNewItem('new', 'newTitle', 'newYear', 'newFileInput', 'newPreview');
+
+document.getElementById('saveTrending').onclick = () => 
+  saveNewItem('trending', 'trendingTitle', 'trendingYear', 'trendingFileInput', 'trendingPreview');
+
+document.getElementById('savePopular').onclick = () => 
+  saveNewItem('popular', 'popularTitle', 'popularYear', 'popularFileInput', 'popularPreview');
 
 // =============================================
 // DELETE ITEM
 // =============================================
 function deleteItem(category, key) {
   if (!confirm('Are you sure you want to delete this item?')) return;
-  db.ref(`/content/${category}/${key}`).remove();
+  db.ref(`/content/${category}/${key}`).remove()
+    .catch(err => alert('Delete failed: ' + err.message));
 }
 
 // =============================================
-// SAVE ORDER AFTER DRAG
+// SAVE ORDER AFTER DRAG & DROP
 // =============================================
 async function saveOrder(containerId, category) {
-  const container = document.getElementById(containerId);
-  const items = Array.from(container.children);
+  try {
+    const container = document.getElementById(containerId);
+    const items = Array.from(container.children);
+    const updates = {};
 
-  const updates = {};
-  items.forEach((el, index) => {
-    const key = el.dataset.key;
-    if (key) {
-      updates[`${key}/order`] = (index + 1) * 100;
+    items.forEach((el, index) => {
+      const key = el.dataset.key;
+      if (key) {
+        updates[`${key}/order`] = (index + 1) * 100;
+      }
+    });
+
+    if (Object.keys(updates).length > 0) {
+      await db.ref(`/content/${category}`).update(updates);
     }
-  });
-
-  if (Object.keys(updates).length > 0) {
-    await db.ref(`/content/${category}`).update(updates);
-    console.log(`Order saved for ${category}`);
+  } catch (err) {
+    alert('Failed to save order: ' + err.message);
   }
 }
 
 // =============================================
-// INIT SORTABLE + RENDER
+// SORTABLE INITIALIZATION
 // =============================================
 function initSortable(containerId, category) {
-  const container = document.getElementById(containerId);
-
-  new Sortable(container, {
+  new Sortable(document.getElementById(containerId), {
     animation: 180,
     handle: '.drag-handle',
     ghostClass: 'sortable-ghost',
     chosenClass: 'sortable-chosen',
-    onEnd: () => {
-      saveOrder(containerId, category);
-    }
+    onEnd: () => saveOrder(containerId, category)
   });
 }
 
+// =============================================
+// RENDER LIST OF ITEMS
+// =============================================
 function renderList(containerId, items, category) {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
 
-  if (!items.length) {
+  if (items.length === 0) {
     container.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-dim);">No items yet</p>';
     return;
   }
 
-  // Sort by order field (fallback to createdAt if missing)
-  items.sort((a,b) => {
-    const orderA = a.order ?? a.createdAt ?? 0;
-    const orderB = b.order ?? b.createdAt ?? 0;
-    return orderA - orderB;
+  // Sort by order (fallback to createdAt)
+  items.sort((a, b) => {
+    const oa = a.order ?? a.createdAt ?? 0;
+    const ob = b.order ?? b.createdAt ?? 0;
+    return oa - ob;
   });
 
-  container.innerHTML = items.map(item => {
-    return `
-      <div class="item-card" data-key="${item.key}">
-        <div class="drag-handle"><span class="material-symbols-rounded">drag_handle</span></div>
-        <img src="${item.image || 'https://via.placeholder.com/320x180?text=No+Image'}" alt="${item.title}"/>
-        <div class="item-info">
-          <div class="item-title">${item.title}</div>
-          <div style="color:var(--text-dim);font-size:0.9rem;">${item.year}</div>
-        </div>
-        <div class="item-actions">
-          <button class="btn btn-danger" style="padding:0.5rem 1rem;font-size:0.9rem;"
-                  onclick="deleteItem('${category}', '${item.key}')">Delete</button>
-        </div>
+  container.innerHTML = items.map(item => `
+    <div class="item-card" data-key="${item.key}">
+      <div class="drag-handle"><span class="material-symbols-rounded">drag_handle</span></div>
+      <img src="${item.image || 'https://via.placeholder.com/320x180?text=No+Image'}" alt="${item.title}"/>
+      <div class="item-info">
+        <div class="item-title">${item.title}</div>
+        <div style="color:var(--text-dim);font-size:0.9rem;">${item.year}</div>
       </div>
-    `;
-  }).join('');
+      <div class="item-actions">
+        <button class="btn btn-danger" style="padding:0.5rem 1rem;font-size:0.9rem;"
+                onclick="deleteItem('${category}', '${item.key}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
 
-  // Initialize sortable after rendering
   initSortable(containerId, category);
 }
 
@@ -588,7 +603,7 @@ function renderList(containerId, items, category) {
 // LOAD ALL CONTENT
 // =============================================
 function loadAllContent() {
-  // Hero
+  // Hero (load current values)
   db.ref('/content/hero').once('value', snap => {
     const h = snap.val() || {};
     document.getElementById('heroTitle').value = h.title || '';
@@ -604,31 +619,15 @@ function loadAllContent() {
     }
   });
 
-  // New Releases
-  db.ref('/content/new').on('value', snap => {
-    const items = [];
-    snap.forEach(child => {
-      items.push({ key: child.key, ...child.val() });
+  // Categories with real-time updates
+  ['new', 'trending', 'popular'].forEach(cat => {
+    db.ref(`/content/${cat}`).on('value', snap => {
+      const items = [];
+      snap.forEach(child => {
+        items.push({ key: child.key, ...child.val() });
+      });
+      renderList(`${cat}List`, items, cat);
     });
-    renderList('newReleasesList', items, 'new');
-  });
-
-  // Trending
-  db.ref('/content/trending').on('value', snap => {
-    const items = [];
-    snap.forEach(child => {
-      items.push({ key: child.key, ...child.val() });
-    });
-    renderList('trendingList', items, 'trending');
-  });
-
-  // Popular
-  db.ref('/content/popular').on('value', snap => {
-    const items = [];
-    snap.forEach(child => {
-      items.push({ key: child.key, ...child.val() });
-    });
-    renderList('popularList', items, 'popular');
   });
 }
 
@@ -643,18 +642,6 @@ document.getElementById('toggleTrendingForm').onclick = () =>
 
 document.getElementById('togglePopularForm').onclick = () =>
   document.getElementById('popularForm').classList.toggle('hidden');
-
-// =============================================
-// ADD BUTTONS
-// =============================================
-document.getElementById('addNewRelease').onclick = () =>
-  addItem('new', 'newTitle', 'newYear', 'newFileInput');
-
-document.getElementById('addTrending').onclick = () =>
-  addItem('trending', 'trendingTitle', 'trendingYear', 'trendingFileInput');
-
-document.getElementById('addPopular').onclick = () =>
-  addItem('popular', 'popularTitle', 'popularYear', 'popularFileInput');
 </script>
 </body>
 </html>
