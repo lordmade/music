@@ -7,8 +7,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-  
-  <!-- Firebase v9 compat (still widely used in 2026 for simpler projects) -->
+ 
+  <!-- Firebase v9 compat -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -26,7 +26,6 @@
       --radius: 12px;
       --transition: all 0.25s ease;
     }
-
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       background: var(--bg);
@@ -35,7 +34,6 @@
       min-height: 100vh;
       padding: 1.5rem;
     }
-
     .container { max-width: 1280px; margin: 0 auto; }
     header {
       display: flex;
@@ -44,7 +42,6 @@
       margin-bottom: 2.5rem;
     }
     h1 { font-size: 2.3rem; font-weight: 900; letter-spacing: -1px; }
-
     .btn {
       padding: 0.7rem 1.5rem;
       border-radius: 999px;
@@ -57,7 +54,6 @@
     .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
     .btn-danger { background: #c62828; color: white; }
     .btn-danger:hover { background: #d32f2f; }
-
     .section {
       background: var(--surface);
       border-radius: var(--radius);
@@ -65,7 +61,6 @@
       margin-bottom: 2.2rem;
       border: 1px solid var(--border);
     }
-
     .section-header {
       display: flex;
       justify-content: space-between;
@@ -73,7 +68,6 @@
       margin-bottom: 1.4rem;
     }
     .section-title { font-size: 1.55rem; font-weight: 700; }
-
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -103,7 +97,6 @@
       box-shadow: 0 0 0 3px rgba(229,9,20,0.18);
     }
     textarea { min-height: 94px; resize: vertical; }
-
     .upload-area {
       border: 2px dashed var(--border);
       border-radius: 10px;
@@ -138,14 +131,12 @@
       margin-top: 0.8rem;
       border-radius: 2px;
     }
-
     .items-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
       gap: 1.5rem;
       margin-top: 1.6rem;
     }
-
     .item-card {
       background: rgba(255,255,255,0.04);
       border-radius: 10px;
@@ -161,20 +152,18 @@
     }
     .item-card img {
       width: 100%;
-      aspect-ratio: 16/9;
+      aspect-ratio: 1/1;
       object-fit: cover;
     }
     .item-info { padding: 1rem; text-align: center; }
     .item-title { font-weight: 600; margin-bottom: 0.4rem; font-size: 1.1rem; }
     .item-year { color: var(--text-dim); font-size: 0.9rem; }
-
     .item-actions {
       display: flex;
       justify-content: center;
       gap: 0.7rem;
       padding: 0.8rem 1rem;
     }
-
     .drag-handle {
       position: absolute;
       top: 10px;
@@ -191,7 +180,6 @@
       cursor: grab;
       z-index: 10;
     }
-
     .login-container {
       max-width: 420px;
       margin: 10vh auto;
@@ -200,13 +188,9 @@
       border-radius: var(--radius);
       border: 1px solid var(--border);
     }
-
     .hidden { display: none !important; }
-
     .sortable-ghost { opacity: 0.35; background: rgba(229,9,20,0.15); }
     .sortable-chosen { box-shadow: 0 12px 32px rgba(229,9,20,0.35); }
-
-    /* Edit Modal */
     #editModal {
       position: fixed;
       inset: 0;
@@ -226,7 +210,6 @@
       border: 1px solid var(--border);
       position: relative;
     }
-
     @media (max-width: 768px) {
       body { padding: 1rem; }
       .form-grid { grid-template-columns: 1fr; }
@@ -251,6 +234,7 @@
 </div>
 
 <div id="dashboard" class="container hidden">
+
   <header>
     <h1>Vynix Max Admin</h1>
     <button class="btn btn-danger" id="signOutBtn">Sign Out</button>
@@ -349,13 +333,54 @@
     </div>
     <div class="items-grid sortable" id="popularList" data-category="popular"></div>
   </div>
+
+  <!-- ====================== NEW MUSIC SECTION ====================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Music Library</div>
+      <button class="btn btn-primary" id="toggleMusicForm">+ Add Track</button>
+    </div>
+
+    <div id="musicForm" class="form-grid hidden">
+      <div class="form-group"><label>Title *</label><input type="text" id="musicTitle"/></div>
+      <div class="form-group"><label>Artist *</label><input type="text" id="musicArtist"/></div>
+      <div class="form-group"><label>Album</label><input type="text" id="musicAlbum"/></div>
+      <div class="form-group"><label>Year</label><input type="text" id="musicYear"/></div>
+      <div class="form-group"><label>Genre</label><input type="text" id="musicGenre"/></div>
+      
+      <div class="form-group" style="grid-column: span 2;">
+        <label>Cover Art</label>
+        <div class="upload-area" id="musicCoverUploadArea">
+          <span>Click or drag & drop (Image)</span>
+          <input type="file" id="musicCoverFileInput" accept="image/*"/>
+          <img id="musicCoverPreview" class="preview" alt="Cover Preview"/>
+          <div id="musicCoverProgress" class="progress-bar"></div>
+        </div>
+      </div>
+      
+      <div class="form-group" style="grid-column: span 2;">
+        <label>Audio File * (mp3, wav, etc.)</label>
+        <div class="upload-area" id="musicAudioUploadArea">
+          <span>Click or drag & drop (Audio)</span>
+          <input type="file" id="musicAudioFileInput" accept="audio/*"/>
+          <audio id="musicAudioPreview" controls style="display:none; width:100%; margin-top:1rem; border-radius:8px;"></audio>
+          <div id="musicAudioProgress" class="progress-bar"></div>
+        </div>
+      </div>
+      
+      <button class="btn btn-primary" style="margin-top:0.8rem; grid-column: span 2; width:100%;" id="saveMusicTrack">Save & Add Track</button>
+    </div>
+
+    <div class="items-grid sortable" id="musicList" data-category="music"></div>
+  </div>
+  <!-- ====================== END MUSIC SECTION ====================== -->
+
 </div>
 
-<!-- Edit Modal -->
+<!-- Edit Modal (same for movies & music for now) -->
 <div id="editModal" class="hidden">
   <div class="modal-content">
-    <h2 style="margin-bottom:1.8rem;">Edit Movie</h2>
-
+    <h2 style="margin-bottom:1.8rem;">Edit Item</h2>
     <div class="form-grid">
       <div class="form-group">
         <label>Category</label>
@@ -366,14 +391,14 @@
         <input type="text" id="editTitle"/>
       </div>
       <div class="form-group">
-        <label>Year *</label>
+        <label id="editSubtitleLabel">Year / Artist</label>
         <input type="text" id="editYear"/>
       </div>
       <div class="form-group" style="grid-column: span 2;">
         <label>Poster / Cover (optional - leave empty to keep current)</label>
         <div class="upload-area" id="editUploadArea">
           <span>Click or drag & drop to replace</span>
-          <input type="file" id="editFileInput" accept="image/*,video/*"/>
+          <input type="file" id="editFileInput" accept="image/*,audio/*"/>
           <img id="editPreview" class="preview" alt="Preview"/>
           <div id="editProgress" class="progress-bar"></div>
         </div>
@@ -382,10 +407,9 @@
         </div>
       </div>
     </div>
-
     <div style="margin-top:2.2rem; display:flex; gap:1rem; justify-content:flex-end; flex-wrap:wrap;">
       <button class="btn" id="cancelEdit" style="background:#444;">Cancel</button>
-      <button class="btn btn-danger" id="deleteEditBtn">Delete Movie</button>
+      <button class="btn btn-danger" id="deleteEditBtn">Delete</button>
       <button class="btn btn-primary" id="saveEditBtn">Save Changes</button>
     </div>
   </div>
@@ -397,7 +421,6 @@
 // =============================================
 const CLOUD_NAME = "dqkujefxj";
 const UPLOAD_PRESET = "banter_box";
-
 const firebaseConfig = {
   apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
   authDomain: "fire-b-a8878.firebaseapp.com",
@@ -406,7 +429,6 @@ const firebaseConfig = {
   storageBucket: "fire-b-a8878.appspot.com",
   appId: "1:658673187627:web:6e4c29af661785f0afa36e"
 };
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
@@ -451,17 +473,14 @@ async function uploadToCloudinary(file, progressId) {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", UPLOAD_PRESET);
-
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, true);
-
     xhr.upload.onprogress = e => {
       if (e.lengthComputable) {
         const percent = (e.loaded / e.total) * 100;
         document.getElementById(progressId).style.width = `${percent}%`;
       }
     };
-
     xhr.onload = () => {
       if (xhr.status === 200) {
         const response = JSON.parse(xhr.responseText);
@@ -470,7 +489,6 @@ async function uploadToCloudinary(file, progressId) {
         reject(new Error("Upload failed: " + xhr.status));
       }
     };
-
     xhr.onerror = () => reject(new Error("Network error"));
     xhr.send(formData);
   });
@@ -482,46 +500,65 @@ async function uploadToCloudinary(file, progressId) {
 function setupUpload(areaId, inputId, previewId, progressId) {
   const area = document.getElementById(areaId);
   const input = document.getElementById(inputId);
-  const preview = document.getElementById(previewId);
+  const preview = previewId ? document.getElementById(previewId) : null;
   const progress = document.getElementById(progressId);
 
-  area.onclick = () => input.click();
+  if (area && input) {
+    area.onclick = () => input.click();
 
-  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    area.addEventListener(eventName, e => e.preventDefault());
-  });
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      area.addEventListener(eventName, e => e.preventDefault());
+    });
 
-  area.addEventListener('drop', e => {
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file, preview, progress);
-  });
+    area.addEventListener('drop', e => {
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file, preview, progress, areaId);
+    });
 
-  input.onchange = e => {
-    const file = e.target.files[0];
-    if (file) handleFile(file, preview, progress);
-  };
+    input.onchange = e => {
+      const file = e.target.files[0];
+      if (file) handleFile(file, preview, progress, areaId);
+    };
+  }
 }
 
-async function handleFile(file, preview, progress) {
+async function handleFile(file, previewImg, progressEl, areaId) {
   try {
-    progress.style.width = "0%";
-    preview.src = URL.createObjectURL(file);
-    preview.style.display = "block";
-    const url = await uploadToCloudinary(file, progress.id);
-    preview.dataset.cloudinaryUrl = url;
-    progress.style.width = "100%";
+    progressEl.style.width = "0%";
+    if (previewImg && file.type.startsWith('image/')) {
+      previewImg.src = URL.createObjectURL(file);
+      previewImg.style.display = "block";
+    } else if (areaId === "musicAudioUploadArea" && file.type.startsWith('audio/')) {
+      const audioEl = document.getElementById("musicAudioPreview");
+      audioEl.src = URL.createObjectURL(file);
+      audioEl.style.display = "block";
+    }
+
+    const url = await uploadToCloudinary(file, progressEl.id);
+
+    if (previewImg && file.type.startsWith('image/')) {
+      previewImg.dataset.cloudinaryUrl = url;
+    } else if (areaId === "musicAudioUploadArea") {
+      document.getElementById("musicAudioPreview").dataset.cloudinaryUrl = url;
+    } else if (areaId === "editUploadArea") {
+      document.getElementById("editPreview").dataset.cloudinaryUrl = url;
+    }
+
+    progressEl.style.width = "100%";
   } catch (err) {
     alert("Upload failed: " + err.message);
-    progress.style.width = "0%";
+    progressEl.style.width = "0%";
   }
 }
 
 // Initialize all upload areas
-setupUpload("heroUploadArea",     "heroFileInput",     "heroPreview",     "heroProgress");
-setupUpload("newUploadArea",      "newFileInput",      "newPreview",      "newProgress");
+setupUpload("heroUploadArea", "heroFileInput", "heroPreview", "heroProgress");
+setupUpload("newUploadArea", "newFileInput", "newPreview", "newProgress");
 setupUpload("trendingUploadArea", "trendingFileInput", "trendingPreview", "trendingProgress");
-setupUpload("popularUploadArea",  "popularFileInput",  "popularPreview",  "popularProgress");
-setupUpload("editUploadArea",     "editFileInput",     "editPreview",     "editProgress");
+setupUpload("popularUploadArea", "popularFileInput", "popularPreview", "popularProgress");
+setupUpload("musicCoverUploadArea", "musicCoverFileInput", "musicCoverPreview", "musicCoverProgress");
+setupUpload("musicAudioUploadArea", "musicAudioFileInput", null, "musicAudioProgress");
+setupUpload("editUploadArea", "editFileInput", "editPreview", "editProgress");
 
 // =============================================
 // SAVE HERO SECTION
@@ -529,16 +566,15 @@ setupUpload("editUploadArea",     "editFileInput",     "editPreview",     "editP
 document.getElementById("saveHero").onclick = async () => {
   try {
     const updates = {
-      title:       document.getElementById("heroTitle").value.trim(),
+      title: document.getElementById("heroTitle").value.trim(),
       description: document.getElementById("heroDescription").value.trim(),
-      badge:       document.getElementById("heroBadge").value.trim() || "16+",
-      rating:      document.getElementById("heroRating").value.trim(),
-      year:        document.getElementById("heroYear").value.trim(),
-      duration:    document.getElementById("heroDuration").value.trim(),
+      badge: document.getElementById("heroBadge").value.trim() || "16+",
+      rating: document.getElementById("heroRating").value.trim(),
+      year: document.getElementById("heroYear").value.trim(),
+      duration: document.getElementById("heroDuration").value.trim(),
       backgroundImage: document.getElementById("heroPreview").dataset.cloudinaryUrl || null,
-      updatedAt:   firebase.database.ServerValue.TIMESTAMP
+      updatedAt: firebase.database.ServerValue.TIMESTAMP
     };
-
     await db.ref("/content/hero").update(updates);
     alert("Hero section saved successfully!");
   } catch (err) {
@@ -547,13 +583,13 @@ document.getElementById("saveHero").onclick = async () => {
 };
 
 // =============================================
-// ADD NEW MOVIE (generic function)
+// ADD NEW MOVIE / TRACK (generic for movies)
 // =============================================
 async function saveNewItem(category, titleId, yearId, previewId) {
   try {
     const title = document.getElementById(titleId).value.trim();
-    const year  = document.getElementById(yearId).value.trim();
-    const url   = document.getElementById(previewId).dataset.cloudinaryUrl;
+    const year = document.getElementById(yearId).value.trim();
+    const url = document.getElementById(previewId).dataset.cloudinaryUrl;
 
     if (!title || !year) {
       alert("Title and Year are required!");
@@ -564,7 +600,6 @@ async function saveNewItem(category, titleId, yearId, previewId) {
       .orderByChild("order")
       .limitToLast(1)
       .once("value");
-
     let maxOrder = 0;
     snap.forEach(child => maxOrder = child.val().order || 0);
 
@@ -578,28 +613,88 @@ async function saveNewItem(category, titleId, yearId, previewId) {
 
     await db.ref(`/content/${category}`).push(item);
 
-    // Clear form
     document.getElementById(titleId).value = "";
     document.getElementById(yearId).value = "";
     document.getElementById(previewId).src = "";
     document.getElementById(previewId).style.display = "none";
     document.getElementById(previewId).dataset.cloudinaryUrl = "";
 
-    alert(`Movie added to ${category}!`);
+    alert(`Item added to ${category}!`);
   } catch (err) {
-    alert("Error adding movie: " + err.message);
+    alert("Error: " + err.message);
   }
 }
 
-document.getElementById("saveNewRelease").onclick = () => saveNewItem("new",       "newTitle",      "newYear",      "newPreview");
-document.getElementById("saveTrending").onclick    = () => saveNewItem("trending",  "trendingTitle", "trendingYear", "trendingPreview");
-document.getElementById("savePopular").onclick     = () => saveNewItem("popular",   "popularTitle",  "popularYear",  "popularPreview");
+document.getElementById("saveNewRelease").onclick = () => saveNewItem("new", "newTitle", "newYear", "newPreview");
+document.getElementById("saveTrending").onclick = () => saveNewItem("trending", "trendingTitle", "trendingYear", "trendingPreview");
+document.getElementById("savePopular").onclick = () => saveNewItem("popular", "popularTitle", "popularYear", "popularPreview");
+
+// =============================================
+// ADD NEW MUSIC TRACK
+// =============================================
+async function saveNewMusic() {
+  try {
+    const title  = document.getElementById("musicTitle").value.trim();
+    const artist = document.getElementById("musicArtist").value.trim();
+    const album  = document.getElementById("musicAlbum").value.trim();
+    const year   = document.getElementById("musicYear").value.trim();
+    const genre  = document.getElementById("musicGenre").value.trim();
+
+    const coverUrl = document.getElementById("musicCoverPreview").dataset.cloudinaryUrl;
+    const audioUrl = document.getElementById("musicAudioPreview").dataset.cloudinaryUrl;
+
+    if (!title || !artist || !audioUrl) {
+      alert("Title, Artist and Audio File are required!");
+      return;
+    }
+
+    const snap = await db.ref("/content/music")
+      .orderByChild("order")
+      .limitToLast(1)
+      .once("value");
+    let maxOrder = 0;
+    snap.forEach(child => maxOrder = child.val().order || 0);
+
+    const track = {
+      title,
+      artist,
+      album: album || null,
+      year: year || null,
+      genre: genre || null,
+      cover: coverUrl || null,
+      audio: audioUrl,
+      order: maxOrder + 100,
+      createdAt: firebase.database.ServerValue.TIMESTAMP
+    };
+
+    await db.ref("/content/music").push(track);
+
+    // Clear form
+    ['musicTitle','musicArtist','musicAlbum','musicYear','musicGenre'].forEach(id => 
+      document.getElementById(id).value = ""
+    );
+    document.getElementById("musicCoverPreview").src = "";
+    document.getElementById("musicCoverPreview").style.display = "none";
+    document.getElementById("musicCoverPreview").dataset.cloudinaryUrl = "";
+    document.getElementById("musicAudioPreview").src = "";
+    document.getElementById("musicAudioPreview").style.display = "none";
+    document.getElementById("musicAudioPreview").dataset.cloudinaryUrl = "";
+
+    alert("Track added successfully!");
+  } catch (err) {
+    alert("Error adding track: " + err.message);
+  }
+}
+
+document.getElementById("saveMusicTrack").onclick = saveNewMusic;
+document.getElementById("toggleMusicForm").onclick = () =>
+  document.getElementById("musicForm").classList.toggle("hidden");
 
 // =============================================
 // DELETE
 // =============================================
 function deleteItem(category, key) {
-  if (!confirm("Delete this movie? This action cannot be undone.")) return;
+  if (!confirm("Delete this item? This action cannot be undone.")) return;
   db.ref(`/content/${category}/${key}`).remove();
 }
 
@@ -610,12 +705,10 @@ async function saveOrder(containerId, category) {
   const container = document.getElementById(containerId);
   const items = Array.from(container.children);
   const updates = {};
-
   items.forEach((el, index) => {
     const key = el.dataset.key;
     if (key) updates[`${key}/order`] = (index + 1) * 100;
   });
-
   if (Object.keys(updates).length > 0) {
     await db.ref(`/content/${category}`).update(updates);
   }
@@ -632,32 +725,35 @@ function initSortable(containerId, category) {
 }
 
 // =============================================
-// EDIT MODAL
+// EDIT MODAL (basic support for music & movies)
 // =============================================
-function openEditModal(category, key, title, year, imageUrl) {
+function openEditModal(category, key, title, subtitle, imageUrl) {
   currentEditingKey = key;
   currentEditingCategory = category;
   originalImageUrl = imageUrl || '';
 
   document.getElementById('editCategory').value = category.charAt(0).toUpperCase() + category.slice(1);
   document.getElementById('editTitle').value = title;
-  document.getElementById('editYear').value = year;
+  document.getElementById('editYear').value = subtitle;
+
+  // Adjust label for music vs movies
+  const subtitleLabel = document.getElementById('editSubtitleLabel');
+  subtitleLabel.textContent = (category === 'music') ? 'Artist' : 'Year';
 
   const preview = document.getElementById('editPreview');
-  const progress = document.getElementById('editProgress');
   const currentText = document.getElementById('editCurrentImageText');
 
   preview.src = '';
   preview.style.display = 'none';
   preview.dataset.cloudinaryUrl = '';
-  progress.style.width = '0%';
+  document.getElementById('editProgress').style.width = '0%';
 
   if (imageUrl && !imageUrl.includes('placeholder')) {
     preview.src = imageUrl;
     preview.style.display = 'block';
-    currentText.textContent = 'Current image will be kept unless replaced';
+    currentText.textContent = 'Current will be kept unless replaced';
   } else {
-    currentText.textContent = 'No image';
+    currentText.textContent = 'No image/cover';
   }
 
   document.getElementById('editModal').classList.remove('hidden');
@@ -667,35 +763,40 @@ document.getElementById('saveEditBtn').onclick = async () => {
   if (!currentEditingKey || !currentEditingCategory) return;
 
   const title = document.getElementById('editTitle').value.trim();
-  const year = document.getElementById('editYear').value.trim();
+  const subtitle = document.getElementById('editYear').value.trim();
   const newImageUrl = document.getElementById('editPreview').dataset.cloudinaryUrl;
 
-  if (!title || !year) {
-    alert("Title and Year are required!");
+  if (!title || !subtitle) {
+    alert("Required fields cannot be empty!");
     return;
   }
 
   try {
     const updates = {
       title,
-      year,
       updatedAt: firebase.database.ServerValue.TIMESTAMP
     };
 
+    if (currentEditingCategory === 'music') {
+      updates.artist = subtitle;
+    } else {
+      updates.year = subtitle;
+    }
+
     if (newImageUrl) {
-      updates.image = newImageUrl;
+      updates[currentEditingCategory === 'music' ? 'cover' : 'image'] = newImageUrl;
     }
 
     await db.ref(`/content/${currentEditingCategory}/${currentEditingKey}`).update(updates);
-    alert("Movie updated successfully!");
+    alert("Item updated successfully!");
     document.getElementById('editModal').classList.add('hidden');
   } catch (err) {
-    alert("Error updating movie: " + err.message);
+    alert("Error updating: " + err.message);
   }
 };
 
 document.getElementById('deleteEditBtn').onclick = () => {
-  if (confirm("Delete this movie?")) {
+  if (confirm("Delete this item?")) {
     deleteItem(currentEditingCategory, currentEditingKey);
     document.getElementById('editModal').classList.add('hidden');
   }
@@ -706,18 +807,15 @@ document.getElementById('cancelEdit').onclick = () => {
 };
 
 document.getElementById('editModal').onclick = e => {
-  if (e.target === e.currentTarget) {
-    document.getElementById('editModal').classList.add('hidden');
-  }
+  if (e.target === e.currentTarget) document.getElementById('editModal').classList.add('hidden');
 };
 
 // =============================================
-// RENDER MOVIES LIST
+// RENDER FUNCTIONS
 // =============================================
 function renderMovies(containerId, items, category) {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
-
   if (items.length === 0) {
     container.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:var(--text-dim); padding:2rem 0;">No movies in this category yet</p>';
     return;
@@ -746,7 +844,6 @@ function renderMovies(containerId, items, category) {
     </div>
   `).join('');
 
-  // Click anywhere on card (except buttons/handle) → edit
   container.querySelectorAll('.item-card').forEach(card => {
     card.addEventListener('click', e => {
       if (e.target.tagName === 'BUTTON' || e.target.closest('.drag-handle')) return;
@@ -762,20 +859,65 @@ function renderMovies(containerId, items, category) {
   initSortable(containerId, category);
 }
 
+function renderMusicTracks(containerId, items) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  if (items.length === 0) {
+    container.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:var(--text-dim); padding:2rem 0;">No tracks yet</p>';
+    return;
+  }
+
+  items.sort((a, b) => (a.order ?? 999999) - (b.order ?? 999999));
+
+  container.innerHTML = items.map(item => `
+    <div class="item-card" data-key="${item.key}" data-category="music">
+      <div class="drag-handle"><span class="material-symbols-rounded">drag_handle</span></div>
+      <img src="${item.cover || 'https://via.placeholder.com/230x230?text=No+Cover'}" alt="${item.title}"/>
+      <div class="item-info">
+        <div class="item-title">${item.title}</div>
+        <div class="item-year">${item.artist} • ${item.album || 'Single'}</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-primary" style="padding:0.45rem 1rem; font-size:0.88rem;" 
+          onclick="openEditModal('music', '${item.key}', \`${item.title.replace(/`/g,'\\`').replace(/'/g,"\\'")}\`, '${item.artist}', '${item.cover || ''}')">
+          Edit
+        </button>
+        <button class="btn btn-danger" style="padding:0.45rem 1rem; font-size:0.88rem;"
+          onclick="deleteItem('music', '${item.key}')">
+          Delete
+        </button>
+      </div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.item-card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.tagName === 'BUTTON' || e.target.closest('.drag-handle')) return;
+      const key = card.dataset.key;
+      const titleEl = card.querySelector('.item-title');
+      const artistEl = card.querySelector('.item-year');
+      const img = card.querySelector('img').src;
+      const artist = artistEl.textContent.split(' • ')[0];
+      openEditModal('music', key, titleEl.textContent, artist, img);
+    });
+  });
+
+  initSortable(containerId, "music");
+}
+
 // =============================================
 // LOAD ALL DATA
 // =============================================
 function loadAllContent() {
-  // Hero section (once)
+  // Hero
   db.ref("/content/hero").once("value", snap => {
     const h = snap.val() || {};
-    document.getElementById("heroTitle").value       = h.title       || "";
+    document.getElementById("heroTitle").value = h.title || "";
     document.getElementById("heroDescription").value = h.description || "";
-    document.getElementById("heroBadge").value       = h.badge       || "16+";
-    document.getElementById("heroRating").value      = h.rating      || "";
-    document.getElementById("heroYear").value        = h.year        || "";
-    document.getElementById("heroDuration").value    = h.duration    || "";
-
+    document.getElementById("heroBadge").value = h.badge || "16+";
+    document.getElementById("heroRating").value = h.rating || "";
+    document.getElementById("heroYear").value = h.year || "";
+    document.getElementById("heroDuration").value = h.duration || "";
     if (h.backgroundImage) {
       const p = document.getElementById("heroPreview");
       p.src = h.backgroundImage;
@@ -784,15 +926,24 @@ function loadAllContent() {
     }
   });
 
-  // Real-time movie categories
+  // Movies - real-time
   ["new", "trending", "popular"].forEach(cat => {
     db.ref(`/content/${cat}`).on("value", snap => {
-      const movies = [];
+      const items = [];
       snap.forEach(child => {
-        movies.push({ key: child.key, ...child.val() });
+        items.push({ key: child.key, ...child.val() });
       });
-      renderMovies(`${cat}List`, movies, cat);
+      renderMovies(`${cat}List`, items, cat);
     });
+  });
+
+  // Music - real-time
+  db.ref("/content/music").on("value", snap => {
+    const tracks = [];
+    snap.forEach(child => {
+      tracks.push({ key: child.key, ...child.val() });
+    });
+    renderMusicTracks("musicList", tracks);
   });
 }
 
@@ -801,10 +952,8 @@ function loadAllContent() {
 // =============================================
 document.getElementById("toggleNewForm").onclick = () =>
   document.getElementById("newReleaseForm").classList.toggle("hidden");
-
 document.getElementById("toggleTrendingForm").onclick = () =>
   document.getElementById("trendingForm").classList.toggle("hidden");
-
 document.getElementById("togglePopularForm").onclick = () =>
   document.getElementById("popularForm").classList.toggle("hidden");
 
