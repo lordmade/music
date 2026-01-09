@@ -11,7 +11,7 @@
   <!-- SortableJS CDN -->
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-  <!-- Firebase (only Auth + Database) -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -100,13 +100,14 @@
       color: var(--text-dim);
     }
 
-    input[type="text"], input[type="file"], textarea {
+    input, textarea {
       padding: 0.9rem 1rem;
       background: rgba(255,255,255,0.06);
       border: 1px solid var(--border);
       border-radius: 8px;
       color: white;
       font-size: 0.96rem;
+      transition: var(--transition);
     }
 
     input:focus, textarea:focus {
@@ -117,18 +118,26 @@
 
     textarea { min-height: 90px; resize: vertical; }
 
-    .file-input-wrapper {
+    .upload-area {
       border: 2px dashed var(--border);
       border-radius: 10px;
       padding: 1.5rem;
       text-align: center;
       cursor: pointer;
-      transition: all 0.25s ease;
+      transition: var(--transition);
+      position: relative;
     }
 
-    .file-input-wrapper:hover {
+    .upload-area:hover {
       border-color: var(--accent);
       background: rgba(229,9,20,0.05);
+    }
+
+    .upload-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
     }
 
     .preview {
@@ -139,9 +148,13 @@
       display: none;
     }
 
-    .uploading {
-      color: var(--accent);
-      font-weight: 600;
+    .progress-bar {
+      height: 4px;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.3s ease;
+      margin-top: 0.8rem;
+      border-radius: 2px;
     }
 
     .items-grid {
@@ -149,7 +162,6 @@
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 1.4rem;
       margin-top: 1.5rem;
-      min-height: 100px;
     }
 
     .item-card {
@@ -159,6 +171,7 @@
       transition: var(--transition);
       position: relative;
       cursor: grab;
+      user-select: none;
     }
 
     .item-card:active { cursor: grabbing; }
@@ -168,7 +181,7 @@
       box-shadow: 0 12px 30px rgba(0,0,0,0.5);
     }
 
-    .item-card img {
+    .item-card img, .item-card video {
       width: 100%;
       aspect-ratio: 16 / 9;
       object-fit: cover;
@@ -176,18 +189,25 @@
 
     .item-info {
       padding: 1rem;
+      text-align: center;
     }
 
     .item-title {
       font-weight: 600;
       margin-bottom: 0.4rem;
+      font-size: 1.1rem;
+    }
+
+    .item-year {
+      color: var(--text-dim);
+      font-size: 0.9rem;
     }
 
     .item-actions {
       display: flex;
-      justify-content: flex-end;
+      justify-content: center;
       gap: 0.6rem;
-      padding: 0 1rem 1rem;
+      padding: 0.8rem 1rem;
     }
 
     .drag-handle {
@@ -220,6 +240,11 @@
 
     .sortable-ghost { opacity: 0.4; background: rgba(229,9,20,0.2); }
     .sortable-chosen { box-shadow: 0 10px 30px rgba(229,9,20,0.4); }
+
+    @media (max-width: 768px) {
+      body { padding: 1.2rem; }
+      .items-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    }
   </style>
 </head>
 <body>
@@ -228,11 +253,11 @@
   <h1 style="text-align:center; margin-bottom:2rem;">Vynix Max Dashboard</h1>
   <div class="form-group">
     <label>Email</label>
-    <input type="email" id="email" placeholder="admin@vynixmax.com"/>
+    <input type="email" id="email" placeholder="admin@vynixmax.com" autocomplete="email"/>
   </div>
   <div class="form-group" style="margin:1.2rem 0;">
     <label>Password</label>
-    <input type="password" id="password" placeholder="••••••••"/>
+    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password"/>
   </div>
   <button class="btn btn-primary" style="width:100%;" id="loginBtn">Login</button>
   <p id="loginError" style="color:#ff5252; margin-top:1rem; text-align:center; min-height:1.4rem;"></p>
@@ -258,11 +283,11 @@
       <div class="form-group"><label>Duration (e.g. 2h 18m)</label><input type="text" id="heroDuration"/></div>
       <div class="form-group" style="grid-column: span 2;">
         <label>Background Image/Video</label>
-        <div class="file-input-wrapper" id="heroFileWrapper">
-          <input type="file" id="heroFile" accept="image/*,video/*" style="display:none;"/>
-          <div>Click or drag & drop file here</div>
-          <small>(max 10MB recommended)</small>
+        <div class="upload-area" id="heroUploadArea">
+          <span>Click or drag & drop (Image/Video)</span>
+          <input type="file" id="heroFileInput" accept="image/*,video/*"/>
           <img id="heroPreview" class="preview" alt="Preview"/>
+          <div id="heroProgress" class="progress-bar"></div>
         </div>
       </div>
     </div>
@@ -273,21 +298,22 @@
   <div class="section">
     <div class="section-header">
       <div class="section-title">New Releases</div>
-      <button class="btn btn-primary" id="toggleNewForm">Add New</button>
+      <button class="btn btn-primary" id="toggleNewForm">Add New Movie</button>
     </div>
 
     <div id="newReleaseForm" class="form-grid hidden">
       <div class="form-group"><label>Title</label><input type="text" id="newTitle"/></div>
       <div class="form-group"><label>Year</label><input type="text" id="newYear"/></div>
       <div class="form-group" style="grid-column: span 2;">
-        <label>Poster / Cover</label>
-        <div class="file-input-wrapper" id="newFileWrapper">
-          <input type="file" id="newFile" accept="image/*,video/*" style="display:none;"/>
-          <div>Click or drag & drop file here</div>
+        <label>Poster / Cover (Image/Video)</label>
+        <div class="upload-area" id="newUploadArea">
+          <span>Click or drag & drop</span>
+          <input type="file" id="newFileInput" accept="image/*,video/*"/>
           <img id="newPreview" class="preview" alt="Preview"/>
+          <div id="newProgress" class="progress-bar"></div>
         </div>
       </div>
-      <button class="btn btn-primary" style="margin-top:1rem;" id="saveNewRelease">Save & Add</button>
+      <button class="btn btn-primary" style="margin-top:1rem;" id="saveNewRelease">Save & Add Movie</button>
     </div>
 
     <div class="items-grid sortable" id="newReleasesList" data-category="new"></div>
@@ -297,7 +323,7 @@
   <div class="section">
     <div class="section-header">
       <div class="section-title">Trending Now</div>
-      <button class="btn btn-primary" id="toggleTrendingForm">Add New</button>
+      <button class="btn btn-primary" id="toggleTrendingForm">Add New Movie</button>
     </div>
 
     <div id="trendingForm" class="form-grid hidden">
@@ -305,13 +331,14 @@
       <div class="form-group"><label>Year</label><input type="text" id="trendingYear"/></div>
       <div class="form-group" style="grid-column: span 2;">
         <label>Poster / Cover</label>
-        <div class="file-input-wrapper" id="trendingFileWrapper">
-          <input type="file" id="trendingFile" accept="image/*,video/*" style="display:none;"/>
-          <div>Click or drag & drop file here</div>
+        <div class="upload-area" id="trendingUploadArea">
+          <span>Click or drag & drop</span>
+          <input type="file" id="trendingFileInput" accept="image/*,video/*"/>
           <img id="trendingPreview" class="preview" alt="Preview"/>
+          <div id="trendingProgress" class="progress-bar"></div>
         </div>
       </div>
-      <button class="btn btn-primary" style="margin-top:1rem;" id="saveTrending">Save & Add</button>
+      <button class="btn btn-primary" style="margin-top:1rem;" id="saveTrending">Save & Add Movie</button>
     </div>
 
     <div class="items-grid sortable" id="trendingList" data-category="trending"></div>
@@ -321,7 +348,7 @@
   <div class="section">
     <div class="section-header">
       <div class="section-title">Popular on Vynix</div>
-      <button class="btn btn-primary" id="togglePopularForm">Add New</button>
+      <button class="btn btn-primary" id="togglePopularForm">Add New Movie</button>
     </div>
 
     <div id="popularForm" class="form-grid hidden">
@@ -329,13 +356,14 @@
       <div class="form-group"><label>Year</label><input type="text" id="popularYear"/></div>
       <div class="form-group" style="grid-column: span 2;">
         <label>Poster / Cover</label>
-        <div class="file-input-wrapper" id="popularFileWrapper">
-          <input type="file" id="popularFile" accept="image/*,video/*" style="display:none;"/>
-          <div>Click or drag & drop file here</div>
+        <div class="upload-area" id="popularUploadArea">
+          <span>Click or drag & drop</span>
+          <input type="file" id="popularFileInput" accept="image/*,video/*"/>
           <img id="popularPreview" class="preview" alt="Preview"/>
+          <div id="popularProgress" class="progress-bar"></div>
         </div>
       </div>
-      <button class="btn btn-primary" style="margin-top:1rem;" id="savePopular">Save & Add</button>
+      <button class="btn btn-primary" style="margin-top:1rem;" id="savePopular">Save & Add Movie</button>
     </div>
 
     <div class="items-grid sortable" id="popularList" data-category="popular"></div>
@@ -386,109 +414,125 @@ document.getElementById('loginBtn').onclick = () => {
 document.getElementById('signOutBtn').onclick = () => auth.signOut();
 
 // =============================================
-// CLOUDINARY DIRECT UPLOAD FUNCTION
+// CLOUDINARY API UPLOAD (direct POST)
 // =============================================
-async function uploadToCloudinary(file, previewId) {
-  if (!file) return null;
+async function uploadToCloudinary(file, progressId) {
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", UPLOAD_PRESET);
 
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", UPLOAD_PRESET);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, true);
 
-  try {
-    const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
-      method: "POST",
-      body: formData
-    });
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        const percent = (e.loaded / e.total) * 100;
+        document.getElementById(progressId).style.width = `${percent}%`;
+      }
+    };
 
-    const data = await response.json();
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        const response = JSON.parse(xhr.responseText);
+        resolve(response.secure_url);
+      } else {
+        reject(new Error("Upload failed: " + xhr.responseText));
+      }
+    };
 
-    if (data.secure_url) {
-      const preview = document.getElementById(previewId);
-      preview.src = data.secure_url;
-      preview.style.display = "block";
-      return data.secure_url;
-    } else {
-      throw new Error(data.error?.message || "Upload failed");
-    }
-  } catch (err) {
-    alert("Cloudinary upload failed: " + err.message);
-    return null;
-  }
+    xhr.onerror = () => reject(new Error("Network error"));
+    xhr.send(formData);
+  });
 }
 
 // =============================================
-// FILE INPUT + DRAG & DROP SETUP
+// FILE UPLOAD HANDLER
 // =============================================
-function setupFileInput(wrapperId, inputId, previewId) {
-  const wrapper = document.getElementById(wrapperId);
+function setupUpload(areaId, inputId, previewId, progressId) {
+  const area = document.getElementById(areaId);
   const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  const progress = document.getElementById(progressId);
 
-  wrapper.addEventListener('click', () => input.click());
+  area.onclick = () => input.click();
 
-  input.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (file) await uploadToCloudinary(file, previewId);
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => {
+    area.addEventListener(ev, e => e.preventDefault());
   });
 
-  // Drag & drop support
-  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    wrapper.addEventListener(eventName, e => e.preventDefault());
-  });
-
-  wrapper.addEventListener('drop', async e => {
+  area.addEventListener('drop', e => {
     const file = e.dataTransfer.files[0];
     if (file) {
       input.files = e.dataTransfer.files;
-      await uploadToCloudinary(file, previewId);
+      handleFile(file, preview, progress);
     }
   });
+
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (file) handleFile(file, preview, progress);
+  };
 }
 
-setupFileInput("heroFileWrapper", "heroFile", "heroPreview");
-setupFileInput("newFileWrapper", "newFile", "newPreview");
-setupFileInput("trendingFileWrapper", "trendingFile", "trendingPreview");
-setupFileInput("popularFileWrapper", "popularFile", "popularPreview");
+async function handleFile(file, preview, progress) {
+  try {
+    progress.style.width = "0%";
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = "block";
+
+    const url = await uploadToCloudinary(file, progress.id);
+    preview.dataset.cloudinaryUrl = url;
+    progress.style.width = "100%";
+  } catch (err) {
+    alert("Upload failed: " + err.message);
+    progress.style.width = "0%";
+  }
+}
+
+// Setup all upload sections
+setupUpload("heroUploadArea", "heroFileInput", "heroPreview", "heroProgress");
+setupUpload("newUploadArea", "newFileInput", "newPreview", "newProgress");
+setupUpload("trendingUploadArea", "trendingFileInput", "trendingPreview", "trendingProgress");
+setupUpload("popularUploadArea", "popularFileInput", "popularPreview", "popularProgress");
 
 // =============================================
 // SAVE HERO
 // =============================================
 document.getElementById("saveHero").onclick = async () => {
-  const backgroundImage = document.getElementById("heroPreview").src || null;
-
-  const updates = {
-    title: document.getElementById("heroTitle").value.trim() || "",
-    description: document.getElementById("heroDescription").value.trim() || "",
-    badge: document.getElementById("heroBadge").value.trim() || "16+",
-    rating: document.getElementById("heroRating").value.trim() || "",
-    year: document.getElementById("heroYear").value.trim() || "",
-    duration: document.getElementById("heroDuration").value.trim() || "",
-    backgroundImage,
-    updatedAt: firebase.database.ServerValue.TIMESTAMP
-  };
-
   try {
+    const updates = {
+      title: document.getElementById("heroTitle").value.trim() || "",
+      description: document.getElementById("heroDescription").value.trim() || "",
+      badge: document.getElementById("heroBadge").value.trim() || "16+",
+      rating: document.getElementById("heroRating").value.trim() || "",
+      year: document.getElementById("heroYear").value.trim() || "",
+      duration: document.getElementById("heroDuration").value.trim() || "",
+      backgroundImage: document.getElementById("heroPreview").dataset.cloudinaryUrl || null,
+      updatedAt: firebase.database.ServerValue.TIMESTAMP
+    };
+
     await db.ref("/content/hero").update(updates);
-    alert("Hero section saved successfully!");
+    alert("Hero saved successfully!");
   } catch (err) {
     alert("Error saving hero: " + err.message);
   }
 };
 
 // =============================================
-// GENERIC SAVE NEW ITEM
+// SAVE NEW MOVIE
 // =============================================
 async function saveNewItem(category, titleId, yearId, previewId) {
-  const title = document.getElementById(titleId).value.trim();
-  const year = document.getElementById(yearId).value.trim();
-  const image = document.getElementById(previewId).src || null;
-
-  if (!title || !year) {
-    alert("Title and Year are required!");
-    return;
-  }
-
   try {
+    const title = document.getElementById(titleId).value.trim();
+    const year = document.getElementById(yearId).value.trim();
+    const url = document.getElementById(previewId).dataset.cloudinaryUrl;
+
+    if (!title || !year) {
+      alert("Title and Year are required!");
+      return;
+    }
+
     const snap = await db.ref(`/content/${category}`)
       .orderByChild("order")
       .limitToLast(1)
@@ -500,7 +544,7 @@ async function saveNewItem(category, titleId, yearId, previewId) {
     const item = {
       title,
       year,
-      image,
+      image: url || null,
       order: maxOrder + 100,
       createdAt: firebase.database.ServerValue.TIMESTAMP
     };
@@ -510,39 +554,39 @@ async function saveNewItem(category, titleId, yearId, previewId) {
     // Clear form
     document.getElementById(titleId).value = "";
     document.getElementById(yearId).value = "";
+    document.getElementById(previewId).src = "";
     document.getElementById(previewId).style.display = "none";
+    document.getElementById(previewId).dataset.cloudinaryUrl = "";
 
-    alert(`Item successfully added to ${category}!`);
+    alert(`Movie added to ${category.replace(/([A-Z])/g, " $1")}!`);
   } catch (err) {
-    alert(`Error adding item: ${err.message}`);
+    alert("Error adding movie: " + err.message);
   }
 }
 
-document.getElementById("saveNewRelease").onclick = () =>
-  saveNewItem("new", "newTitle", "newYear", "newPreview");
-
-document.getElementById("saveTrending").onclick = () =>
-  saveNewItem("trending", "trendingTitle", "trendingYear", "trendingPreview");
-
-document.getElementById("savePopular").onclick = () =>
-  saveNewItem("popular", "popularTitle", "popularYear", "popularPreview");
+document.getElementById("saveNewRelease").onclick = () => saveNewItem("new", "newTitle", "newYear", "newPreview");
+document.getElementById("saveTrending").onclick = () => saveNewItem("trending", "trendingTitle", "trendingYear", "trendingPreview");
+document.getElementById("savePopular").onclick = () => saveNewItem("popular", "popularTitle", "popularYear", "popularPreview");
 
 // =============================================
-// DELETE & DRAG-AND-DROP ORDERING
+// DELETE MOVIE
 // =============================================
 function deleteItem(category, key) {
-  if (!confirm("Delete this item?")) return;
+  if (!confirm("Delete this movie?")) return;
   db.ref(`/content/${category}/${key}`).remove();
 }
 
+// =============================================
+// SAVE ORDER AFTER DRAG
+// =============================================
 async function saveOrder(containerId, category) {
   const container = document.getElementById(containerId);
   const items = Array.from(container.children);
   const updates = {};
 
-  items.forEach((el, index) => {
+  items.forEach((el, i) => {
     const key = el.dataset.key;
-    if (key) updates[`${key}/order`] = (index + 1) * 100;
+    if (key) updates[`${key}/order`] = (i + 1) * 100;
   });
 
   if (Object.keys(updates).length > 0) {
@@ -560,23 +604,27 @@ function initSortable(containerId, category) {
   });
 }
 
-function renderList(containerId, items, category) {
+// =============================================
+// DISPLAY ADDED MOVIES
+// =============================================
+function renderMovies(containerId, items, category) {
   const container = document.getElementById(containerId);
-  container.innerHTML = items.length === 0 
-    ? '<p style="grid-column:1/-1;text-align:center;color:var(--text-dim);">No items yet</p>'
-    : "";
+  container.innerHTML = "";
 
-  if (items.length === 0) return;
+  if (items.length === 0) {
+    container.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-dim);">No movies added yet</p>';
+    return;
+  }
 
-  items.sort((a,b) => (a.order ?? a.createdAt ?? 0) - (b.order ?? b.createdAt ?? 0));
+  items.sort((a, b) => (a.order ?? a.createdAt ?? 0) - (b.order ?? b.createdAt ?? 0));
 
   container.innerHTML = items.map(item => `
     <div class="item-card" data-key="${item.key}">
       <div class="drag-handle"><span class="material-symbols-rounded">drag_handle</span></div>
-      <img src="${item.image || 'https://via.placeholder.com/320x180?text=No+Image'}" alt="${item.title}"/>
+      <img src="${item.image || 'https://via.placeholder.com/320x180?text=No+Poster'}" alt="${item.title}"/>
       <div class="item-info">
         <div class="item-title">${item.title}</div>
-        <div style="color:var(--text-dim);font-size:0.9rem;">${item.year}</div>
+        <div class="item-year">${item.year}</div>
       </div>
       <div class="item-actions">
         <button class="btn btn-danger" style="padding:0.5rem 1rem;font-size:0.9rem;"
@@ -589,10 +637,10 @@ function renderList(containerId, items, category) {
 }
 
 // =============================================
-// LOAD CONTENT
+// LOAD & DISPLAY MOVIES
 // =============================================
 function loadAllContent() {
-  // Hero
+  // Hero (optional preview)
   db.ref("/content/hero").once("value", snap => {
     const h = snap.val() || {};
     document.getElementById("heroTitle").value = h.title || "";
@@ -605,21 +653,24 @@ function loadAllContent() {
     if (h.backgroundImage) {
       document.getElementById("heroPreview").src = h.backgroundImage;
       document.getElementById("heroPreview").style.display = "block";
+      document.getElementById("heroPreview").dataset.cloudinaryUrl = h.backgroundImage;
     }
   });
 
-  // Categories
+  // Real-time movie lists
   ["new", "trending", "popular"].forEach(cat => {
     db.ref(`/content/${cat}`).on("value", snap => {
-      const items = [];
-      snap.forEach(child => items.push({ key: child.key, ...child.val() }));
-      renderList(`${cat}List`, items, cat);
+      const movies = [];
+      snap.forEach(child => {
+        movies.push({ key: child.key, ...child.val() });
+      });
+      renderMovies(`${cat}List`, movies, cat);
     });
   });
 }
 
 // =============================================
-// TOGGLE FORMS
+// TOGGLE ADD FORMS
 // =============================================
 document.getElementById("toggleNewForm").onclick = () =>
   document.getElementById("newReleaseForm").classList.toggle("hidden");
