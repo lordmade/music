@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
- 
+
   <!-- Firebase v9 compat -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -20,6 +20,7 @@
       --surface-hover: #1a1a1a;
       --accent: #e50914;
       --accent-hover: #f40613;
+      --mood-accent: #00aaff;
       --text: #ffffff;
       --text-dim: #aaa;
       --border: rgba(255,255,255,0.08);
@@ -35,13 +36,9 @@
       padding: 1.5rem;
     }
     .container { max-width: 1280px; margin: 0 auto; }
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2.5rem;
-    }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; }
     h1 { font-size: 2.3rem; font-weight: 900; letter-spacing: -1px; }
+    h3 { font-size: 1.4rem; margin-bottom: 1rem; }
     .btn {
       padding: 0.7rem 1.5rem;
       border-radius: 999px;
@@ -61,29 +58,16 @@
       margin-bottom: 2.2rem;
       border: 1px solid var(--border);
     }
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.4rem;
-    }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.4rem; }
     .section-title { font-size: 1.55rem; font-weight: 700; }
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1.4rem;
     }
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    label {
-      font-weight: 600;
-      font-size: 0.94rem;
-      color: var(--text-dim);
-    }
-    input, textarea {
+    .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+    label { font-weight: 600; font-size: 0.94rem; color: var(--text-dim); }
+    input, textarea, select {
       padding: 0.9rem 1.1rem;
       background: rgba(255,255,255,0.05);
       border: 1px solid var(--border);
@@ -91,7 +75,8 @@
       color: white;
       font-size: 0.97rem;
     }
-    input:focus, textarea:focus {
+    select[multiple] { height: 140px; }
+    input:focus, textarea:focus, select:focus {
       outline: none;
       border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(229,9,20,0.18);
@@ -106,23 +91,9 @@
       transition: var(--transition);
       position: relative;
     }
-    .upload-area:hover {
-      border-color: var(--accent);
-      background: rgba(229,9,20,0.04);
-    }
-    .upload-area input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-    }
-    .preview {
-      max-width: 100%;
-      max-height: 180px;
-      margin-top: 1rem;
-      border-radius: 8px;
-      display: none;
-    }
+    .upload-area:hover { border-color: var(--accent); background: rgba(229,9,20,0.04); }
+    .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .preview { max-width: 100%; max-height: 180px; margin-top: 1rem; border-radius: 8px; display: none; }
     .progress-bar {
       height: 4px;
       background: var(--accent);
@@ -146,18 +117,29 @@
       cursor: grab;
       user-select: none;
     }
-    .item-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 14px 32px rgba(0,0,0,0.45);
-    }
+    .item-card:hover { transform: translateY(-8px); box-shadow: 0 14px 32px rgba(0,0,0,0.45); }
     .item-card img {
       width: 100%;
-      aspect-ratio: 1/1;
+      aspect-ratio: 16/9;
       object-fit: cover;
     }
     .item-info { padding: 1rem; text-align: center; }
     .item-title { font-weight: 600; margin-bottom: 0.4rem; font-size: 1.1rem; }
     .item-year { color: var(--text-dim); font-size: 0.9rem; }
+    .category-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.6rem;
+      justify-content: center;
+    }
+    .genre-tag, .mood-tag {
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+    }
+    .genre-tag { background: rgba(229,9,20,0.25); color: var(--accent); }
+    .mood-tag { background: rgba(0,170,255,0.25); color: #00aaff; }
     .item-actions {
       display: flex;
       justify-content: center;
@@ -205,10 +187,9 @@
       background: var(--surface);
       border-radius: var(--radius);
       width: 92%;
-      max-width: 540px;
+      max-width: 580px;
       padding: 2.2rem;
       border: 1px solid var(--border);
-      position: relative;
     }
     @media (max-width: 768px) {
       body { padding: 1rem; }
@@ -334,7 +315,36 @@
     <div class="items-grid sortable" id="popularList" data-category="popular"></div>
   </div>
 
-  <!-- ====================== NEW MUSIC SECTION ====================== -->
+  <!-- Spotify-style Categories -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Music Categories (Spotify Style)</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Add New Genre</label>
+        <input type="text" id="newGenreName" placeholder="e.g. Amapiano, Afrobeats, Lo-fi"/>
+        <button class="btn btn-primary" style="margin-top:0.8rem; width:100%;" id="addGenreBtn">Add Genre</button>
+      </div>
+      <div class="form-group">
+        <label>Add New Mood/Activity</label>
+        <input type="text" id="newMoodName" placeholder="e.g. Chill, Workout, Mood Booster"/>
+        <button class="btn btn-primary" style="margin-top:0.8rem; width:100%;" id="addMoodBtn">Add Mood</button>
+      </div>
+    </div>
+    <div style="margin-top:2rem; display:grid; grid-template-columns:1fr 1fr; gap:2rem;">
+      <div>
+        <h3>Genres</h3>
+        <div id="genresList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap:1rem;"></div>
+      </div>
+      <div>
+        <h3>Moods & Activities</h3>
+        <div id="moodsList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap:1rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Music Library -->
   <div class="section">
     <div class="section-header">
       <div class="section-title">Music Library</div>
@@ -346,8 +356,18 @@
       <div class="form-group"><label>Artist *</label><input type="text" id="musicArtist"/></div>
       <div class="form-group"><label>Album</label><input type="text" id="musicAlbum"/></div>
       <div class="form-group"><label>Year</label><input type="text" id="musicYear"/></div>
-      <div class="form-group"><label>Genre</label><input type="text" id="musicGenre"/></div>
-      
+      <div class="form-group"><label>Genre (optional)</label><input type="text" id="musicGenre"/></div>
+
+      <div class="form-group" style="grid-column: span 2;">
+        <label>Genres (select multiple)</label>
+        <select id="musicGenresSelect" multiple></select>
+      </div>
+
+      <div class="form-group" style="grid-column: span 2;">
+        <label>Moods / Activities (select multiple)</label>
+        <select id="musicMoodsSelect" multiple></select>
+      </div>
+
       <div class="form-group" style="grid-column: span 2;">
         <label>Cover Art</label>
         <div class="upload-area" id="musicCoverUploadArea">
@@ -357,7 +377,7 @@
           <div id="musicCoverProgress" class="progress-bar"></div>
         </div>
       </div>
-      
+
       <div class="form-group" style="grid-column: span 2;">
         <label>Audio File * (mp3, wav, etc.)</label>
         <div class="upload-area" id="musicAudioUploadArea">
@@ -367,23 +387,22 @@
           <div id="musicAudioProgress" class="progress-bar"></div>
         </div>
       </div>
-      
+
       <button class="btn btn-primary" style="margin-top:0.8rem; grid-column: span 2; width:100%;" id="saveMusicTrack">Save & Add Track</button>
     </div>
 
     <div class="items-grid sortable" id="musicList" data-category="music"></div>
   </div>
-  <!-- ====================== END MUSIC SECTION ====================== -->
 
 </div>
 
-<!-- Edit Modal (same for movies & music for now) -->
+<!-- Edit Modal -->
 <div id="editModal" class="hidden">
   <div class="modal-content">
     <h2 style="margin-bottom:1.8rem;">Edit Item</h2>
     <div class="form-grid">
       <div class="form-group">
-        <label>Category</label>
+        <label>Section</label>
         <input type="text" id="editCategory" readonly style="background:rgba(255,255,255,0.03);"/>
       </div>
       <div class="form-group">
@@ -394,8 +413,19 @@
         <label id="editSubtitleLabel">Year / Artist</label>
         <input type="text" id="editYear"/>
       </div>
+
+      <div class="form-group" id="editGenresGroup" style="grid-column: span 2; display:none;">
+        <label>Genres</label>
+        <select id="editMusicGenres" multiple></select>
+      </div>
+
+      <div class="form-group" id="editMoodsGroup" style="grid-column: span 2; display:none;">
+        <label>Moods / Activities</label>
+        <select id="editMusicMoods" multiple></select>
+      </div>
+
       <div class="form-group" style="grid-column: span 2;">
-        <label>Poster / Cover (optional - leave empty to keep current)</label>
+        <label>Image/Audio replacement (optional)</label>
         <div class="upload-area" id="editUploadArea">
           <span>Click or drag & drop to replace</span>
           <input type="file" id="editFileInput" accept="image/*,audio/*"/>
@@ -416,9 +446,6 @@
 </div>
 
 <script>
-// =============================================
-// CONFIGURATION
-// =============================================
 const CLOUD_NAME = "dqkujefxj";
 const UPLOAD_PRESET = "banter_box";
 const firebaseConfig = {
@@ -433,16 +460,10 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// =============================================
-// STATE
-// =============================================
 let currentEditingKey = null;
 let currentEditingCategory = null;
-let originalImageUrl = null;
 
-// =============================================
-// AUTHENTICATION
-// =============================================
+// Authentication
 auth.onAuthStateChanged(user => {
   if (user) {
     document.getElementById('loginPage').classList.add('hidden');
@@ -457,17 +478,14 @@ auth.onAuthStateChanged(user => {
 document.getElementById('loginBtn').onclick = () => {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
-  auth.signInWithEmailAndPassword(email, password)
-    .catch(err => {
-      document.getElementById('loginError').textContent = err.message;
-    });
+  auth.signInWithEmailAndPassword(email, password).catch(err => {
+    document.getElementById('loginError').textContent = err.message;
+  });
 };
 
 document.getElementById('signOutBtn').onclick = () => auth.signOut();
 
-// =============================================
-// CLOUDINARY UPLOAD
-// =============================================
+// Cloudinary Upload
 async function uploadToCloudinary(file, progressId) {
   return new Promise((resolve, reject) => {
     const formData = new FormData();
@@ -494,32 +512,27 @@ async function uploadToCloudinary(file, progressId) {
   });
 }
 
-// =============================================
-// FILE UPLOAD HANDLER
-// =============================================
 function setupUpload(areaId, inputId, previewId, progressId) {
   const area = document.getElementById(areaId);
   const input = document.getElementById(inputId);
   const preview = previewId ? document.getElementById(previewId) : null;
   const progress = document.getElementById(progressId);
 
-  if (area && input) {
-    area.onclick = () => input.click();
+  if (!area || !input) return;
 
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-      area.addEventListener(eventName, e => e.preventDefault());
-    });
+  area.onclick = () => input.click();
 
-    area.addEventListener('drop', e => {
-      const file = e.dataTransfer.files[0];
-      if (file) handleFile(file, preview, progress, areaId);
-    });
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => area.addEventListener(e, ev => ev.preventDefault()));
 
-    input.onchange = e => {
-      const file = e.target.files[0];
-      if (file) handleFile(file, preview, progress, areaId);
-    };
-  }
+  area.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file, preview, progress, areaId);
+  });
+
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (file) handleFile(file, preview, progress, areaId);
+  };
 }
 
 async function handleFile(file, previewImg, progressEl, areaId) {
@@ -560,9 +573,7 @@ setupUpload("musicCoverUploadArea", "musicCoverFileInput", "musicCoverPreview", 
 setupUpload("musicAudioUploadArea", "musicAudioFileInput", null, "musicAudioProgress");
 setupUpload("editUploadArea", "editFileInput", "editPreview", "editProgress");
 
-// =============================================
-// SAVE HERO SECTION
-// =============================================
+// Save Hero
 document.getElementById("saveHero").onclick = async () => {
   try {
     const updates = {
@@ -582,9 +593,7 @@ document.getElementById("saveHero").onclick = async () => {
   }
 };
 
-// =============================================
-// ADD NEW MOVIE / TRACK (generic for movies)
-// =============================================
+// Save Movie (generic)
 async function saveNewItem(category, titleId, yearId, previewId) {
   try {
     const title = document.getElementById(titleId).value.trim();
@@ -596,10 +605,7 @@ async function saveNewItem(category, titleId, yearId, previewId) {
       return;
     }
 
-    const snap = await db.ref(`/content/${category}`)
-      .orderByChild("order")
-      .limitToLast(1)
-      .once("value");
+    const snap = await db.ref(`/content/${category}`).orderByChild("order").limitToLast(1).once("value");
     let maxOrder = 0;
     snap.forEach(child => maxOrder = child.val().order || 0);
 
@@ -629,9 +635,95 @@ document.getElementById("saveNewRelease").onclick = () => saveNewItem("new", "ne
 document.getElementById("saveTrending").onclick = () => saveNewItem("trending", "trendingTitle", "trendingYear", "trendingPreview");
 document.getElementById("savePopular").onclick = () => saveNewItem("popular", "popularTitle", "popularYear", "popularPreview");
 
-// =============================================
-// ADD NEW MUSIC TRACK
-// =============================================
+// Music Categories
+let allGenres = [];
+let allMoods = [];
+
+function loadGenres() {
+  db.ref("/content/musicGenres").on("value", snap => {
+    allGenres = [];
+    const container = document.getElementById("genresList");
+    container.innerHTML = "";
+    snap.forEach(child => {
+      const name = child.val().name;
+      allGenres.push(name);
+      container.appendChild(createCategoryCard(name, child.key, "/content/musicGenres"));
+    });
+    updateCategorySelects();
+  });
+}
+
+function loadMoods() {
+  db.ref("/content/musicMoods").on("value", snap => {
+    allMoods = [];
+    const container = document.getElementById("moodsList");
+    container.innerHTML = "";
+    snap.forEach(child => {
+      const name = child.val().name;
+      allMoods.push(name);
+      container.appendChild(createCategoryCard(name, child.key, "/content/musicMoods"));
+    });
+    updateCategorySelects();
+  });
+}
+
+function createCategoryCard(name, key, path) {
+  const div = document.createElement("div");
+  div.style.background = "rgba(255,255,255,0.04)";
+  div.style.padding = "1rem";
+  div.style.borderRadius = "8px";
+  div.style.display = "flex";
+  div.style.justifyContent = "space-between";
+  div.style.alignItems = "center";
+  div.innerHTML = `
+    <span>${name}</span>
+    <button class="btn btn-danger" style="padding:0.4rem 0.8rem; font-size:0.85rem;" 
+      onclick="deleteCategory('${key}', '${path}')">Delete</button>
+  `;
+  return div;
+}
+
+window.deleteCategory = async (key, path) => {
+  if (!confirm("Delete this category? Tracks keep old tags.")) return;
+  try {
+    await db.ref(`${path}/${key}`).remove();
+  } catch (e) {
+    alert("Error: " + e.message);
+  }
+};
+
+function updateCategorySelects() {
+  const genreSelects = [document.getElementById("musicGenresSelect"), document.getElementById("editMusicGenres")];
+  const moodSelects = [document.getElementById("musicMoodsSelect"), document.getElementById("editMusicMoods")];
+
+  genreSelects.forEach(s => {
+    if (!s) return;
+    s.innerHTML = "";
+    allGenres.forEach(g => s.add(new Option(g, g)));
+  });
+
+  moodSelects.forEach(s => {
+    if (!s) return;
+    s.innerHTML = "";
+    allMoods.forEach(m => s.add(new Option(m, m)));
+  });
+}
+
+document.getElementById("addGenreBtn").onclick = async () => {
+  const name = document.getElementById("newGenreName").value.trim();
+  if (!name) return alert("Enter genre name");
+  await db.ref("/content/musicGenres").push({ name });
+  document.getElementById("newGenreName").value = "";
+};
+
+document.getElementById("addMoodBtn").onclick = async () => {
+  const name = document.getElementById("newMoodName").value.trim();
+  if (!name) return alert("Enter mood/activity name");
+  await db.ref("/content/musicMoods").push({ name });
+  document.getElementById("newMoodName").value = "";
+};
+
+// Save New Music Track
 async function saveNewMusic() {
   try {
     const title  = document.getElementById("musicTitle").value.trim();
@@ -640,27 +732,28 @@ async function saveNewMusic() {
     const year   = document.getElementById("musicYear").value.trim();
     const genre  = document.getElementById("musicGenre").value.trim();
 
-    const coverUrl = document.getElementById("musicCoverPreview").dataset.cloudinaryUrl;
-    const audioUrl = document.getElementById("musicAudioPreview").dataset.cloudinaryUrl;
+    const coverUrl = document.getElementById("musicCoverPreview")?.dataset.cloudinaryUrl;
+    const audioUrl = document.getElementById("musicAudioPreview")?.dataset.cloudinaryUrl;
+
+    const genres = Array.from(document.getElementById("musicGenresSelect").selectedOptions).map(o => o.value);
+    const moods  = Array.from(document.getElementById("musicMoodsSelect").selectedOptions).map(o => o.value);
 
     if (!title || !artist || !audioUrl) {
       alert("Title, Artist and Audio File are required!");
       return;
     }
 
-    const snap = await db.ref("/content/music")
-      .orderByChild("order")
-      .limitToLast(1)
-      .once("value");
+    const snap = await db.ref("/content/music").orderByChild("order").limitToLast(1).once("value");
     let maxOrder = 0;
     snap.forEach(child => maxOrder = child.val().order || 0);
 
     const track = {
-      title,
-      artist,
+      title, artist,
       album: album || null,
       year: year || null,
       genre: genre || null,
+      genres: genres.length ? genres : null,
+      moods: moods.length ? moods : null,
       cover: coverUrl || null,
       audio: audioUrl,
       order: maxOrder + 100,
@@ -670,15 +763,11 @@ async function saveNewMusic() {
     await db.ref("/content/music").push(track);
 
     // Clear form
-    ['musicTitle','musicArtist','musicAlbum','musicYear','musicGenre'].forEach(id => 
-      document.getElementById(id).value = ""
-    );
-    document.getElementById("musicCoverPreview").src = "";
-    document.getElementById("musicCoverPreview").style.display = "none";
-    document.getElementById("musicCoverPreview").dataset.cloudinaryUrl = "";
-    document.getElementById("musicAudioPreview").src = "";
-    document.getElementById("musicAudioPreview").style.display = "none";
-    document.getElementById("musicAudioPreview").dataset.cloudinaryUrl = "";
+    ['musicTitle','musicArtist','musicAlbum','musicYear','musicGenre'].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("musicCoverPreview").src = ""; document.getElementById("musicCoverPreview").style.display = "none";
+    document.getElementById("musicAudioPreview").src = ""; document.getElementById("musicAudioPreview").style.display = "none";
+    document.getElementById("musicGenresSelect").selectedIndex = -1;
+    document.getElementById("musicMoodsSelect").selectedIndex = -1;
 
     alert("Track added successfully!");
   } catch (err) {
@@ -687,20 +776,15 @@ async function saveNewMusic() {
 }
 
 document.getElementById("saveMusicTrack").onclick = saveNewMusic;
-document.getElementById("toggleMusicForm").onclick = () =>
-  document.getElementById("musicForm").classList.toggle("hidden");
+document.getElementById("toggleMusicForm").onclick = () => document.getElementById("musicForm").classList.toggle("hidden");
 
-// =============================================
-// DELETE
-// =============================================
+// Delete Item
 function deleteItem(category, key) {
   if (!confirm("Delete this item? This action cannot be undone.")) return;
   db.ref(`/content/${category}/${key}`).remove();
 }
 
-// =============================================
-// REORDER AFTER DRAG & DROP
-// =============================================
+// Reorder
 async function saveOrder(containerId, category) {
   const container = document.getElementById(containerId);
   const items = Array.from(container.children);
@@ -709,9 +793,7 @@ async function saveOrder(containerId, category) {
     const key = el.dataset.key;
     if (key) updates[`${key}/order`] = (index + 1) * 100;
   });
-  if (Object.keys(updates).length > 0) {
-    await db.ref(`/content/${category}`).update(updates);
-  }
+  if (Object.keys(updates).length > 0) await db.ref(`/content/${category}`).update(updates);
 }
 
 function initSortable(containerId, category) {
@@ -724,95 +806,7 @@ function initSortable(containerId, category) {
   });
 }
 
-// =============================================
-// EDIT MODAL (basic support for music & movies)
-// =============================================
-function openEditModal(category, key, title, subtitle, imageUrl) {
-  currentEditingKey = key;
-  currentEditingCategory = category;
-  originalImageUrl = imageUrl || '';
-
-  document.getElementById('editCategory').value = category.charAt(0).toUpperCase() + category.slice(1);
-  document.getElementById('editTitle').value = title;
-  document.getElementById('editYear').value = subtitle;
-
-  // Adjust label for music vs movies
-  const subtitleLabel = document.getElementById('editSubtitleLabel');
-  subtitleLabel.textContent = (category === 'music') ? 'Artist' : 'Year';
-
-  const preview = document.getElementById('editPreview');
-  const currentText = document.getElementById('editCurrentImageText');
-
-  preview.src = '';
-  preview.style.display = 'none';
-  preview.dataset.cloudinaryUrl = '';
-  document.getElementById('editProgress').style.width = '0%';
-
-  if (imageUrl && !imageUrl.includes('placeholder')) {
-    preview.src = imageUrl;
-    preview.style.display = 'block';
-    currentText.textContent = 'Current will be kept unless replaced';
-  } else {
-    currentText.textContent = 'No image/cover';
-  }
-
-  document.getElementById('editModal').classList.remove('hidden');
-}
-
-document.getElementById('saveEditBtn').onclick = async () => {
-  if (!currentEditingKey || !currentEditingCategory) return;
-
-  const title = document.getElementById('editTitle').value.trim();
-  const subtitle = document.getElementById('editYear').value.trim();
-  const newImageUrl = document.getElementById('editPreview').dataset.cloudinaryUrl;
-
-  if (!title || !subtitle) {
-    alert("Required fields cannot be empty!");
-    return;
-  }
-
-  try {
-    const updates = {
-      title,
-      updatedAt: firebase.database.ServerValue.TIMESTAMP
-    };
-
-    if (currentEditingCategory === 'music') {
-      updates.artist = subtitle;
-    } else {
-      updates.year = subtitle;
-    }
-
-    if (newImageUrl) {
-      updates[currentEditingCategory === 'music' ? 'cover' : 'image'] = newImageUrl;
-    }
-
-    await db.ref(`/content/${currentEditingCategory}/${currentEditingKey}`).update(updates);
-    alert("Item updated successfully!");
-    document.getElementById('editModal').classList.add('hidden');
-  } catch (err) {
-    alert("Error updating: " + err.message);
-  }
-};
-
-document.getElementById('deleteEditBtn').onclick = () => {
-  if (confirm("Delete this item?")) {
-    deleteItem(currentEditingCategory, currentEditingKey);
-    document.getElementById('editModal').classList.add('hidden');
-  }
-};
-
-document.getElementById('cancelEdit').onclick = () => {
-  document.getElementById('editModal').classList.add('hidden');
-};
-
-document.getElementById('editModal').onclick = e => {
-  if (e.target === e.currentTarget) document.getElementById('editModal').classList.add('hidden');
-};
-
-// =============================================
-// RENDER FUNCTIONS
-// =============================================
+// Render Movies
 function renderMovies(containerId, items, category) {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
@@ -849,16 +843,17 @@ function renderMovies(containerId, items, category) {
       if (e.target.tagName === 'BUTTON' || e.target.closest('.drag-handle')) return;
       const key = card.dataset.key;
       const cat = card.dataset.category;
-      const titleEl = card.querySelector('.item-title');
-      const yearEl = card.querySelector('.item-year');
+      const title = card.querySelector('.item-title').textContent;
+      const year = card.querySelector('.item-year').textContent;
       const img = card.querySelector('img').src;
-      openEditModal(cat, key, titleEl.textContent, yearEl.textContent, img);
+      openEditModal(cat, key, title, year, img);
     });
   });
 
   initSortable(containerId, category);
 }
 
+// Render Music Tracks
 function renderMusicTracks(containerId, items) {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
@@ -876,10 +871,12 @@ function renderMusicTracks(containerId, items) {
       <div class="item-info">
         <div class="item-title">${item.title}</div>
         <div class="item-year">${item.artist} • ${item.album || 'Single'}</div>
+        ${item.genres ? `<div class="category-tags">${item.genres.map(g => `<span class="genre-tag">${g}</span>`).join('')}</div>` : ''}
+        ${item.moods ? `<div class="category-tags">${item.moods.map(m => `<span class="mood-tag">${m}</span>`).join('')}</div>` : ''}
       </div>
       <div class="item-actions">
         <button class="btn btn-primary" style="padding:0.45rem 1rem; font-size:0.88rem;" 
-          onclick="openEditModal('music', '${item.key}', \`${item.title.replace(/`/g,'\\`').replace(/'/g,"\\'")}\`, '${item.artist}', '${item.cover || ''}')">
+          onclick="openEditModal('music', '${item.key}', \`${item.title.replace(/`/g,'\\`').replace(/'/g,"\\'")}\`, '${item.artist}', '${item.cover || ''}', '${JSON.stringify(item.genres || [])}', '${JSON.stringify(item.moods || [])}')">
           Edit
         </button>
         <button class="btn btn-danger" style="padding:0.45rem 1rem; font-size:0.88rem;"
@@ -894,20 +891,112 @@ function renderMusicTracks(containerId, items) {
     card.addEventListener('click', e => {
       if (e.target.tagName === 'BUTTON' || e.target.closest('.drag-handle')) return;
       const key = card.dataset.key;
-      const titleEl = card.querySelector('.item-title');
-      const artistEl = card.querySelector('.item-year');
-      const img = card.querySelector('img').src;
-      const artist = artistEl.textContent.split(' • ')[0];
-      openEditModal('music', key, titleEl.textContent, artist, img);
+      const title = card.querySelector('.item-title').textContent;
+      const info = card.querySelector('.item-year').textContent;
+      const artist = info.split(' • ')[0];
+      const cover = card.querySelector('img').src;
+
+      const genreTags = Array.from(card.querySelectorAll('.genre-tag')).map(t => t.textContent);
+      const moodTags  = Array.from(card.querySelectorAll('.mood-tag')).map(t => t.textContent);
+
+      openEditModal('music', key, title, artist, cover, JSON.stringify(genreTags), JSON.stringify(moodTags));
     });
   });
 
   initSortable(containerId, "music");
 }
 
-// =============================================
-// LOAD ALL DATA
-// =============================================
+// Edit Modal
+function openEditModal(category, key, title, subtitle, imageUrl, genresJson = '[]', moodsJson = '[]') {
+  currentEditingKey = key;
+  currentEditingCategory = category;
+
+  document.getElementById('editCategory').value = category.charAt(0).toUpperCase() + category.slice(1);
+  document.getElementById('editTitle').value = title;
+  document.getElementById('editYear').value = subtitle;
+  document.getElementById('editSubtitleLabel').textContent = category === 'music' ? 'Artist' : 'Year';
+
+  const genresGroup = document.getElementById('editGenresGroup');
+  const moodsGroup  = document.getElementById('editMoodsGroup');
+
+  if (category === 'music') {
+    genresGroup.style.display = 'block';
+    moodsGroup.style.display = 'block';
+
+    const currentGenres = JSON.parse(genresJson);
+    const currentMoods  = JSON.parse(moodsJson);
+
+    Array.from(document.getElementById('editMusicGenres').options).forEach(opt => opt.selected = currentGenres.includes(opt.value));
+    Array.from(document.getElementById('editMusicMoods').options).forEach(opt => opt.selected = currentMoods.includes(opt.value));
+  } else {
+    genresGroup.style.display = 'none';
+    moodsGroup.style.display = 'none';
+  }
+
+  const preview = document.getElementById('editPreview');
+  const currentText = document.getElementById('editCurrentImageText');
+  preview.src = imageUrl && !imageUrl.includes('placeholder') ? imageUrl : '';
+  preview.style.display = preview.src ? 'block' : 'none';
+  currentText.textContent = preview.src ? 'Current will be kept unless replaced' : 'No image/cover';
+
+  document.getElementById('editModal').classList.remove('hidden');
+}
+
+document.getElementById('saveEditBtn').onclick = async () => {
+  if (!currentEditingKey || !currentEditingCategory) return;
+
+  const title = document.getElementById('editTitle').value.trim();
+  const subtitle = document.getElementById('editYear').value.trim();
+  const newMediaUrl = document.getElementById('editPreview')?.dataset.cloudinaryUrl;
+
+  if (!title || !subtitle) {
+    alert("Required fields cannot be empty!");
+    return;
+  }
+
+  try {
+    const updates = {
+      title,
+      updatedAt: firebase.database.ServerValue.TIMESTAMP
+    };
+
+    if (currentEditingCategory === 'music') {
+      updates.artist = subtitle;
+
+      updates.genres = Array.from(document.getElementById('editMusicGenres').selectedOptions).map(o => o.value);
+      updates.moods  = Array.from(document.getElementById('editMusicMoods').selectedOptions).map(o => o.value);
+
+      if (updates.genres.length === 0) updates.genres = null;
+      if (updates.moods.length === 0) updates.moods = null;
+    } else {
+      updates.year = subtitle;
+    }
+
+    if (newMediaUrl) {
+      updates[currentEditingCategory === 'music' ? 'cover' : 'image'] = newMediaUrl;
+    }
+
+    await db.ref(`/content/${currentEditingCategory}/${currentEditingKey}`).update(updates);
+    alert("Item updated successfully!");
+    document.getElementById('editModal').classList.add('hidden');
+  } catch (err) {
+    alert("Error updating: " + err.message);
+  }
+};
+
+document.getElementById('deleteEditBtn').onclick = () => {
+  if (confirm("Delete this item?")) {
+    deleteItem(currentEditingCategory, currentEditingKey);
+    document.getElementById('editModal').classList.add('hidden');
+  }
+};
+
+document.getElementById('cancelEdit').onclick = () => document.getElementById('editModal').classList.add('hidden');
+document.getElementById('editModal').onclick = e => {
+  if (e.target === e.currentTarget) document.getElementById('editModal').classList.add('hidden');
+};
+
+// Load All Content
 function loadAllContent() {
   // Hero
   db.ref("/content/hero").once("value", snap => {
@@ -926,37 +1015,31 @@ function loadAllContent() {
     }
   });
 
-  // Movies - real-time
+  // Movies
   ["new", "trending", "popular"].forEach(cat => {
     db.ref(`/content/${cat}`).on("value", snap => {
       const items = [];
-      snap.forEach(child => {
-        items.push({ key: child.key, ...child.val() });
-      });
+      snap.forEach(child => items.push({ key: child.key, ...child.val() }));
       renderMovies(`${cat}List`, items, cat);
     });
   });
 
-  // Music - real-time
+  // Music
   db.ref("/content/music").on("value", snap => {
     const tracks = [];
-    snap.forEach(child => {
-      tracks.push({ key: child.key, ...child.val() });
-    });
+    snap.forEach(child => tracks.push({ key: child.key, ...child.val() }));
     renderMusicTracks("musicList", tracks);
   });
+
+  // Categories
+  loadGenres();
+  loadMoods();
 }
 
-// =============================================
-// TOGGLE ADD FORMS
-// =============================================
-document.getElementById("toggleNewForm").onclick = () =>
-  document.getElementById("newReleaseForm").classList.toggle("hidden");
-document.getElementById("toggleTrendingForm").onclick = () =>
-  document.getElementById("trendingForm").classList.toggle("hidden");
-document.getElementById("togglePopularForm").onclick = () =>
-  document.getElementById("popularForm").classList.toggle("hidden");
-
+// Toggle Forms
+document.getElementById("toggleNewForm").onclick = () => document.getElementById("newReleaseForm").classList.toggle("hidden");
+document.getElementById("toggleTrendingForm").onclick = () => document.getElementById("trendingForm").classList.toggle("hidden");
+document.getElementById("togglePopularForm").onclick = () => document.getElementById("popularForm").classList.toggle("hidden");
 </script>
 </body>
 </html>
