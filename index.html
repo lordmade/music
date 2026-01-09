@@ -1,245 +1,452 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
-  <title>Vynix Lingua – Verify Users</title>
-
-  <!-- Fonts & Icons (same as main app) -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vynix Max • Admin Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet"/>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <style>
     :root {
-      --primary-black: #000;
-      --primary-white: #fff;
-      --gray-light: #f5f5f5;
-      --gray-mid: #9e9e9e;
-      --verified-blue: #1DA1F2;
-      --danger: #ff3b30;
-      --header-height: 60px;
-      --pill-radius: 25px;
+      --bg: #0a0e14;
+      --surface: #11171f;
+      --surface-glass: rgba(17, 23, 31, 0.65);
+      --accent: #00eaff;
+      --accent-glow: rgba(0, 234, 255, 0.35);
+      --text: #f0f4f8;
+      --text-dim: #a0b0c0;
+      --border: rgba(0, 234, 255, 0.18);
+      --danger: #ff4d4d;
+      --success: #00ff9d;
     }
-    *{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;}
-    body{
-      font-family:'Inter',sans-serif;
-      background:var(--gray-light);
-      color:#000;
-      height:100vh;
-      display:flex;
-      flex-direction:column;
-    }
-    .top-bar{
-      height:var(--header-height);
-      background:var(--primary-black);
-      display:flex;
-      align-items:center;
-      padding:0 16px;
-      color:var(--primary-white);
-      font-family:'Poppins',sans-serif;
-      font-weight:600;
-      font-size:18px;
-      gap:12px;
-    }
-    .top-bar .back-btn{
-      color:var(--primary-white);
-      font-size:28px;
-      cursor:pointer;
-    }
-    .container{
-      flex:1;
-      overflow-y:auto;
-      padding:16px;
-    }
-    .user-row{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:12px;
-      background:var(--primary-white);
-      border-radius:12px;
-      margin-bottom:12px;
-    }
-    .user-avatar{
-      width:48px;height:48px;border-radius:50%;
-      background:var(--gray-light);
-      display:flex;align-items:center;justify-content:center;
-      font-weight:600;
-    }
-    .user-info{flex:1;min-width:0;}
-    .user-name{
-      font-weight:500;
-      display:flex;align-items:center;gap:6px;
-    }
-    .user-email{font-size:14px;color:var(--gray-mid);}
-    .toggle-btn{
-      padding:8px 16px;border:none;border-radius:20px;
-      font-weight:600;cursor:pointer;transition:.2s;
-    }
-    .toggle-btn.on{background:var(--verified-blue);color:#fff;}
-    .toggle-btn.off{background:var(--gray-light);color:var(--primary-black);}
-    .toggle-btn.on::before{content:'Verified';}
-    .toggle-btn.off::before{content:'Verify';}
 
-    /* bottom-sheet auth (copied from your main app) */
-    .auth-overlay{
-      position:fixed;inset:0;background:rgba(0,0,0,.5);
-      display:none;align-items:flex-end;z-index:300;
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      padding: 2rem;
     }
-    .auth-overlay.open{display:flex;}
-    .auth-box{
-      background:var(--primary-white);width:100%;
-      border-radius:24px 24px 0 0;padding:32px 24px;
-      animation:slideUp .3s;
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2.5rem;
     }
-    @media (min-width:768px){
-      .auth-overlay{align-items:center;justify-content:center;}
-      .auth-box{width:380px;border-radius:20px;}
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--accent), #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
-    .auth-title{font-family:'Poppins',sans-serif;font-size:24px;font-weight:600;text-align:center;margin-bottom:8px;}
-    .auth-subtitle{text-align:center;color:var(--gray-mid);margin-bottom:24px;font-size:14px;}
-    .auth-input{width:100%;padding:14px 16px;border:1px solid rgba(0,0,0,.1);border-radius:12px;margin-bottom:16px;font-size:16px;background:var(--gray-light);}
-    .auth-btn{width:100%;padding:14px;background:var(--primary-black);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:16px;}
-    .auth-switch{text-align:center;font-size:14px;color:var(--gray-mid);}
-    .auth-switch-btn{background:none;border:none;color:var(--primary-black);font-weight:600;cursor:pointer;}
-    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .btn {
+      padding: 0.8rem 1.6rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+    }
+    .btn-primary { background: var(--accent); color: #0a0e14; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-success { background: var(--success); color: #0a0e14; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--accent-glow); }
+
+    .section {
+      margin-bottom: 3rem;
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem;
+      border: 1px solid var(--border);
+    }
+    .section h2 {
+      margin-bottom: 1.5rem;
+      color: var(--accent);
+      font-size: 1.6rem;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 1.2rem;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text-dim);
+    }
+    input, textarea {
+      width: 100%;
+      padding: 0.9rem 1.1rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: white;
+      font-size: 1rem;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .item-list {
+      display: grid;
+      gap: 1rem;
+    }
+    .item-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+    .item-card:hover { background: rgba(255,255,255,0.08); }
+    .item-info strong { color: var(--text); }
+    .item-info small { color: var(--text-dim); }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 1rem 1.6rem;
+      background: var(--surface);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideIn 0.4s ease;
+    }
+    @keyframes slideIn { from { transform: translateX(120%); opacity:0; } to { transform: translateX(0); opacity:1; } }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <header class="top-bar">
-    <span class="material-symbols-rounded back-btn" onclick="history.back()">arrow_back</span>
-    Verify Users
-  </header>
 
-  <main class="container" id="userList"></main>
+<header>
+  <h1>Vynix Max Dashboard</h1>
+  <div>
+    <button class="btn btn-danger" id="signOutBtn">Sign Out</button>
+  </div>
+</header>
 
-  <!-- ====== bottom-sheet auth ====== -->
-  <div id="authOverlay" class="auth-overlay">
-    <div class="auth-box">
-      <h2 class="auth-title" id="authTitle">Welcome</h2>
-      <p class="auth-subtitle" id="authSub">Sign in to continue</p>
-      <input type="email"    id="authEmail"    class="auth-input" placeholder="Email"/>
-      <input type="password" id="authPass"     class="auth-input" placeholder="Password"/>
-      <button class="auth-btn" id="authBtn">Sign In</button>
-      <div class="auth-switch">
-        <span id="authQ">Don't have an account?</span>
-        <button class="auth-switch-btn" id="authSwitchBtn">Sign Up</button>
-      </div>
+<!-- Login Form (shown before auth) -->
+<div id="loginSection" class="section">
+  <h2>Admin Login</h2>
+  <div class="form-grid">
+    <div>
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="admin@vynixmax.com" required/>
+    </div>
+    <div>
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="••••••••" required/>
     </div>
   </div>
+  <button class="btn btn-primary" style="margin-top:1.5rem;" id="loginBtn">Login</button>
+  <p id="loginError" style="color:var(--danger); margin-top:1rem; min-height:1.2rem;"></p>
+</div>
 
-  <!-- Firebase -->
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-    import { getDatabase, ref, onValue, update } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
+<!-- Main Dashboard (hidden until logged in) -->
+<div id="dashboard" class="hidden">
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
-      authDomain: "fire-b-a8878.firebaseapp.com",
-      databaseURL: "https://fire-b-a8878.firebaseio.com",
-      projectId: "fire-b-a8878",
-      storageBucket: "fire-b-a8878.firebasestorage.app",
-      messagingSenderId: "658673187627",
-      appId: "1:658673187627:web:32699cbc33e85f4bafa36e",
-      measurementId: "G-2505EVBRWX"
-    };
+  <!-- Hero Section -->
+  <div class="section">
+    <h2>Hero Section</h2>
+    <div class="form-grid">
+      <div>
+        <label for="heroTitle">Title (supports <br>)</label>
+        <input type="text" id="heroTitle" placeholder="NEON<br>HORIZON"/>
+      </div>
+      <div>
+        <label for="heroDesc">Tagline / Description</label>
+        <textarea id="heroDesc" rows="3"></textarea>
+      </div>
+      <div>
+        <label for="heroBadge">Badge Text</label>
+        <input type="text" id="heroBadge" placeholder="VYNIX ORIGINAL"/>
+      </div>
+      <div>
+        <label for="heroRating">Rating</label>
+        <input type="text" id="heroRating" placeholder="8.7"/>
+      </div>
+      <div>
+        <label for="heroYear">Year</label>
+        <input type="text" id="heroYear" placeholder="2025"/>
+      </div>
+      <div>
+        <label for="heroDuration">Duration</label>
+        <input type="text" id="heroDuration" placeholder="2h 18m"/>
+      </div>
+      <div>
+        <label for="heroAge">Age Rating</label>
+        <input type="text" id="heroAge" placeholder="16+"/>
+      </div>
+      <div style="grid-column: 1 / -1;">
+        <label for="heroBg">Background Image URL</label>
+        <input type="url" id="heroBg" placeholder="https://..."/>
+      </div>
+    </div>
+    <button class="btn btn-success" style="margin-top:1.5rem;" id="saveHero">Save Hero</button>
+  </div>
 
-    const app  = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db   = getDatabase(app);
+  <!-- Trending Movies -->
+  <div class="section">
+    <h2>Trending Now</h2>
+    <div id="trendingList" class="item-list"></div>
 
-    const authOverlay   = document.getElementById('authOverlay');
-    const authTitle     = document.getElementById('authTitle');
-    const authSub       = document.getElementById('authSub');
-    const authEmail     = document.getElementById('authEmail');
-    const authPass      = document.getElementById('authPass');
-    const authBtn       = document.getElementById('authBtn');
-    const authSwitchBtn = document.getElementById('authSwitchBtn');
-    const authQ         = document.getElementById('authQ');
+    <h3 style="margin:1.5rem 0 1rem;">Add New Trending Item</h3>
+    <div class="form-grid">
+      <div>
+        <label for="trTitle">Title</label>
+        <input type="text" id="trTitle"/>
+      </div>
+      <div>
+        <label for="trImage">Image URL</label>
+        <input type="url" id="trImage"/>
+      </div>
+      <div>
+        <label for="trYear">Year</label>
+        <input type="text" id="trYear"/>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:1rem;" id="addTrending">Add Item</button>
+  </div>
 
-    let isSignUp = false;
-    let currentUser = null;
+  <!-- Popular Movies (similar structure) -->
+  <div class="section">
+    <h2>Popular on Vynix</h2>
+    <div id="popularList" class="item-list"></div>
 
-    /* ---------- auth sheet ---------- */
-    function toggleAuthSheet(open){
-      authOverlay.classList.toggle('open',open);
-      document.body.classList.toggle('sheet-open',open);
+    <h3 style="margin:1.5rem 0 1rem;">Add New Popular Item</h3>
+    <div class="form-grid">
+      <div>
+        <label for="popTitle">Title</label>
+        <input type="text" id="popTitle"/>
+      </div>
+      <div>
+        <label for="popImage">Image URL</label>
+        <input type="url" id="popImage"/>
+      </div>
+      <div>
+        <label for="popYear">Year</label>
+        <input type="text" id="popYear"/>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:1rem;" id="addPopular">Add Item</button>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" style="position:fixed; bottom:24px; right:24px; z-index:9999;"></div>
+
+<script>
+  // ── Firebase Config ──
+  const firebaseConfig = {
+    apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
+    authDomain: "fire-b-a8878.firebaseapp.com",
+    databaseURL: "https://fire-b-a8878.firebaseio.com",
+    projectId: "fire-b-a8878",
+    appId: "1:658673187627:web:6e4c29af661785f0afa36e"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+
+  // ── Toast ──
+  function showToast(msg, type = 'info') {
+    const colors = { info: var(--accent), success: var(--success), error: var(--danger) };
+    const t = document.createElement('div');
+    t.style.cssText = `
+      padding: 1rem 1.6rem; margin-top:12px; background:var(--surface); border-left:4px solid ${colors[type] || var(--accent)};
+      border-radius:8px; box-shadow:0 8px 32px rgba(0,0,0,0.5); display:flex; align-items:center; gap:12px; color:var(--text);
+    `;
+    t.innerHTML = `<span class="material-symbols-rounded">${type === 'success' ? 'check_circle' : type === 'error' ? 'error' : 'info'}</span><span>${msg}</span>`;
+    document.getElementById('toastContainer').appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }
+
+  // ── Auth State & Login ──
+  const loginSection = document.getElementById('loginSection');
+  const dashboard = document.getElementById('dashboard');
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      loginSection.classList.add('hidden');
+      dashboard.classList.remove('hidden');
+      showToast(`Logged in as ${user.email}`, 'success');
+      loadAllContent();
+    } else {
+      loginSection.classList.remove('hidden');
+      dashboard.classList.add('hidden');
     }
-    authSwitchBtn.onclick = () => {
-      isSignUp = !isSignUp;
-      authBtn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
-      authTitle.textContent = isSignUp ? 'Create Account' : 'Welcome';
-      authSub.textContent   = isSignUp ? 'Join Vynix Lingua' : 'Sign in to continue';
-      authQ.textContent     = isSignUp ? 'Already have an account?' : 'Don\'t have an account?';
-      authSwitchBtn.textContent = isSignUp ? 'Sign In' : 'Sign Up';
-    };
-    authBtn.onclick = async () => {
-      const email = authEmail.value.trim();
-      const pass  = authPass.value;
-      if (!email || !pass) return alert('Please fill all fields');
-      try {
-        let cred;
-        if (isSignUp){
-          cred = await createUserWithEmailAndPassword(auth,email,pass);
-          await updateProfile(cred.user,{displayName:email.split('@')[0]});
-          await update(ref(db,`users/${cred.user.uid}`),{
-            displayName:cred.user.displayName||email.split('@')[0],
-            email,username:email.split('@')[0],
-            verified:false,online:true
-          });
-        } else {
-          cred = await signInWithEmailAndPassword(auth,email,pass);
-          await update(ref(db,`users/${cred.user.uid}`),{online:true});
-        }
-        toggleAuthSheet(false);
-      } catch (e) { alert(e.message) }
-    };
+  });
 
-    /* ---------- users list ---------- */
-    const svgBadge = `
-      <svg class="verified-badge" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .495.083.965.238 1.4-1.272.65-2.147 2.02-2.147 3.6 0 1.56.86 2.91 2.115 3.567-.146.432-.225.898-.225 1.383 0 2.21 1.71 4 3.818 4 .47 0 .92-.084 1.336-.25.62 1.333 1.926 2.25 3.437 2.25 1.512 0 2.818-.917 3.437-2.25.415.165.866.25 1.336.25 2.11 0 3.818-1.79 3.818-4 0-.485-.08-.95-.225-1.383 1.255-.657 2.115-2.007 2.115-3.567z" fill="#1DA1F2"/>
-        <path d="M10.198 16.556l-3.812-3.812 1.415-1.415 2.397 2.397 5.613-5.613 1.414 1.414-7.027 7.03z" fill="#FFFFFF"/>
-      </svg>`;
-
-    function renderUsers(list){
-      const box = document.getElementById('userList');
-      if (!list.length){ box.innerHTML = '<p style="text-align:center;color:var(--gray-mid)">No users yet.</p>'; return; }
-      box.innerHTML = list.map(u=>`
-        <div class="user-row">
-          <div class="user-avatar">${(u.displayName||'A').charAt(0).toUpperCase()}</div>
-          <div class="user-info">
-            <div class="user-name">
-              ${u.displayName||'Anonymous'} ${u.verified?svgBadge:''}
-            </div>
-            <div class="user-email">${u.email||''}</div>
-          </div>
-          <button class="toggle-btn ${u.verified?'on':'off'}" data-uid="${u.uid}" data-state="${u.verified?'on':'off'}"></button>
-        </div>`).join('');
-
-      document.querySelectorAll('.toggle-btn').forEach(btn=>{
-        btn.onclick = async () => {
-          const uid = btn.dataset.uid;
-          const to  = btn.dataset.state === 'off';
-          await update(ref(db,`users/${uid}`),{verified:to});
-          btn.dataset.state = to?'on':'off';
-          btn.classList.toggle('on',to); btn.classList.toggle('off',!to);
-        };
-      });
+  document.getElementById('loginBtn').onclick = async () => {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+    } catch (err) {
+      document.getElementById('loginError').textContent = err.message;
     }
+  };
 
-    /* ---------- auth state ---------- */
-    onAuthStateChanged(auth,user=>{
-      if (!user){                    // show bottom-sheet
-        toggleAuthSheet(true);
-      } else {                      // load users
-        currentUser = user;
-        onValue(ref(db,'users'),snap=>{
-          const list = []; snap.forEach(c=>list.push({uid:c.key,...c.val()})); renderUsers(list);
-        });
-      }
+  document.getElementById('signOutBtn').onclick = () => auth.signOut();
+
+  // ── Load & Save Content ──
+  function loadAllContent() {
+    loadHero();
+    loadTrending();
+    loadPopular();
+  }
+
+  // Hero
+  function loadHero() {
+    db.ref('/content/hero').once('value', snap => {
+      const data = snap.val() || {};
+      document.getElementById('heroTitle').value = data.title || '';
+      document.getElementById('heroDesc').value = data.description || '';
+      document.getElementById('heroBadge').value = data.badge || '';
+      document.getElementById('heroRating').value = data.rating || '';
+      document.getElementById('heroYear').value = data.year || '';
+      document.getElementById('heroDuration').value = data.duration || '';
+      document.getElementById('heroAge').value = data.ageRating || '';
+      document.getElementById('heroBg').value = data.backgroundImage || '';
     });
-  </script>
+  }
+
+  document.getElementById('saveHero').onclick = () => {
+    const data = {
+      title: document.getElementById('heroTitle').value,
+      description: document.getElementById('heroDesc').value,
+      badge: document.getElementById('heroBadge').value,
+      rating: document.getElementById('heroRating').value,
+      year: document.getElementById('heroYear').value,
+      duration: document.getElementById('heroDuration').value,
+      ageRating: document.getElementById('heroAge').value,
+      backgroundImage: document.getElementById('heroBg').value
+    };
+    db.ref('/content/hero').set(data)
+      .then(() => showToast('Hero updated!', 'success'))
+      .catch(err => showToast('Error: ' + err.message, 'error'));
+  };
+
+  // Trending
+  function loadTrending() {
+    const list = document.getElementById('trendingList');
+    list.innerHTML = '<div>Loading...</div>';
+
+    db.ref('/content/trending').on('value', snap => {
+      list.innerHTML = '';
+      const items = snap.val() || {};
+      Object.entries(items).forEach(([key, item]) => {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.innerHTML = `
+          <div class="item-info">
+            <strong>${item.title || 'No title'}</strong><br/>
+            <small>${item.image ? item.image.substring(0,60)+'...' : 'No image'}</small>
+          </div>
+          <button class="btn btn-danger" onclick="deleteTrending('${key}')">Delete</button>
+        `;
+        list.appendChild(card);
+      });
+    });
+  }
+
+  document.getElementById('addTrending').onclick = () => {
+    const title = document.getElementById('trTitle').value.trim();
+    const image = document.getElementById('trImage').value.trim();
+    const year = document.getElementById('trYear').value.trim();
+
+    if (!title) return showToast('Title is required', 'error');
+
+    db.ref('/content/trending').push({ title, image, year })
+      .then(() => {
+        showToast('Item added!', 'success');
+        document.getElementById('trTitle').value = '';
+        document.getElementById('trImage').value = '';
+        document.getElementById('trYear').value = '';
+      })
+      .catch(err => showToast('Error: ' + err.message, 'error'));
+  };
+
+  window.deleteTrending = key => {
+    if (confirm('Delete this item?')) {
+      db.ref(`/content/trending/${key}`).remove()
+        .then(() => showToast('Deleted', 'success'))
+        .catch(err => showToast('Error: ' + err.message, 'error'));
+    }
+  };
+
+  // Popular – same logic
+  function loadPopular() {
+    const list = document.getElementById('popularList');
+    list.innerHTML = '<div>Loading...</div>';
+
+    db.ref('/content/popular').on('value', snap => {
+      list.innerHTML = '';
+      const items = snap.val() || {};
+      Object.entries(items).forEach(([key, item]) => {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.innerHTML = `
+          <div class="item-info">
+            <strong>${item.title || 'No title'}</strong><br/>
+            <small>${item.image ? item.image.substring(0,60)+'...' : 'No image'}</small>
+          </div>
+          <button class="btn btn-danger" onclick="deletePopular('${key}')">Delete</button>
+        `;
+        list.appendChild(card);
+      });
+    });
+  }
+
+  document.getElementById('addPopular').onclick = () => {
+    const title = document.getElementById('popTitle').value.trim();
+    const image = document.getElementById('popImage').value.trim();
+    const year = document.getElementById('popYear').value.trim();
+
+    if (!title) return showToast('Title is required', 'error');
+
+    db.ref('/content/popular').push({ title, image, year })
+      .then(() => {
+        showToast('Item added!', 'success');
+        document.getElementById('popTitle').value = '';
+        document.getElementById('popImage').value = '';
+        document.getElementById('popYear').value = '';
+      })
+      .catch(err => showToast('Error: ' + err.message, 'error'));
+  };
+
+  window.deletePopular = key => {
+    if (confirm('Delete this item?')) {
+      db.ref(`/content/popular/${key}`).remove()
+        .then(() => showToast('Deleted', 'success'))
+        .catch(err => showToast('Error: ' + err.message, 'error'));
+    }
+  };
+</script>
 </body>
 </html>
