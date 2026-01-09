@@ -1,365 +1,660 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vynix Max • Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vynix Max • Admin Dashboard</title>
 
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet"/>
+
+  <!-- SortableJS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
   <style>
     :root {
-      --bg: #0a0e14;
-      --surface: #11171f;
-      --accent: #00eaff;
-      --text: #f0f4f8;
-      --text-dim: #a0b0c0;
-      --border: rgba(0,234,255,0.18);
-      --danger: #ff4d4d;
-      --success: #00ff9d;
+      --bg: #000;
+      --surface: #111;
+      --surface-hover: #1a1a1a;
+      --accent: #e50914;
+      --accent-hover: #f40613;
+      --text: #ffffff;
+      --text-dim: #aaa;
+      --border: rgba(255,255,255,0.08);
+      --radius: 10px;
+      --transition: all 0.25s ease;
     }
-    body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; padding:2rem; min-height:100vh; }
-    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:2.5rem; }
-    h1 { font-size:2.4rem; font-weight:800; background:linear-gradient(90deg,var(--accent),#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-    .btn { padding:0.8rem 1.6rem; border-radius:8px; font-weight:600; cursor:pointer; border:none; transition:all 0.25s; display:inline-flex; align-items:center; gap:8px; }
-    .btn-primary { background:var(--accent); color:#0a0e14; }
-    .btn-danger { background:var(--danger); color:white; }
-    .btn-success { background:var(--success); color:#0a0e14; }
-    .btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,234,255,0.35); }
-    .section { margin-bottom:3rem; background:var(--surface); border-radius:12px; padding:2rem; border:1px solid var(--border); }
-    .form-grid { display:grid; gap:1.2rem; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
-    label { display:block; margin-bottom:0.5rem; color:var(--text-dim); font-weight:500; }
-    input, textarea { width:100%; padding:0.9rem; background:rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:8px; color:white; }
-    input:focus, textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,234,255,0.3); }
-    .upload-wrapper { display:flex; gap:0.8rem; align-items:flex-end; }
-    .upload-btn { padding:0.9rem 1.2rem; background:rgba(0,234,255,0.15); border:1px solid var(--accent); color:var(--accent); border-radius:8px; cursor:pointer; }
-    .preview-img { max-width:140px; max-height:90px; object-fit:cover; border-radius:6px; border:1px solid var(--border); margin-top:0.5rem; }
-    .item-list { display:grid; gap:1rem; }
-    .item-card { background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:1.2rem; display:flex; justify-content:space-between; align-items:center; }
-    .item-card:hover { background:rgba(255,255,255,0.08); }
-    .toast { position:fixed; bottom:24px; right:24px; padding:1rem 1.6rem; background:var(--surface); border-left:4px solid var(--accent); border-radius:8px; box-shadow:0 8px 32px rgba(0,0,0,0.5); z-index:9999; display:flex; align-items:center; gap:12px; animation:slideIn 0.4s ease; }
-    @keyframes slideIn { from { transform:translateX(120%); opacity:0; } to { transform:translateX(0); opacity:1; } }
-    .hidden { display:none !important; }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2.5rem;
+    }
+
+    h1 { font-size: 2.2rem; font-weight: 900; letter-spacing: -1px; }
+
+    .btn {
+      padding: 0.75rem 1.6rem;
+      border-radius: 999px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: var(--transition);
+    }
+
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+    .btn-danger { background: #c62828; color: white; }
+    .btn-danger:hover { background: #d32f2f; }
+
+    .section {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 1.8rem;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.4rem;
+    }
+
+    .section-title { font-size: 1.5rem; font-weight: 700; }
+
+    .form-grid {
+      display: grid;
+      gap: 1.4rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-dim);
+    }
+
+    input, textarea {
+      padding: 0.9rem 1rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: white;
+      font-size: 0.96rem;
+      transition: var(--transition);
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(229,9,20,0.2);
+    }
+
+    textarea { min-height: 90px; resize: vertical; }
+
+    .file-upload {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .file-upload:hover {
+      border-color: var(--accent);
+      background: rgba(229,9,20,0.05);
+    }
+
+    .preview {
+      max-width: 100%;
+      max-height: 180px;
+      margin-top: 1rem;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .items-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.4rem;
+      margin-top: 1.5rem;
+      min-height: 100px;
+    }
+
+    .item-card {
+      background: rgba(255,255,255,0.04);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: var(--transition);
+      position: relative;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .item-card:active { cursor: grabbing; }
+
+    .item-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    }
+
+    .item-card img, .item-card video {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+    }
+
+    .item-info {
+      padding: 1rem;
+    }
+
+    .item-title {
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    .item-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.6rem;
+      padding: 0 1rem 1rem;
+    }
+
+    .drag-handle {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      cursor: grab;
+      z-index: 10;
+    }
+
+    .login-container {
+      max-width: 420px;
+      margin: 8rem auto;
+      background: var(--surface);
+      padding: 2.5rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    .hidden { display: none !important; }
+
+    .sortable-ghost { opacity: 0.4; background: rgba(229,9,20,0.2); }
+    .sortable-chosen { box-shadow: 0 10px 30px rgba(229,9,20,0.4); }
+
+    @media (max-width: 768px) {
+      body { padding: 1.2rem; }
+      .items-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    }
   </style>
 </head>
 <body>
 
-<header>
-  <h1>Vynix Max Dashboard</h1>
-  <button class="btn btn-danger" id="signOutBtn">Sign Out</button>
-</header>
-
-<div id="loginSection" class="section">
-  <h2>Admin Login</h2>
-  <div class="form-grid">
-    <div><label for="email">Email</label><input type="email" id="email" required/></div>
-    <div><label for="password">Password</label><input type="password" id="password" required/></div>
+<div id="loginPage" class="login-container">
+  <h1 style="text-align:center; margin-bottom:2rem;">Vynix Max Dashboard</h1>
+  <div class="form-group">
+    <label>Email</label>
+    <input type="email" id="email" placeholder="admin@vynixmax.com" autocomplete="email"/>
   </div>
-  <button class="btn btn-primary" id="loginBtn" style="margin-top:1.5rem;">Login</button>
-  <p id="loginError" style="color:var(--danger);margin-top:1rem;"></p>
+  <div class="form-group" style="margin:1.2rem 0;">
+    <label>Password</label>
+    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password"/>
+  </div>
+  <button class="btn btn-primary" style="width:100%;" id="loginBtn">Login</button>
+  <p id="loginError" style="color:#ff5252; margin-top:1rem; text-align:center; min-height:1.4rem;"></p>
 </div>
 
-<div id="dashboard" class="hidden">
+<div id="dashboard" class="container hidden">
+  <header>
+    <h1>Vynix Max Admin</h1>
+    <button class="btn btn-danger" id="signOutBtn">Sign Out</button>
+  </header>
 
-  <!-- Hero -->
+  <!-- Hero Section -->
   <div class="section">
-    <h2>Hero Section</h2>
+    <div class="section-header">
+      <div class="section-title">Hero Section</div>
+    </div>
     <div class="form-grid">
-      <div><label>Title</label><input id="heroTitle"/></div>
-      <div><label>Description</label><textarea id="heroDesc" rows="3"></textarea></div>
-      <div><label>Badge</label><input id="heroBadge"/></div>
-      <div><label>Rating</label><input id="heroRating"/></div>
-      <div><label>Year</label><input id="heroYear"/></div>
-      <div><label>Duration</label><input id="heroDuration"/></div>
-      <div><label>Age Rating</label><input id="heroAge"/></div>
-      <div style="grid-column:1/-1;">
-        <label>Background (Image/Video)</label>
-        <div class="upload-wrapper">
-          <input type="url" id="heroBg"/>
-          <label class="upload-btn">
-            <span class="material-symbols-rounded">upload</span> Upload
-            <input type="file" id="heroBgFile" accept="image/*,video/*" hidden/>
-          </label>
+      <div class="form-group"><label>Title</label><input type="text" id="heroTitle"/></div>
+      <div class="form-group"><label>Description</label><textarea id="heroDescription"></textarea></div>
+      <div class="form-group"><label>Badge / Age Rating</label><input type="text" id="heroBadge" placeholder="16+"/></div>
+      <div class="form-group"><label>Rating (e.g. 8.7)</label><input type="text" id="heroRating"/></div>
+      <div class="form-group"><label>Year</label><input type="text" id="heroYear"/></div>
+      <div class="form-group"><label>Duration (e.g. 2h 18m)</label><input type="text" id="heroDuration"/></div>
+      <div class="form-group" style="grid-column: span 2;">
+        <label>Background Image/Video</label>
+        <div class="file-upload" id="heroUploadArea">
+          Click to upload or drag & drop<br/>
+          <small>Recommended: 1920×1080 or higher</small>
+          <input type="file" id="heroFileInput" accept="image/*,video/*" hidden/>
+          <img id="heroPreview" class="preview" alt="Preview"/>
         </div>
-        <img id="heroBgPreview" class="preview-img" style="display:none;" alt="Preview"/>
       </div>
     </div>
-    <button class="btn btn-success" id="saveHero" style="margin-top:1.5rem;">Save Hero</button>
+    <button class="btn btn-primary" style="margin-top:1.5rem;" id="saveHero">Save Hero</button>
   </div>
 
-  <!-- Trending -->
+  <!-- New Releases -->
   <div class="section">
-    <h2>Trending Now</h2>
-    <div id="trendingList" class="item-list"></div>
-    <h3 style="margin:1.5rem 0 1rem;">Add New</h3>
-    <div class="form-grid">
-      <div><label>Title</label><input id="trTitle"/></div>
-      <div>
-        <label>Image/Video</label>
-        <div class="upload-wrapper">
-          <input type="url" id="trMedia"/>
-          <label class="upload-btn">
-            <span class="material-symbols-rounded">upload</span> Upload
-            <input type="file" id="trMediaFile" accept="image/*,video/*" hidden/>
-          </label>
-        </div>
-        <img id="trMediaPreview" class="preview-img" style="display:none;" alt="Thumbnail"/>
-      </div>
-      <div><label>Year</label><input id="trYear"/></div>
+    <div class="section-header">
+      <div class="section-title">New Releases</div>
+      <button class="btn btn-primary" id="toggleNewForm">Add New</button>
     </div>
-    <button class="btn btn-primary" id="addTrending" style="margin-top:1rem;">Add</button>
+
+    <div id="newReleaseForm" class="form-grid hidden">
+      <div class="form-group"><label>Title</label><input type="text" id="newTitle"/></div>
+      <div class="form-group"><label>Year</label><input type="text" id="newYear"/></div>
+      <div class="form-group" style="grid-column: span 2;">
+        <label>Poster / Cover (Image/Video)</label>
+        <div class="file-upload" id="newUploadArea">
+          Click to upload or drag & drop
+          <input type="file" id="newFileInput" accept="image/*,video/*" hidden/>
+          <img id="newPreview" class="preview" alt="Preview"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="addNewRelease">Add to New Releases</button>
+    </div>
+
+    <div class="items-grid sortable" id="newReleasesList" data-category="new"></div>
   </div>
 
-  <!-- Popular -->
+  <!-- Trending Now -->
   <div class="section">
-    <h2>Popular on Vynix</h2>
-    <div id="popularList" class="item-list"></div>
-    <h3 style="margin:1.5rem 0 1rem;">Add New</h3>
-    <div class="form-grid">
-      <div><label>Title</label><input id="popTitle"/></div>
-      <div>
-        <label>Image/Video</label>
-        <div class="upload-wrapper">
-          <input type="url" id="popMedia"/>
-          <label class="upload-btn">
-            <span class="material-symbols-rounded">upload</span> Upload
-            <input type="file" id="popMediaFile" accept="image/*,video/*" hidden/>
-          </label>
-        </div>
-        <img id="popMediaPreview" class="preview-img" style="display:none;" alt="Thumbnail"/>
-      </div>
-      <div><label>Year</label><input id="popYear"/></div>
+    <div class="section-header">
+      <div class="section-title">Trending Now</div>
+      <button class="btn btn-primary" id="toggleTrendingForm">Add New</button>
     </div>
-    <button class="btn btn-primary" id="addPopular" style="margin-top:1rem;">Add</button>
+
+    <div id="trendingForm" class="form-grid hidden">
+      <div class="form-group"><label>Title</label><input type="text" id="trendingTitle"/></div>
+      <div class="form-group"><label>Year</label><input type="text" id="trendingYear"/></div>
+      <div class="form-group" style="grid-column: span 2;">
+        <label>Poster / Cover</label>
+        <div class="file-upload" id="trendingUploadArea">
+          Click to upload or drag & drop
+          <input type="file" id="trendingFileInput" accept="image/*,video/*" hidden/>
+          <img id="trendingPreview" class="preview" alt="Preview"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="addTrending">Add to Trending</button>
+    </div>
+
+    <div class="items-grid sortable" id="trendingList" data-category="trending"></div>
+  </div>
+
+  <!-- Popular on Vynix -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Popular on Vynix</div>
+      <button class="btn btn-primary" id="togglePopularForm">Add New</button>
+    </div>
+
+    <div id="popularForm" class="form-grid hidden">
+      <div class="form-group"><label>Title</label><input type="text" id="popularTitle"/></div>
+      <div class="form-group"><label>Year</label><input type="text" id="popularYear"/></div>
+      <div class="form-group" style="grid-column: span 2;">
+        <label>Poster / Cover</label>
+        <div class="file-upload" id="popularUploadArea">
+          Click to upload or drag & drop
+          <input type="file" id="popularFileInput" accept="image/*,video/*" hidden/>
+          <img id="popularPreview" class="preview" alt="Preview"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="addPopular">Add to Popular</button>
+    </div>
+
+    <div class="items-grid sortable" id="popularList" data-category="popular"></div>
   </div>
 </div>
-
-<div id="toastContainer" style="position:fixed;bottom:24px;right:24px;z-index:9999;"></div>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
-    authDomain: "fire-b-a8878.firebaseapp.com",
-    databaseURL: "https://fire-b-a8878.firebaseio.com",
-    projectId: "fire-b-a8878",
-    appId: "1:658673187627:web:6e4c29af661785f0afa36e"
+// =============================================
+// CONFIG
+// =============================================
+const firebaseConfig = {
+  apiKey: "AIzaSyBOyZ3As4GTuNvjemvPF_SpsC6m6vqtNhc",
+  authDomain: "fire-b-a8878.firebaseapp.com",
+  databaseURL: "https://fire-b-a8878.firebaseio.com",
+  projectId: "fire-b-a8878",
+  storageBucket: "fire-b-a8878.appspot.com",
+  appId: "1:658673187627:web:6e4c29af661785f0afa36e"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+const storage = firebase.storage();
+
+// =============================================
+// AUTH
+// =============================================
+auth.onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('dashboard').classList.remove('hidden');
+    loadAllContent();
+  } else {
+    document.getElementById('loginPage').classList.remove('hidden');
+    document.getElementById('dashboard').classList.add('hidden');
+  }
+});
+
+document.getElementById('loginBtn').onclick = () => {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  auth.signInWithEmailAndPassword(email, password)
+    .catch(err => {
+      document.getElementById('loginError').textContent = err.message;
+    });
+};
+
+document.getElementById('signOutBtn').onclick = () => auth.signOut();
+
+// =============================================
+// FILE UPLOAD HELPERS
+// =============================================
+function setupFileUpload(areaId, inputId, previewId) {
+  const area = document.getElementById(areaId);
+  const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+
+  area.onclick = () => input.click();
+
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    preview.src = url;
+    preview.style.display = 'block';
   };
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.database();
 
-  // Cloudinary Config
-  const CLOUD_NAME = "dqkujefxj";           // ← replace
-  const UPLOAD_PRESET = "banter_box";   // ← replace
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => area.addEventListener(ev, e => e.preventDefault()));
 
-  function showToast(msg, type='info') {
-    const icon = type==='success'?'check_circle':type==='error'?'error':'info';
-    const color = type==='success'?'#00ff9d':type==='error'?'#ff4d4d':'#00eaff';
-    const t = document.createElement('div');
-    t.innerHTML = `<span class="material-symbols-rounded" style="color:${color}">${icon}</span><span>${msg}</span>`;
-    t.style.cssText=`padding:1rem 1.6rem;background:#11171f;border-left:4px solid ${color};border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.5);display:flex;align-items:center;gap:12px;color:#f0f4f8;margin-top:12px;animation:slideIn 0.4s ease;`;
-    document.getElementById('toastContainer').appendChild(t);
-    setTimeout(()=>t.remove(),4000);
-  }
-
-  async function uploadFile(fileInputId, urlInputId, previewId) {
-    const fileInput = document.getElementById(fileInputId);
-    if (!fileInput.files.length) return showToast("No file selected","error");
-
-    const file = fileInput.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', UPLOAD_PRESET);
-
-    try {
-      showToast("Uploading...", "info");
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`, {
-        method: 'POST',
-        body: formData
-      });
-      if (!res.ok) throw new Error((await res.json()).error?.message || "Upload failed");
-
-      const data = await res.json();
-      const urlInput = document.getElementById(urlInputId);
-      urlInput.value = data.secure_url;
-
-      // Generate thumbnail at 10 seconds (video) or use original (image)
-      const isVideo = data.resource_type === 'video';
-      const thumb = isVideo
-        ? `https://res.cloudinary.com/${CLOUD_NAME}/video/upload/so_10,w_400,h_225,c_fill,q_auto/${data.public_id}.jpg`
-        : data.secure_url;
-
-      const preview = document.getElementById(previewId);
-      if (preview) {
-        preview.src = thumb;
-        preview.style.display = 'block';
-      }
-
-      showToast("Upload complete", "success");
-      fileInput.value = '';
-      return data.secure_url;
-
-    } catch (err) {
-      showToast("Upload failed: " + err.message, "error");
-      console.error(err);
+  area.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      input.files = e.dataTransfer.files;
+      input.dispatchEvent(new Event('change'));
     }
+  });
+}
+
+setupFileUpload('heroUploadArea', 'heroFileInput', 'heroPreview');
+setupFileUpload('newUploadArea', 'newFileInput', 'newPreview');
+setupFileUpload('trendingUploadArea', 'trendingFileInput', 'trendingPreview');
+setupFileUpload('popularUploadArea', 'popularFileInput', 'popularPreview');
+
+// =============================================
+// SAVE HERO
+// =============================================
+document.getElementById('saveHero').onclick = async () => {
+  const file = document.getElementById('heroFileInput').files[0];
+  let backgroundUrl = '';
+
+  if (file) {
+    const ref = storage.ref(`hero/${Date.now()}_${file.name}`);
+    await ref.put(file);
+    backgroundUrl = await ref.getDownloadURL();
   }
 
-  // Wire uploads
-  document.getElementById('heroBgFile').onchange = () => uploadFile('heroBgFile', 'heroBg', 'heroBgPreview');
-  document.getElementById('trMediaFile').onchange = () => uploadFile('trMediaFile', 'trMedia', 'trMediaPreview');
-  document.getElementById('popMediaFile').onchange = () => uploadFile('popMediaFile', 'popMedia', 'popMediaPreview');
+  const updates = {
+    title: document.getElementById('heroTitle').value.trim(),
+    description: document.getElementById('heroDescription').value.trim(),
+    badge: document.getElementById('heroBadge').value.trim(),
+    rating: document.getElementById('heroRating').value.trim(),
+    year: document.getElementById('heroYear').value.trim(),
+    duration: document.getElementById('heroDuration').value.trim(),
+    backgroundImage: backgroundUrl || null,
+    updatedAt: firebase.database.ServerValue.TIMESTAMP
+  };
 
-  // ── Auth & Dashboard Logic ──
-  const loginSection = document.getElementById('loginSection');
-  const dashboard = document.getElementById('dashboard');
+  await db.ref('/content/hero').update(updates);
+  alert('Hero section updated successfully!');
+};
 
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      loginSection.classList.add('hidden');
-      dashboard.classList.remove('hidden');
-      showToast(`Logged in as ${user.email}`, 'success');
-      loadAllContent();
-    } else {
-      loginSection.classList.remove('hidden');
-      dashboard.classList.add('hidden');
+// =============================================
+// ADD ITEM
+// =============================================
+async function addItem(category, titleId, yearId, fileInputId) {
+  const title = document.getElementById(titleId).value.trim();
+  const year = document.getElementById(yearId).value.trim();
+  const file = document.getElementById(fileInputId).files[0];
+
+  if (!title || !year) {
+    alert('Title and Year are required!');
+    return;
+  }
+
+  let imageUrl = '';
+  if (file) {
+    const ref = storage.ref(`${category}/${Date.now()}_${file.name}`);
+    await ref.put(file);
+    imageUrl = await ref.getDownloadURL();
+  }
+
+  // Get current highest order
+  const snapshot = await db.ref(`/content/${category}`)
+    .orderByChild('order')
+    .limitToLast(1)
+    .once('value');
+
+  let maxOrder = 0;
+  snapshot.forEach(child => {
+    maxOrder = child.val().order || 0;
+  });
+
+  const item = {
+    title,
+    year,
+    image: imageUrl,
+    order: maxOrder + 100, // nice spacing between items
+    createdAt: firebase.database.ServerValue.TIMESTAMP
+  };
+
+  await db.ref(`/content/${category}`).push(item);
+
+  // Clear form
+  document.getElementById(titleId).value = '';
+  document.getElementById(yearId).value = '';
+  document.getElementById(fileInputId).value = '';
+  document.getElementById(fileInputId.replace('Input','Preview')).style.display = 'none';
+
+  alert(`Added to ${category.replace(/([A-Z])/g, ' $1')} successfully!`);
+}
+
+// =============================================
+// DELETE ITEM
+// =============================================
+function deleteItem(category, key) {
+  if (!confirm('Are you sure you want to delete this item?')) return;
+  db.ref(`/content/${category}/${key}`).remove();
+}
+
+// =============================================
+// SAVE ORDER AFTER DRAG
+// =============================================
+async function saveOrder(containerId, category) {
+  const container = document.getElementById(containerId);
+  const items = Array.from(container.children);
+
+  const updates = {};
+  items.forEach((el, index) => {
+    const key = el.dataset.key;
+    if (key) {
+      updates[`${key}/order`] = (index + 1) * 100;
     }
   });
 
-  document.getElementById('loginBtn').onclick = async () => {
-    const email = document.getElementById('email').value.trim();
-    const pass = document.getElementById('password').value;
-    try {
-      await auth.signInWithEmailAndPassword(email, pass);
-    } catch (err) {
-      document.getElementById('loginError').textContent = err.message;
+  if (Object.keys(updates).length > 0) {
+    await db.ref(`/content/${category}`).update(updates);
+    console.log(`Order saved for ${category}`);
+  }
+}
+
+// =============================================
+// INIT SORTABLE + RENDER
+// =============================================
+function initSortable(containerId, category) {
+  const container = document.getElementById(containerId);
+
+  new Sortable(container, {
+    animation: 180,
+    handle: '.drag-handle',
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    onEnd: () => {
+      saveOrder(containerId, category);
     }
-  };
+  });
+}
 
-  document.getElementById('signOutBtn').onclick = () => auth.signOut();
+function renderList(containerId, items, category) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
 
-  // ── Content Load & Save ──
-  function loadAllContent() {
-    loadHero();
-    loadTrending();
-    loadPopular();
+  if (!items.length) {
+    container.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-dim);">No items yet</p>';
+    return;
   }
 
-  function loadHero() {
-    db.ref('/content/hero').once('value', snap => {
-      const d = snap.val() || {};
-      document.getElementById('heroTitle').value = d.title || '';
-      document.getElementById('heroDesc').value = d.description || '';
-      document.getElementById('heroBadge').value = d.badge || '';
-      document.getElementById('heroRating').value = d.rating || '';
-      document.getElementById('heroYear').value = d.year || '';
-      document.getElementById('heroDuration').value = d.duration || '';
-      document.getElementById('heroAge').value = d.ageRating || '';
-      document.getElementById('heroBg').value = d.backgroundImage || '';
-      if (d.backgroundImage) {
-        document.getElementById('heroBgPreview').src = d.backgroundImage;
-        document.getElementById('heroBgPreview').style.display = 'block';
-      }
+  // Sort by order field (fallback to createdAt if missing)
+  items.sort((a,b) => {
+    const orderA = a.order ?? a.createdAt ?? 0;
+    const orderB = b.order ?? b.createdAt ?? 0;
+    return orderA - orderB;
+  });
+
+  container.innerHTML = items.map(item => {
+    return `
+      <div class="item-card" data-key="${item.key}">
+        <div class="drag-handle"><span class="material-symbols-rounded">drag_handle</span></div>
+        <img src="${item.image || 'https://via.placeholder.com/320x180?text=No+Image'}" alt="${item.title}"/>
+        <div class="item-info">
+          <div class="item-title">${item.title}</div>
+          <div style="color:var(--text-dim);font-size:0.9rem;">${item.year}</div>
+        </div>
+        <div class="item-actions">
+          <button class="btn btn-danger" style="padding:0.5rem 1rem;font-size:0.9rem;"
+                  onclick="deleteItem('${category}', '${item.key}')">Delete</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Initialize sortable after rendering
+  initSortable(containerId, category);
+}
+
+// =============================================
+// LOAD ALL CONTENT
+// =============================================
+function loadAllContent() {
+  // Hero
+  db.ref('/content/hero').once('value', snap => {
+    const h = snap.val() || {};
+    document.getElementById('heroTitle').value = h.title || '';
+    document.getElementById('heroDescription').value = h.description || '';
+    document.getElementById('heroBadge').value = h.badge || '16+';
+    document.getElementById('heroRating').value = h.rating || '';
+    document.getElementById('heroYear').value = h.year || '';
+    document.getElementById('heroDuration').value = h.duration || '';
+
+    if (h.backgroundImage) {
+      document.getElementById('heroPreview').src = h.backgroundImage;
+      document.getElementById('heroPreview').style.display = 'block';
+    }
+  });
+
+  // New Releases
+  db.ref('/content/new').on('value', snap => {
+    const items = [];
+    snap.forEach(child => {
+      items.push({ key: child.key, ...child.val() });
     });
-  }
-
-  document.getElementById('saveHero').onclick = () => {
-    const data = {
-      title: document.getElementById('heroTitle').value,
-      description: document.getElementById('heroDesc').value,
-      badge: document.getElementById('heroBadge').value,
-      rating: document.getElementById('heroRating').value,
-      year: document.getElementById('heroYear').value,
-      duration: document.getElementById('heroDuration').value,
-      ageRating: document.getElementById('heroAge').value,
-      backgroundImage: document.getElementById('heroBg').value
-    };
-    db.ref('/content/hero').set(data)
-      .then(() => showToast('Hero saved', 'success'))
-      .catch(err => showToast('Error: '+err.message, 'error'));
-  };
+    renderList('newReleasesList', items, 'new');
+  });
 
   // Trending
-  function loadTrending() {
-    db.ref('/content/trending').on('value', snap => {
-      const list = document.getElementById('trendingList');
-      list.innerHTML = '';
-      const items = snap.val() || {};
-      Object.entries(items).forEach(([key, item]) => {
-        const card = document.createElement('div');
-        card.className = 'item-card';
-        card.innerHTML = `
-          <div class="item-info">
-            <strong>${item.title||'Untitled'}</strong><br/>
-            <small>${item.year||'—'}</small>
-          </div>
-          <button class="btn btn-danger" onclick="deleteItem('trending', '${key}')">Delete</button>
-        `;
-        list.appendChild(card);
-      });
+  db.ref('/content/trending').on('value', snap => {
+    const items = [];
+    snap.forEach(child => {
+      items.push({ key: child.key, ...child.val() });
     });
-  }
+    renderList('trendingList', items, 'trending');
+  });
 
-  document.getElementById('addTrending').onclick = () => {
-    const title = document.getElementById('trTitle').value.trim();
-    const media = document.getElementById('trMedia').value.trim();
-    const year = document.getElementById('trYear').value.trim();
-    if (!title || !media) return showToast('Title & media required', 'error');
-    db.ref('/content/trending').push({ title, image:media, year })
-      .then(() => {
-        showToast('Added', 'success');
-        ['trTitle','trMedia','trYear'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('trMediaPreview').style.display = 'none';
-      })
-      .catch(err => showToast('Error: '+err.message, 'error'));
-  };
-
-  // Popular (identical)
-  function loadPopular() {
-    db.ref('/content/popular').on('value', snap => {
-      const list = document.getElementById('popularList');
-      list.innerHTML = '';
-      const items = snap.val() || {};
-      Object.entries(items).forEach(([key, item]) => {
-        const card = document.createElement('div');
-        card.className = 'item-card';
-        card.innerHTML = `
-          <div class="item-info">
-            <strong>${item.title||'Untitled'}</strong><br/>
-            <small>${item.year||'—'}</small>
-          </div>
-          <button class="btn btn-danger" onclick="deleteItem('popular', '${key}')">Delete</button>
-        `;
-        list.appendChild(card);
-      });
+  // Popular
+  db.ref('/content/popular').on('value', snap => {
+    const items = [];
+    snap.forEach(child => {
+      items.push({ key: child.key, ...child.val() });
     });
-  }
+    renderList('popularList', items, 'popular');
+  });
+}
 
-  document.getElementById('addPopular').onclick = () => {
-    const title = document.getElementById('popTitle').value.trim();
-    const media = document.getElementById('popMedia').value.trim();
-    const year = document.getElementById('popYear').value.trim();
-    if (!title || !media) return showToast('Title & media required', 'error');
-    db.ref('/content/popular').push({ title, image:media, year })
-      .then(() => {
-        showToast('Added', 'success');
-        ['popTitle','popMedia','popYear'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('popMediaPreview').style.display = 'none';
-      })
-      .catch(err => showToast('Error: '+err.message, 'error'));
-  };
+// =============================================
+// TOGGLE FORMS
+// =============================================
+document.getElementById('toggleNewForm').onclick = () =>
+  document.getElementById('newReleaseForm').classList.toggle('hidden');
 
-  window.deleteItem = (type, key) => {
-    if (confirm('Delete this item?')) {
-      db.ref(`/content/${type}/${key}`).remove()
-        .then(() => showToast('Deleted', 'success'))
-        .catch(err => showToast('Error: '+err.message, 'error'));
-    }
-  };
+document.getElementById('toggleTrendingForm').onclick = () =>
+  document.getElementById('trendingForm').classList.toggle('hidden');
+
+document.getElementById('togglePopularForm').onclick = () =>
+  document.getElementById('popularForm').classList.toggle('hidden');
+
+// =============================================
+// ADD BUTTONS
+// =============================================
+document.getElementById('addNewRelease').onclick = () =>
+  addItem('new', 'newTitle', 'newYear', 'newFileInput');
+
+document.getElementById('addTrending').onclick = () =>
+  addItem('trending', 'trendingTitle', 'trendingYear', 'trendingFileInput');
+
+document.getElementById('addPopular').onclick = () =>
+  addItem('popular', 'popularTitle', 'popularYear', 'popularFileInput');
 </script>
 </body>
 </html>
